@@ -15,16 +15,20 @@ This PRD's original stack table (§5) assumed the bare/`react-native-config` set
 `employee-mobile-app`. During bootstrap we adopted newer patterns where they were genuinely better.
 Where this section conflicts with §5, **this section and the ADRs win**:
 
-| Topic | PRD §5 said | Locked decision | ADR |
+| Topic | PRD §5/§6 said | Locked decision | ADR |
 |---|---|---|---|
+| Runtime | Expo SDK 53+ | **Expo SDK 56** (RN 0.85, React 19.2) — current stable at bootstrap | ADR-003 |
 | Workflow | bare-style, react-native-config | **Expo managed (CNG), prebuild-on-demand**, MVP runs in Expo Go | ADR-003 |
 | Env/config | react-native-config | **app.config.js + expo-constants** (`.env.dev/stage/prod`) | ADR-003 |
 | Navigation | React Navigation under `stacks/` | **expo-router** (file-based `app/`) | ADR-004 |
 | Data layer | slice + `createAsyncThunk` per entity | **RTK Query** (`injectEndpoints` per entity) | ADR-005 |
 | Storage | AsyncStorage | **expo-secure-store (token) + AsyncStorage (cache)**; MMKV deferred | ADR-006 |
 | Persistence/offline | non-goal | **redux-persist cache now** (fast cold start + offline reads); **local-first sync** is the Phase-3 north star | ADR-007 |
+| App structure | screens under `screens/`, navigators under `stacks/` | **thin `app/` route shims → `src/screens/` → `src/components/ui/` (atomic, one file each)** | ADR-008 |
 
 Everything in §4 (the **backend contract**), §8 (screens/flows), and §9 (phases) stands unchanged.
+§5 and §6 below are the **original draft**; where they differ from this table, the table + ADRs win.
+The as-built structure lives in `ARCHITECTURE.md` §4.
 
 ---
 
@@ -138,6 +142,10 @@ is no "spend from vault"; you allocate/withdraw whole transactions.
 
 ## 5. Proposed stack
 
+> ⚠️ **Original draft — superseded by §0 + the ADRs.** As-built: Expo SDK 56, expo-router, Redux
+> Toolkit **+ RTK Query**, `app.config.js` + `expo-constants`, `expo-secure-store` + AsyncStorage,
+> `redux-persist`. The table below is kept for provenance.
+
 Match the team's existing Expo app (`employee-mobile-app`) so patterns and muscle memory carry over.
 **JavaScript (no TypeScript)** to stay consistent with that app and the `balance` backend.
 
@@ -156,6 +164,12 @@ Match the team's existing Expo app (`employee-mobile-app`) so patterns and muscl
 | Testing | `jest` + `@testing-library/react-native` | colocated `*.test.js` |
 
 ## 6. App structure
+
+> ⚠️ **Original draft — superseded by ADR-008 + `ARCHITECTURE.md` §4.** As-built: `app/` holds only
+> expo-router route shims (`export { default } from '../../src/screens/X'`); real screens live in
+> `src/screens/<Name>/`; shared UI in `src/components/ui/` (one file per component + `index.js`); the
+> RTK Query data layer is in `src/services/api/`. §6.1/§6.2 below (thunk slices / `fetch` client) are
+> replaced by RTK Query — see ADR-005. The tree below is kept for provenance.
 
 Mirror the established layout:
 

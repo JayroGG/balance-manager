@@ -35,3 +35,4 @@ Statuses: `Proposed` · `Accepted` · `Deprecated` · `Superseded by ADR-NNN`.
 | [ADR-005](ADR-005-data-layer-rtk-query.md) | Data layer via RTK Query (supersedes PRD thunks) | Accepted |
 | [ADR-006](ADR-006-storage-securestore-asyncstorage-mmkv-northstar.md) | Storage: secure-store + AsyncStorage now, MMKV north star | Accepted |
 | [ADR-007](ADR-007-persistence-and-offline-strategy.md) | Persistence & offline: cache-persist now, local-first sync north star | Accepted |
+| [ADR-008](ADR-008-app-structure-thin-routes-src-screens.md) | App structure: thin `app/` routes, `src/screens`, atomic `src/components/ui` | Accepted |

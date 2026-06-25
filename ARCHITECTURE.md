@@ -101,19 +101,29 @@ balance-manager/                 # app name: balance-mobile
 ├── eas.json                     # development(dev-client) / preview(stage) / production
 ├── .env.dev .env.stage .env.prod   # API_URL, AUTH_BYPASS, APP_ENV   (gitignored)
 ├── index.js                     # expo-router entry
-├── app/                         # ROUTES (expo-router) — thin screens only
-│   ├── _layout.jsx  index.jsx
+├── app/                         # ROUTES ONLY (expo-router's required root folder) — thin adapters
+│   ├── _layout.jsx              # providers + cold-start bootstrap + splash gate (router infra)
+│   ├── index.jsx                # boot redirect (router infra)
 │   ├── (auth)/      _layout.jsx  login.jsx
 │   └── (tabs)/      _layout.jsx  dashboard.jsx  categories.jsx  settings.jsx
-│        transactions/{index,new,[id]}.jsx   vaults/{index,[id]}.jsx
-├── src/
-│   ├── store/                   # configureStore + RTKQ middleware + setupListeners
+│        transactions/{index,new,[id]}.jsx   vaults/{index,new,[id]}.jsx
+│        # each (tabs) screen file is a 1-line shim: `export { default } from '../../src/screens/X'`
+├── src/                         # ALL real code lives here
+│   ├── screens/                 # screen bodies (composition + data orchestration), mirrors team layout
+│   │   ├── Dashboard/index.jsx
+│   │   ├── Transactions/{ListScreen,NewScreen,EditScreen}.jsx  TransactionForm.jsx
+│   │   ├── Vaults/{ListScreen,NewScreen,DetailScreen}.jsx
+│   │   ├── Categories/index.jsx   Settings/index.jsx
+│   ├── components/
+│   │   ├── ui/                  # shared atoms/molecules — one file each + index.js barrel
+│   │   │   └── {Screen,Card,Button,Field,Chip,MoneyText,Typography,EmptyState,QueryBoundary}.jsx
+│   │   └── theme.js             # colors / spacing / radius / font
+│   ├── store/                   # configureStore + RTKQ middleware + redux-persist + setupListeners
 │   ├── services/
 │   │   ├── api/                 # baseApi.js + balance/transactions/vaults/categories.js (injectEndpoints)
 │   │   └── storage/             # secure.js (token), prefs.js (cache/prefs)
 │   ├── reducers/auth/           # auth slice (token/bypass/user)
 │   ├── hooks/                   # useIdToken(), shared data hooks
-│   ├── components/              # Button, Input, Card, Header, MoneyText, VaultProgress, FilterChips, FAB
 │   ├── utils/                   # config.js, money.js, dates.js
 │   └── i18n/                    # i18next init + locales/{en-US,es-MX}.json
 ├── CLAUDE.md  PRD.md  ARCHITECTURE.md  README.md

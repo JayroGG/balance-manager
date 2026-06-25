@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Field, AppButton, Chip, Muted } from './ui';
-import { colors, font, spacing } from './theme';
-import { todayISODate } from '../utils/dates';
+import { Field, AppButton, Chip, Muted } from '../../components/ui';
+import { colors, font, spacing } from '../../components/theme';
+import { todayISODate } from '../../utils/dates';
 
 // Shared create/edit form. Enforces the UI invariants: vault picker is income-only; amount > 0. (PRD §4.1)
 export default function TransactionForm({ initial, categories = [], vaults = [], onSubmit, submitting, error }) {

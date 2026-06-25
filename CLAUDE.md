@@ -53,10 +53,13 @@ Point `.env.dev` `API_URL` at the running backend (`cd ../../Node/Projects/balan
 
 ## Architecture (summary)
 
-- **Routes** live in `app/` (expo-router): root `_layout.jsx` runs the cold-start bootstrap (load token
-  from secure-store + `AUTH_BYPASS` into the `auth` slice, init i18n) behind the splash screen, then
-  `index.jsx` redirects to `(tabs)` or `(auth)`. Tabs: Dashboard, Transactions, Vaults, Categories, Settings.
-- **Everything non-route** lives in `src/` so screens stay thin.
+- **`app/` = routes only** (expo-router's required root folder). Each `(tabs)` screen file is a **1-line
+  shim** (`export { default } from '../../src/screens/X'`); the only logic in `app/` is router infra:
+  root `_layout.jsx` runs the cold-start bootstrap (load token from secure-store + `AUTH_BYPASS` into the
+  `auth` slice, init i18n) behind the splash, and `index.jsx` redirects to `(tabs)` or `(auth)`.
+- **`src/` = all real code.** Screen bodies live in `src/screens/<Name>/` (composition + data hooks);
+  shared atoms/molecules in `src/components/ui/` (one file each + `index.js` barrel); `theme.js` alongside.
+  Three layers: **route (app/) → screen (src/screens) → component (src/components)** — see ADR-008.
 - **Data:** components call RTK Query hooks only — never `fetch`, never manual loading state. Mutations
   invalidate tags (`Balance`, `Vault`, …) so the dashboard auto-refreshes (balances come from `/balance`).
 - **Auth seam:** the only place a token is attached is `src/services/api/baseApi.js` `prepareHeaders`.
@@ -71,7 +74,9 @@ Point `.env.dev` `API_URL` at the running backend (`cd ../../Node/Projects/balan
 | `eas.json` | Build profiles: development (dev-client) / preview (stage) / production. |
 | `app/_layout.jsx` | Root providers + cold-start bootstrap + splash gate. |
 | `app/index.jsx` | Boot redirect → `(tabs)` or `(auth)`. |
-| `app/(tabs)/*` | Screen routes (Dashboard, Transactions, Vaults, Categories, Settings). |
+| `app/(tabs)/*` | Thin route shims → render screens from `src/screens/`. |
+| `src/screens/<Name>/` | Screen bodies (Dashboard, Transactions, Vaults, Categories, Settings). |
+| `src/components/ui/` | Shared atoms/molecules, one file each + `index.js` barrel. |
 | `src/services/api/baseApi.js` | RTK Query base: `fetchBaseQuery` + token seam + `tagTypes`. |
 | `src/services/api/{balance,transactions,vaults,categories}.js` | `injectEndpoints` per entity. |
 | `src/services/storage/{secure,prefs}.js` | Token (secure-store) / cache+prefs (AsyncStorage) seam. |
