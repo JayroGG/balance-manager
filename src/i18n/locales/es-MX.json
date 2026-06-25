@@ -1,0 +1,86 @@
+{
+  "common": {
+    "appName": "Balance",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "create": "Crear",
+    "retry": "Reintentar",
+    "loading": "Cargando…",
+    "error": "Algo salió mal",
+    "none": "Ninguno",
+    "required": "Requerido"
+  },
+  "tabs": {
+    "dashboard": "Inicio",
+    "transactions": "Movimientos",
+    "vaults": "Bóvedas",
+    "categories": "Categorías",
+    "settings": "Ajustes"
+  },
+  "dashboard": {
+    "title": "Inicio",
+    "total": "Total",
+    "available": "Disponible",
+    "vaults": "Bóvedas",
+    "emptyVaults": "Aún no hay bóvedas"
+  },
+  "transactions": {
+    "title": "Movimientos",
+    "new": "Nuevo movimiento",
+    "edit": "Editar movimiento",
+    "type": "Tipo",
+    "income": "Ingreso",
+    "expense": "Gasto",
+    "amount": "Monto",
+    "category": "Categoría",
+    "vault": "Bóveda",
+    "vaultIncomeOnly": "La bóveda solo aplica a ingresos",
+    "description": "Descripción",
+    "date": "Fecha",
+    "all": "Todos",
+    "deleteConfirm": "¿Eliminar este movimiento?",
+    "empty": "Aún no hay movimientos",
+    "amountPositive": "El monto debe ser mayor que 0"
+  },
+  "vaults": {
+    "title": "Bóvedas",
+    "new": "Nueva bóveda",
+    "edit": "Editar bóveda",
+    "name": "Nombre",
+    "targetAmount": "Monto objetivo",
+    "balance": "Saldo",
+    "target": "Objetivo",
+    "noTarget": "Sin objetivo",
+    "history": "Historial",
+    "allocate": "Asignar",
+    "withdraw": "Retirar",
+    "allocateHint": "Elige un ingreso para asignar",
+    "withdrawHint": "Elige un movimiento para retirar",
+    "noEligible": "No hay movimientos elegibles",
+    "empty": "Aún no hay bóvedas",
+    "deleteConfirm": "¿Eliminar esta bóveda?"
+  },
+  "categories": {
+    "title": "Categorías",
+    "new": "Nueva categoría",
+    "edit": "Editar categoría",
+    "name": "Nombre",
+    "kind": "Tipo",
+    "income": "Ingreso",
+    "expense": "Gasto",
+    "both": "Ambos",
+    "empty": "Aún no hay categorías",
+    "deleteConfirm": "¿Eliminar esta categoría?"
+  },
+  "settings": {
+    "title": "Ajustes",
+    "currency": "Moneda",
+    "language": "Idioma",
+    "environment": "Entorno",
+    "auth": "Autenticación",
+    "authBypassed": "Omitida (prototipo)",
+    "clearCache": "Borrar datos en caché"
+  }
+}

@@ -1,0 +1,6 @@
+// Barrel: importing this ensures every entity's injectEndpoints() has run (ADR-005).
+export { baseApi } from './baseApi';
+export * from './balance';
+export * from './categories';
+export * from './transactions';
+export * from './vaults';

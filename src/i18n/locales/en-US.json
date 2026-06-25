@@ -1,0 +1,86 @@
+{
+  "common": {
+    "appName": "Balance",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "retry": "Retry",
+    "loading": "Loading…",
+    "error": "Something went wrong",
+    "none": "None",
+    "required": "Required"
+  },
+  "tabs": {
+    "dashboard": "Dashboard",
+    "transactions": "Transactions",
+    "vaults": "Vaults",
+    "categories": "Categories",
+    "settings": "Settings"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "total": "Total",
+    "available": "Available",
+    "vaults": "Vaults",
+    "emptyVaults": "No vaults yet"
+  },
+  "transactions": {
+    "title": "Transactions",
+    "new": "New transaction",
+    "edit": "Edit transaction",
+    "type": "Type",
+    "income": "Income",
+    "expense": "Expense",
+    "amount": "Amount",
+    "category": "Category",
+    "vault": "Vault",
+    "vaultIncomeOnly": "Vault can only be set on income",
+    "description": "Description",
+    "date": "Date",
+    "all": "All",
+    "deleteConfirm": "Delete this transaction?",
+    "empty": "No transactions yet",
+    "amountPositive": "Amount must be greater than 0"
+  },
+  "vaults": {
+    "title": "Vaults",
+    "new": "New vault",
+    "edit": "Edit vault",
+    "name": "Name",
+    "targetAmount": "Target amount",
+    "balance": "Balance",
+    "target": "Target",
+    "noTarget": "No target",
+    "history": "History",
+    "allocate": "Allocate",
+    "withdraw": "Withdraw",
+    "allocateHint": "Pick an income transaction to allocate",
+    "withdrawHint": "Pick a transaction to withdraw",
+    "noEligible": "No eligible transactions",
+    "empty": "No vaults yet",
+    "deleteConfirm": "Delete this vault?"
+  },
+  "categories": {
+    "title": "Categories",
+    "new": "New category",
+    "edit": "Edit category",
+    "name": "Name",
+    "kind": "Kind",
+    "income": "Income",
+    "expense": "Expense",
+    "both": "Both",
+    "empty": "No categories yet",
+    "deleteConfirm": "Delete this category?"
+  },
+  "settings": {
+    "title": "Settings",
+    "currency": "Currency",
+    "language": "Language",
+    "environment": "Environment",
+    "auth": "Authentication",
+    "authBypassed": "Bypassed (prototype)",
+    "clearCache": "Clear cached data"
+  }
+}
