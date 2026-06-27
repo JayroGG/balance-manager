@@ -2,6 +2,7 @@
   "common": {
     "appName": "Balance",
     "save": "Guardar",
+    "saved": "Guardado",
     "cancel": "Cancelar",
     "delete": "Eliminar",
     "edit": "Editar",
@@ -56,6 +57,8 @@
     "history": "Historial",
     "allocate": "Asignar",
     "withdraw": "Retirar",
+    "allocated": "Asignado",
+    "withdrawn": "Retirado",
     "allocateHint": "Elige un ingreso para asignar",
     "withdrawHint": "Elige un movimiento para retirar",
     "noEligible": "No hay movimientos elegibles",

@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import {
@@ -29,6 +29,15 @@ export default function VaultDetail() {
   const figures = balance?.vaults?.find((v) => v.id === vaultId);
 
   const [picker, setPicker] = useState(null); // null | 'allocate' | 'withdraw'
+  const [pendingTxnId, setPendingTxnId] = useState(null); // row spinner while a pick is in flight
+  const [flashed, setFlashed] = useState(null); // 'allocate' | 'withdraw' — transient ✓ on the action button
+  const flashRef = useRef();
+  useEffect(() => () => clearTimeout(flashRef.current), []);
+  const triggerFlash = (action) => {
+    setFlashed(action);
+    clearTimeout(flashRef.current);
+    flashRef.current = setTimeout(() => setFlashed(null), 1500);
+  };
   const { data: incomeTxns } = useGetTransactionsQuery({ type: 'income' }, { skip: picker !== 'allocate' });
   const { data: vaultTxns } = useGetTransactionsQuery({ vault_id: vaultId }, { skip: picker !== 'withdraw' });
 
@@ -47,6 +56,10 @@ export default function VaultDetail() {
     }
   }, [vault]);
 
+  // Save locks (✓ Saved) until name/target differ from the saved vault.
+  const targetNorm = target !== '' && Number(target) > 0 ? Number(target) : null;
+  const dirty = !vault || name.trim() !== (vault.name ?? '') || targetNorm !== (vault.target_amount ?? null);
+
   const candidates = useMemo(() => {
     if (picker === 'allocate') return (incomeTxns ?? []).filter((tx) => tx.vault_id !== vaultId);
     if (picker === 'withdraw') return vaultTxns ?? [];
@@ -54,12 +67,17 @@ export default function VaultDetail() {
   }, [picker, incomeTxns, vaultTxns, vaultId]);
 
   const onPick = async (txn) => {
+    const action = picker;
+    setPendingTxnId(txn.id);
     try {
-      if (picker === 'allocate') await allocate({ id: vaultId, transaction_id: txn.id }).unwrap();
+      if (action === 'allocate') await allocate({ id: vaultId, transaction_id: txn.id }).unwrap();
       else await withdraw({ id: vaultId, transaction_id: txn.id }).unwrap();
       setPicker(null);
+      triggerFlash(action);
     } catch (e) {
       Alert.alert(t('common.error'), e?.message ?? '');
+    } finally {
+      setPendingTxnId(null);
     }
   };
 
@@ -103,8 +121,21 @@ export default function VaultDetail() {
         </Card>
 
         <View style={styles.actions}>
-          <AppButton title={t('vaults.allocate')} onPress={() => setPicker(picker === 'allocate' ? null : 'allocate')} style={{ flex: 1, marginRight: spacing(1) }} />
-          <AppButton title={t('vaults.withdraw')} variant="ghost" onPress={() => setPicker(picker === 'withdraw' ? null : 'withdraw')} style={{ flex: 1 }} />
+          <AppButton
+            title={t('vaults.allocate')}
+            successTitle={t('vaults.allocated')}
+            success={flashed === 'allocate'}
+            onPress={() => setPicker(picker === 'allocate' ? null : 'allocate')}
+            style={{ flex: 1, marginRight: spacing(1) }}
+          />
+          <AppButton
+            title={t('vaults.withdraw')}
+            successTitle={t('vaults.withdrawn')}
+            success={flashed === 'withdraw'}
+            variant="ghost"
+            onPress={() => setPicker(picker === 'withdraw' ? null : 'withdraw')}
+            style={{ flex: 1 }}
+          />
         </View>
 
         {picker ? (
@@ -116,7 +147,11 @@ export default function VaultDetail() {
               candidates.map((tx) => (
                 <Pressable key={tx.id} onPress={() => onPick(tx)} disabled={allocating || withdrawing} style={styles.pickRow}>
                   <Text style={styles.pickDesc} numberOfLines={1}>{tx.description || formatDate(tx.occurred_at)}</Text>
-                  <MoneyText amount={tx.amount} currency={currency} style={styles.pickAmount} />
+                  {pendingTxnId === tx.id ? (
+                    <ActivityIndicator color={colors.primary} style={{ marginLeft: spacing(1) }} />
+                  ) : (
+                    <MoneyText amount={tx.amount} currency={currency} style={styles.pickAmount} />
+                  )}
                 </Pressable>
               ))
             )}
@@ -143,7 +178,14 @@ export default function VaultDetail() {
         <SectionTitle>{t('common.edit')}</SectionTitle>
         <Field label={t('vaults.name')} value={name} onChangeText={setName} />
         <Field label={t('vaults.targetAmount')} value={target} onChangeText={setTarget} keyboardType="decimal-pad" placeholder="0.00" />
-        <AppButton title={t('common.save')} onPress={onSave} loading={saving} disabled={!name.trim()} />
+        <AppButton
+          title={t('common.save')}
+          successTitle={t('common.saved')}
+          onPress={onSave}
+          loading={saving}
+          disabled={!name.trim() || !dirty}
+          success={!dirty && !!vault && !saving}
+        />
         <AppButton title={t('common.delete')} variant="danger" onPress={onDelete} loading={deleting} style={{ marginTop: spacing(1.5) }} />
       </QueryBoundary>
     </Screen>

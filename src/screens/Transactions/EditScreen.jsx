@@ -25,8 +25,10 @@ export default function TransactionDetail() {
   const onSubmit = async (body) => {
     try {
       await updateTransaction({ id, ...body }).unwrap();
-      router.back();
-    } catch {}
+      return true; // form shows the ✓ Saved lock; user stays on the screen
+    } catch {
+      return false;
+    }
   };
 
   const onDelete = () => {

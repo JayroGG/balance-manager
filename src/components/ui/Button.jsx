@@ -1,23 +1,25 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text } from 'react-native';
 import { colors, font, radius, spacing } from '../theme';
 
-export const AppButton = ({ title, onPress, variant = 'primary', disabled, loading, style }) => {
-  const tint =
+export const AppButton = ({ title, successTitle, onPress, variant = 'primary', disabled, loading, success, style }) => {
+  const baseTint =
     variant === 'danger' ? colors.danger : variant === 'ghost' ? 'transparent' : colors.primary;
-  const txt = variant === 'ghost' ? colors.primary : colors.primaryText;
+  const tint = success ? colors.success : baseTint;
+  const txt = success ? colors.primaryText : variant === 'ghost' ? colors.primary : colors.primaryText;
+  const label = success ? `✓ ${successTitle ?? title}` : title;
   return (
     <Pressable
       onPress={onPress}
-      disabled={disabled || loading}
+      disabled={disabled || loading || success}
       style={({ pressed }) => [
         styles.button,
-        { backgroundColor: tint, borderWidth: variant === 'ghost' ? 1 : 0, borderColor: colors.primary },
-        (disabled || loading) && { opacity: 0.5 },
+        { backgroundColor: tint, borderWidth: variant === 'ghost' && !success ? 1 : 0, borderColor: colors.primary },
+        (disabled || loading) && !success && { opacity: 0.5 },
         pressed && { opacity: 0.8 },
         style,
       ]}
     >
-      {loading ? <ActivityIndicator color={txt} /> : <Text style={[styles.text, { color: txt }]}>{title}</Text>}
+      {loading ? <ActivityIndicator color={txt} /> : <Text style={[styles.text, { color: txt }]}>{label}</Text>}
     </Pressable>
   );
 };

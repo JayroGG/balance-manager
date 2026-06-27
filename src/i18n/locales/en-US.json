@@ -2,6 +2,7 @@
   "common": {
     "appName": "Balance",
     "save": "Save",
+    "saved": "Saved",
     "cancel": "Cancel",
     "delete": "Delete",
     "edit": "Edit",
@@ -56,6 +57,8 @@
     "history": "History",
     "allocate": "Allocate",
     "withdraw": "Withdraw",
+    "allocated": "Allocated",
+    "withdrawn": "Withdrawn",
     "allocateHint": "Pick an income transaction to allocate",
     "withdrawHint": "Pick a transaction to withdraw",
     "noEligible": "No eligible transactions",

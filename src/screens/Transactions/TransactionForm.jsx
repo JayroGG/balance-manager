@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Field, AppButton, Chip, Muted } from '../../components/ui';
@@ -15,6 +15,19 @@ export default function TransactionForm({ initial, categories = [], vaults = [],
   const [description, setDescription] = useState(initial?.description ?? '');
   const [occurredAt, setOccurredAt] = useState(initial?.occurred_at ?? todayISODate());
   const [touched, setTouched] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const isEdit = !!initial;
+
+  // Any field edit clears the "saved" lock so the button re-arms (skip the initial mount).
+  const firstRun = useRef(true);
+  useEffect(() => {
+    if (firstRun.current) {
+      firstRun.current = false;
+      return;
+    }
+    setSaved(false);
+  }, [type, amount, categoryId, vaultId, description, occurredAt]);
 
   const eligibleCategories = useMemo(
     () => categories.filter((c) => c.kind === type || c.kind === 'both'),
@@ -24,20 +37,33 @@ export default function TransactionForm({ initial, categories = [], vaults = [],
   const amountNum = Number(amount);
   const amountValid = amount !== '' && amountNum > 0;
 
+  // In edit mode, the Save button locks (✓ Saved) until a field differs from the saved record.
+  const normVault = type === 'income' ? vaultId ?? null : null;
+  const dirty =
+    !isEdit ||
+    type !== initial.type ||
+    amountNum !== Number(initial.amount) ||
+    (categoryId ?? null) !== (initial.category_id ?? null) ||
+    normVault !== (initial.vault_id ?? null) ||
+    description.trim() !== (initial.description ?? '') ||
+    occurredAt !== initial.occurred_at;
+  const locked = isEdit && (saved || !dirty);
+
   const setTypeSafe = (next) => {
     setType(next);
     if (next === 'expense') setVaultId(null); // expense can never carry a vault_id
     setCategoryId(null);
   };
 
-  const submit = () => {
+  const submit = async () => {
     setTouched(true);
     if (!amountValid) return;
     const body = { type, amount: amountNum, occurred_at: occurredAt };
     if (categoryId) body.category_id = categoryId;
     if (description.trim()) body.description = description.trim();
     if (type === 'income' && vaultId) body.vault_id = vaultId;
-    onSubmit(body);
+    const ok = await onSubmit(body);
+    if (ok && isEdit) setSaved(true);
   };
 
   return (
@@ -83,7 +109,14 @@ export default function TransactionForm({ initial, categories = [], vaults = [],
       <Field label={t('transactions.date')} value={occurredAt} onChangeText={setOccurredAt} placeholder="YYYY-MM-DD" autoCapitalize="none" />
 
       {error ? <Muted style={styles.err}>{error.message}</Muted> : null}
-      <AppButton title={t('common.save')} onPress={submit} loading={submitting} disabled={!amountValid} />
+      <AppButton
+        title={t('common.save')}
+        successTitle={t('common.saved')}
+        onPress={submit}
+        loading={submitting}
+        disabled={!amountValid || locked}
+        success={locked && !submitting}
+      />
     </ScrollView>
   );
 }
