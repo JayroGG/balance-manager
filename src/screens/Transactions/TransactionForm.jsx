@@ -5,13 +5,13 @@ import { Field, AppButton, Chip, Muted } from '../../components/ui';
 import { colors, font, spacing } from '../../components/theme';
 import { todayISODate } from '../../utils/dates';
 
-// Shared create/edit form. Enforces the UI invariants: vault picker is income-only; amount > 0. (PRD §4.1)
-export default function TransactionForm({ initial, categories = [], vaults = [], onSubmit, submitting, error }) {
+// Shared create/edit form. Transactions are a pure ledger — no vault here; vault funding is an
+// amount-based action on the vault detail screen (ADR-009). Enforces amount > 0. (PRD §4.1)
+export default function TransactionForm({ initial, categories = [], onSubmit, submitting, error }) {
   const { t } = useTranslation();
   const [type, setType] = useState(initial?.type ?? 'expense');
   const [amount, setAmount] = useState(initial?.amount != null ? String(initial.amount) : '');
   const [categoryId, setCategoryId] = useState(initial?.category_id ?? null);
-  const [vaultId, setVaultId] = useState(initial?.vault_id ?? null);
   const [description, setDescription] = useState(initial?.description ?? '');
   const [occurredAt, setOccurredAt] = useState(initial?.occurred_at ?? todayISODate());
   const [touched, setTouched] = useState(false);
@@ -27,7 +27,7 @@ export default function TransactionForm({ initial, categories = [], vaults = [],
       return;
     }
     setSaved(false);
-  }, [type, amount, categoryId, vaultId, description, occurredAt]);
+  }, [type, amount, categoryId, description, occurredAt]);
 
   const eligibleCategories = useMemo(
     () => categories.filter((c) => c.kind === type || c.kind === 'both'),
@@ -38,20 +38,17 @@ export default function TransactionForm({ initial, categories = [], vaults = [],
   const amountValid = amount !== '' && amountNum > 0;
 
   // In edit mode, the Save button locks (✓ Saved) until a field differs from the saved record.
-  const normVault = type === 'income' ? vaultId ?? null : null;
   const dirty =
     !isEdit ||
     type !== initial.type ||
     amountNum !== Number(initial.amount) ||
     (categoryId ?? null) !== (initial.category_id ?? null) ||
-    normVault !== (initial.vault_id ?? null) ||
     description.trim() !== (initial.description ?? '') ||
     occurredAt !== initial.occurred_at;
   const locked = isEdit && (saved || !dirty);
 
   const setTypeSafe = (next) => {
     setType(next);
-    if (next === 'expense') setVaultId(null); // expense can never carry a vault_id
     setCategoryId(null);
   };
 
@@ -61,7 +58,6 @@ export default function TransactionForm({ initial, categories = [], vaults = [],
     const body = { type, amount: amountNum, occurred_at: occurredAt };
     if (categoryId) body.category_id = categoryId;
     if (description.trim()) body.description = description.trim();
-    if (type === 'income' && vaultId) body.vault_id = vaultId;
     const ok = await onSubmit(body);
     if (ok && isEdit) setSaved(true);
   };
@@ -90,20 +86,6 @@ export default function TransactionForm({ initial, categories = [], vaults = [],
           <Chip key={c.id} label={c.name} active={categoryId === c.id} onPress={() => setCategoryId(categoryId === c.id ? null : c.id)} />
         ))}
       </View>
-
-      {type === 'income' ? (
-        <>
-          <Text style={styles.label}>{t('transactions.vault')}</Text>
-          <View style={styles.row}>
-            {vaults.length === 0 ? <Muted>{t('common.none')}</Muted> : null}
-            {vaults.map((v) => (
-              <Chip key={v.id} label={v.name} active={vaultId === v.id} onPress={() => setVaultId(vaultId === v.id ? null : v.id)} />
-            ))}
-          </View>
-        </>
-      ) : (
-        <Muted style={{ marginBottom: spacing(2) }}>{t('transactions.vaultIncomeOnly')}</Muted>
-      )}
 
       <Field label={t('transactions.description')} value={description} onChangeText={setDescription} placeholder="—" />
       <Field label={t('transactions.date')} value={occurredAt} onChangeText={setOccurredAt} placeholder="YYYY-MM-DD" autoCapitalize="none" />

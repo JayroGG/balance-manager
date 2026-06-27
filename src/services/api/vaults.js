@@ -1,8 +1,8 @@
 import { baseApi } from './baseApi';
 
 // /vaults — CRUD + history + allocate/withdraw. Per-vault balances/targets come from GET /balance,
-// so allocate/withdraw (and vault edits) invalidate Balance too. Only income txns can be allocated;
-// allocating a txn already in another vault moves it. (PRD §4.1, ADR-005)
+// so allocate/withdraw (and vault edits) invalidate Balance too. Allocate/withdraw move an `amount`
+// between spendable and the vault (not a tagged transaction). (PRD §4.1, ADR-009 / backend ADR-004)
 const LIST_TAG = { type: 'Vault', id: 'LIST' };
 
 export const vaultsApi = baseApi.injectEndpoints({
@@ -33,33 +33,31 @@ export const vaultsApi = baseApi.injectEndpoints({
       invalidatesTags: (r, e, id) => [{ type: 'Vault', id }, LIST_TAG, 'Balance'],
     }),
     allocateVault: build.mutation({
-      // arg: { id, transaction_id }
-      query: ({ id, transaction_id }) => ({
+      // arg: { id, amount } — moves spendable → vault (decimal). Bounded by `available` (400 if over).
+      query: ({ id, amount }) => ({
         url: `/vaults/${id}/allocate`,
         method: 'POST',
-        body: { transaction_id },
+        body: { amount },
       }),
       invalidatesTags: (r, e, { id }) => [
         { type: 'Vault', id },
         { type: 'VaultHistory', id },
         LIST_TAG,
         'Balance',
-        { type: 'Transaction', id: 'LIST' },
       ],
     }),
     withdrawVault: build.mutation({
-      // arg: { id, transaction_id }
-      query: ({ id, transaction_id }) => ({
+      // arg: { id, amount } — moves vault → spendable (decimal). Bounded by the vault balance (400 if over).
+      query: ({ id, amount }) => ({
         url: `/vaults/${id}/withdraw`,
         method: 'POST',
-        body: { transaction_id },
+        body: { amount },
       }),
       invalidatesTags: (r, e, { id }) => [
         { type: 'Vault', id },
         { type: 'VaultHistory', id },
         LIST_TAG,
         'Balance',
-        { type: 'Transaction', id: 'LIST' },
       ],
     }),
   }),

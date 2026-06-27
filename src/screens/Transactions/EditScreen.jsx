@@ -7,7 +7,6 @@ import {
   useDeleteTransactionMutation,
 } from '../../services/api/transactions';
 import { useGetCategoriesQuery } from '../../services/api/categories';
-import { useGetVaultsQuery } from '../../services/api/vaults';
 import TransactionForm from './TransactionForm';
 import { Screen, QueryBoundary, AppButton } from '../../components/ui';
 import { spacing } from '../../components/theme';
@@ -18,7 +17,6 @@ export default function TransactionDetail() {
   const { t } = useTranslation();
   const { data, isLoading, error, refetch } = useGetTransactionQuery(id);
   const { data: categories } = useGetCategoriesQuery();
-  const { data: vaults } = useGetVaultsQuery();
   const [updateTransaction, { isLoading: saving, error: saveError }] = useUpdateTransactionMutation();
   const [deleteTransaction, { isLoading: deleting }] = useDeleteTransactionMutation();
 
@@ -53,7 +51,6 @@ export default function TransactionDetail() {
         <TransactionForm
           initial={data}
           categories={categories}
-          vaults={vaults}
           onSubmit={onSubmit}
           submitting={saving}
           error={saveError}

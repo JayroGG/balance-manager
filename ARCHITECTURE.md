@@ -55,7 +55,7 @@ flowchart LR
   subgraph RTKQ["src/services/api"]
     Base["baseApi.js<br/>fetchBaseQuery(baseUrl)<br/>prepareHeaders → Bearer token (AUTH SEAM)"]
     EpB["balance.js (tag: Balance)"]
-    EpT["transactions.js (Transaction; inval Balance,Vault)"]
+    EpT["transactions.js (Transaction; inval Balance)"]
     EpV["vaults.js (Vault, VaultHistory; inval Balance)"]
     EpC["categories.js (Category)"]
     Base --- EpB & EpT & EpV & EpC
@@ -68,7 +68,7 @@ flowchart LR
   Base -->|"fetch (decimals, no /api prefix)"| API[("balance backend<br/>req.userId = 1")]
   API -->|"{ error } on non-2xx → transformErrorResponse"| Base
 
-  H3 -. "invalidatesTags ['Balance','Vault']" .-> H1
+  H3 -. "invalidatesTags ['Balance']" .-> H1
   H4 -. "invalidatesTags ['Balance','Vault','VaultHistory']" .-> H1
 ```
 

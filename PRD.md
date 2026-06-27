@@ -48,7 +48,7 @@ the API provides.
 - Full CRUD over **transactions**, **categories**, and **vaults**, with soft-delete semantics
   (deleted resources return `404` — treat as gone).
 - A **dashboard** surfacing `total`, `available`, and each vault's balance/target.
-- **Allocate / withdraw** an income transaction to/from a vault, and view a vault's history.
+- **Allocate / withdraw** an **amount** to/from a vault, and view a vault's history.
 - A **modular auth seam** (see §7): ship the prototype with auth bypassed; design so Auth0 + RBAC
   drops in later without touching screens or data layers.
 - Adopt the team **documentation & workflow standard** from day one (see §10).
@@ -59,7 +59,6 @@ the API provides.
 - No offline-first / local persistence of records (server is source of truth; cache is optional).
 - No multi-currency (one currency label, provided by `/balance`).
 - No budgets, recurring transactions, charts/analytics, or push notifications.
-- No partial vault withdrawals (backend withdraws a whole transaction at a time).
 
 ## 4. Backend contract (what the app consumes)
 
@@ -99,18 +98,23 @@ Returns the computed figures. **This is the dashboard's primary call.**
 #### Transactions — `/transactions`
 | Method | Path | Body / Query | Returns |
 |---|---|---|---|
-| GET | `/transactions` | `?type=&vault_id=&category_id=` (all optional filters) | `200` array |
-| POST | `/transactions` | `{ type, amount, category_id?, vault_id?, description?, occurred_at? }` | `201` record |
+| GET | `/transactions` | `?type=&category_id=` (all optional filters) | `200` array |
+| POST | `/transactions` | `{ type, amount, category_id?, description?, occurred_at? }` | `201` record |
 | GET | `/transactions/:id` | — | `200` record / `404` |
 | PUT | `/transactions/:id` | any subset of the create fields | `200` record / `404` |
 | DELETE | `/transactions/:id` | — | `204` / `404` (soft delete) |
 
-Record shape: `{ id, user_id, type, amount, category_id, vault_id, description, occurred_at, created_at, updated_at, deleted_at }`.
+Record shape: `{ id, user_id, type, amount, category_id, description, occurred_at, created_at, updated_at, deleted_at }`.
+Transactions are a **pure ledger** — money in / money out, no `vault_id`. Vault funding is an
+amount-based action on the vault (see Vaults below).
 
 **Invariants the app must respect (backend enforces with `400`):**
 - `type` ∈ `income | expense`; `amount` > 0.
-- An **expense can never carry a `vault_id`** — hide/disable vault selection when type is expense.
-- `vault_id` must reference an existing, non-deleted vault.
+- **`available` can never go negative** — vaulted money is protected. A write that would push
+  `available` below zero is rejected with `400`: creating an expense larger than `available`, editing
+  an expense up (or an income down) past what's spendable, or deleting an income whose money is
+  currently locked in a vault. Surface `error` as the user-facing message; optionally pre-validate
+  client-side against `available` to fail fast (the backend is the authority).
 
 #### Categories — `/categories`
 | Method | Path | Body | Returns |
@@ -128,14 +132,17 @@ Utilities, Other).
 | GET | `/vaults` | — | `200` array |
 | POST | `/vaults` | `{ name, target_amount? }` (decimal) | `201` |
 | GET / PUT / DELETE | `/vaults/:id` | `{ name?, target_amount? }` on PUT | `200` / `204` / `404` |
-| GET | `/vaults/:id/history` | — | `200` array of `{ id, vault_id, transaction_id, action, amount, created_at }`, newest first |
-| POST | `/vaults/:id/allocate` | `{ transaction_id }` | `200` vault — tags the income txn to this vault |
-| POST | `/vaults/:id/withdraw` | `{ transaction_id }` | `200` vault — detaches the txn (back to spendable) |
+| GET | `/vaults/:id/history` | — | `200` array of `{ id, user_id, vault_id, action, amount, created_at }`, newest first |
+| POST | `/vaults/:id/allocate` | `{ amount }` (decimal) | `200` vault `{ id, name, balance, target }` — moves spendable → vault |
+| POST | `/vaults/:id/withdraw` | `{ amount }` (decimal) | `200` vault `{ id, name, balance, target }` — moves vault → spendable |
 
-**Allocate/withdraw rules (backend, surface as `400`/`404`):** only **income** transactions can be
-allocated; allocating a txn already in another vault moves it (logs a withdraw then an allocate);
-withdraw requires the txn to currently belong to that vault. A vault's `balance` is derived — there
-is no "spend from vault"; you allocate/withdraw whole transactions.
+**Allocate/withdraw rules (backend, surface as `400`/`404`):** allocate/withdraw move an **amount**
+(not a transaction). Allocate is bounded by `available` (can't lock more than is spendable); withdraw
+is bounded by the vault's `balance` (can't take out more than it holds) — either returns `400` if
+exceeded. A vault's `balance` is derived from these movements. Both return `200` with the updated
+vault `{ id, name, balance, target }`; the app still **refetches `GET /balance`** afterward so
+`total` / `available` / vault cards stay consistent.
+**Vault delete** requires a **zero balance** — withdraw to zero first, else `400`.
 
 > Note: `GET /vaults` returns vault records only. The **balances/targets per vault** come from
 > `GET /balance` (`vaults[]`). The dashboard and vault list should read balances from `/balance`.
@@ -204,8 +211,8 @@ balance-mobile/
 ### 6.1 Redux slices (state shape)
 
 - `balance` — `{ total, available, vaults: [{id,name,balance,target}], currency, status }` from `GET /balance`.
-- `transactions` — list + filters (`type`, `vault_id`, `category_id`) + CRUD thunks.
-- `vaults` — list + selected vault history + allocate/withdraw thunks.
+- `transactions` — list + filters (`type`, `category_id`) + CRUD thunks.
+- `vaults` — list + selected vault history + allocate/withdraw thunks taking `(vaultId, amount)`.
 - `categories` — list + CRUD thunks.
 - `auth` — identity/token state (bypassed in prototype; see §7).
 
@@ -250,11 +257,12 @@ Write this as `ADR-001` in the new repo's `.claude/ADR/` (copy/adapt from `balan
 
 1. **Dashboard** — `GET /balance`. Hero shows `total` and `available`; a list of vault cards
    (name, balance, target progress). Pull-to-refresh re-fetches.
-2. **Transactions** — list with filter chips (`type`, `category`, `vault`); FAB to create.
-   Create/edit form: type toggle, amount, category picker, description, date (`occurred_at`),
-   and vault picker **only when type = income**. Swipe/menu to soft-delete.
+2. **Transactions** — list with filter chips (`type`, `category`); FAB to create.
+   Create/edit form: type toggle, amount, category picker, description, date (`occurred_at`).
+   Swipe/menu to soft-delete. No vault field — transactions are a pure ledger.
 3. **Vaults** — list (name + balance/target from `/balance`); detail shows `history` and actions to
-   **allocate** (pick an eligible income transaction) or **withdraw** (pick a txn currently in this vault).
+   **allocate** or **withdraw** an **amount** (capped client-side at `available` / the vault balance).
+   Delete is enabled only at a zero balance.
 4. **Categories** — simple CRUD list grouped by `kind`.
 5. **Settings** — currency display (from `/balance`), language (i18next), and the (disabled) auth/login entry.
 

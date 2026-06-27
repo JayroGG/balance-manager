@@ -96,7 +96,9 @@ Plans go in `.claude/agents/plans/`; decisions in `.claude/ADR/`; long-term memo
 
 - Minimal changes — only what's asked; no unrequested refactors or comments.
 - Validate at boundaries only (form input); trust the backend's invariants but mirror the obvious ones
-  in UI: **expense can never carry a `vault_id`** (hide the vault picker); only **income** can be
-  allocated to a vault; amounts are positive (the `type` carries the sign).
+  in UI: transactions are a **pure ledger** (no vault field); vaults are funded by **amount-based**
+  allocate/withdraw, capped client-side at `available` / the vault balance; **`available` can never go
+  negative** (overspending locked money 400s); a vault deletes only at a zero balance; amounts are
+  positive (the `type` carries the sign). See ADR-009 / backend ADR-004.
 - Money is **decimal** end-to-end on the client; never send cents.
 - Soft-deleted resources return `404` — treat as gone.

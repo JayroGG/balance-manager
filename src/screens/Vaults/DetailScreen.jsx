@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Alert, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import {
@@ -11,10 +11,9 @@ import {
   useWithdrawVaultMutation,
 } from '../../services/api/vaults';
 import { useGetBalanceQuery } from '../../services/api/balance';
-import { useGetTransactionsQuery } from '../../services/api/transactions';
 import { Screen, Card, MoneyText, AppButton, Field, SectionTitle, Muted, QueryBoundary } from '../../components/ui';
 import { colors, font, spacing } from '../../components/theme';
-import { formatDate, formatDateTime } from '../../utils/dates';
+import { formatDateTime } from '../../utils/dates';
 
 export default function VaultDetail() {
   const { id } = useLocalSearchParams();
@@ -28,8 +27,9 @@ export default function VaultDetail() {
   const currency = balance?.currency;
   const figures = balance?.vaults?.find((v) => v.id === vaultId);
 
+  // Allocate/withdraw move an amount between spendable and the vault (ADR-009).
   const [picker, setPicker] = useState(null); // null | 'allocate' | 'withdraw'
-  const [pendingTxnId, setPendingTxnId] = useState(null); // row spinner while a pick is in flight
+  const [amount, setAmount] = useState('');
   const [flashed, setFlashed] = useState(null); // 'allocate' | 'withdraw' — transient ✓ on the action button
   const flashRef = useRef();
   useEffect(() => () => clearTimeout(flashRef.current), []);
@@ -38,8 +38,6 @@ export default function VaultDetail() {
     clearTimeout(flashRef.current);
     flashRef.current = setTimeout(() => setFlashed(null), 1500);
   };
-  const { data: incomeTxns } = useGetTransactionsQuery({ type: 'income' }, { skip: picker !== 'allocate' });
-  const { data: vaultTxns } = useGetTransactionsQuery({ vault_id: vaultId }, { skip: picker !== 'withdraw' });
 
   const [allocate, { isLoading: allocating }] = useAllocateVaultMutation();
   const [withdraw, { isLoading: withdrawing }] = useWithdrawVaultMutation();
@@ -60,24 +58,28 @@ export default function VaultDetail() {
   const targetNorm = target !== '' && Number(target) > 0 ? Number(target) : null;
   const dirty = !vault || name.trim() !== (vault.name ?? '') || targetNorm !== (vault.target_amount ?? null);
 
-  const candidates = useMemo(() => {
-    if (picker === 'allocate') return (incomeTxns ?? []).filter((tx) => tx.vault_id !== vaultId);
-    if (picker === 'withdraw') return vaultTxns ?? [];
-    return [];
-  }, [picker, incomeTxns, vaultTxns, vaultId]);
+  // Amount bounds mirror the backend: allocate ≤ available, withdraw ≤ vault balance (it 400s otherwise).
+  const available = balance?.available ?? 0;
+  const vaultBalance = figures?.balance ?? 0;
+  const max = picker === 'allocate' ? available : vaultBalance;
+  const amountNum = Number(amount);
+  const amountValid = amount !== '' && amountNum > 0 && amountNum <= max;
 
-  const onPick = async (txn) => {
+  const openPicker = (next) => {
+    setAmount('');
+    setPicker(picker === next ? null : next);
+  };
+
+  const onConfirm = async () => {
     const action = picker;
-    setPendingTxnId(txn.id);
     try {
-      if (action === 'allocate') await allocate({ id: vaultId, transaction_id: txn.id }).unwrap();
-      else await withdraw({ id: vaultId, transaction_id: txn.id }).unwrap();
+      if (action === 'allocate') await allocate({ id: vaultId, amount: amountNum }).unwrap();
+      else await withdraw({ id: vaultId, amount: amountNum }).unwrap();
       setPicker(null);
+      setAmount('');
       triggerFlash(action);
     } catch (e) {
       Alert.alert(t('common.error'), e?.message ?? '');
-    } finally {
-      setPendingTxnId(null);
     }
   };
 
@@ -91,6 +93,8 @@ export default function VaultDetail() {
     }
   };
 
+  // A vault can only be deleted at a zero balance (backend 400s otherwise).
+  const canDelete = vaultBalance <= 0;
   const onDelete = () => {
     Alert.alert(t('vaults.deleteConfirm'), '', [
       { text: t('common.cancel'), style: 'cancel' },
@@ -125,7 +129,7 @@ export default function VaultDetail() {
             title={t('vaults.allocate')}
             successTitle={t('vaults.allocated')}
             success={flashed === 'allocate'}
-            onPress={() => setPicker(picker === 'allocate' ? null : 'allocate')}
+            onPress={() => openPicker('allocate')}
             style={{ flex: 1, marginRight: spacing(1) }}
           />
           <AppButton
@@ -133,7 +137,7 @@ export default function VaultDetail() {
             successTitle={t('vaults.withdrawn')}
             success={flashed === 'withdraw'}
             variant="ghost"
-            onPress={() => setPicker(picker === 'withdraw' ? null : 'withdraw')}
+            onPress={() => openPicker('withdraw')}
             style={{ flex: 1 }}
           />
         </View>
@@ -141,20 +145,23 @@ export default function VaultDetail() {
         {picker ? (
           <Card>
             <Muted>{picker === 'allocate' ? t('vaults.allocateHint') : t('vaults.withdrawHint')}</Muted>
-            {candidates.length === 0 ? (
-              <Muted style={{ paddingVertical: spacing(1.5) }}>{t('vaults.noEligible')}</Muted>
-            ) : (
-              candidates.map((tx) => (
-                <Pressable key={tx.id} onPress={() => onPick(tx)} disabled={allocating || withdrawing} style={styles.pickRow}>
-                  <Text style={styles.pickDesc} numberOfLines={1}>{tx.description || formatDate(tx.occurred_at)}</Text>
-                  {pendingTxnId === tx.id ? (
-                    <ActivityIndicator color={colors.primary} style={{ marginLeft: spacing(1) }} />
-                  ) : (
-                    <MoneyText amount={tx.amount} currency={currency} style={styles.pickAmount} />
-                  )}
-                </Pressable>
-              ))
-            )}
+            <Field
+              label={t('transactions.amount')}
+              value={amount}
+              onChangeText={setAmount}
+              keyboardType="decimal-pad"
+              placeholder="0.00"
+            />
+            <Muted style={styles.maxHint}>
+              {picker === 'allocate' ? t('dashboard.available') : t('vaults.balance')}:{' '}
+              <MoneyText amount={max} currency={currency} />
+            </Muted>
+            <AppButton
+              title={t('common.confirm')}
+              onPress={onConfirm}
+              loading={allocating || withdrawing}
+              disabled={!amountValid}
+            />
           </Card>
         ) : null}
 
@@ -172,7 +179,7 @@ export default function VaultDetail() {
             </Card>
           ))
         ) : (
-          <Muted>{t('vaults.noEligible')}</Muted>
+          <Muted>{t('vaults.noHistory')}</Muted>
         )}
 
         <SectionTitle>{t('common.edit')}</SectionTitle>
@@ -186,7 +193,8 @@ export default function VaultDetail() {
           disabled={!name.trim() || !dirty}
           success={!dirty && !!vault && !saving}
         />
-        <AppButton title={t('common.delete')} variant="danger" onPress={onDelete} loading={deleting} style={{ marginTop: spacing(1.5) }} />
+        <AppButton title={t('common.delete')} variant="danger" onPress={onDelete} loading={deleting} disabled={!canDelete} style={{ marginTop: spacing(1.5) }} />
+        {!canDelete ? <Muted style={{ marginTop: spacing(1) }}>{t('vaults.deleteNeedsZero')}</Muted> : null}
       </QueryBoundary>
     </Screen>
   );
@@ -198,9 +206,7 @@ const styles = StyleSheet.create({
   balance: { color: '#FFFFFF', fontSize: font.hero, fontWeight: '800', marginTop: spacing(0.5) },
   target: { color: '#DBEAFE', fontSize: font.sm, marginTop: spacing(1) },
   actions: { flexDirection: 'row', marginVertical: spacing(1.5) },
-  pickRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: spacing(1.25), borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
-  pickDesc: { flex: 1, color: colors.text, fontSize: font.md },
-  pickAmount: { color: colors.success, fontWeight: '700', marginLeft: spacing(1) },
+  maxHint: { marginBottom: spacing(1.5) },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   action: { fontWeight: '700', fontSize: font.md },
   histAmount: { fontWeight: '700', color: colors.text },
