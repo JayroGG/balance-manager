@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useGetBalanceQuery } from '../../services/api/balance';
@@ -28,12 +28,22 @@ const VaultRow = ({ vault, currency }) => {
 
 export default function Dashboard() {
   const { t } = useTranslation();
-  const { data, isLoading, isFetching, error, refetch } = useGetBalanceQuery();
-  const onRefresh = useCallback(() => refetch(), [refetch]);
+  const { data, isLoading, error, refetch } = useGetBalanceQuery();
+  // Drive the spinner only from a user pull — not the auto refetch-on-mount, which on iOS
+  // leaves a programmatic RefreshControl spinner stuck until the user drags.
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await refetch();
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refetch]);
   const currency = data?.currency;
 
   return (
-    <Screen scroll refreshControl={<RefreshControl refreshing={isFetching && !!data} onRefresh={onRefresh} />}>
+    <Screen scroll refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
       <Text style={styles.h1}>{t('dashboard.title')}</Text>
       <QueryBoundary isLoading={isLoading && !data} error={error} onRetry={refetch}>
         <Card style={styles.hero}>

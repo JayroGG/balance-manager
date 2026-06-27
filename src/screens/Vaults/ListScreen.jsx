@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { useRouter, Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,9 +11,19 @@ export default function VaultsList() {
   const { t } = useTranslation();
   const router = useRouter();
   // Per-vault balances/targets come from /balance (PRD note).
-  const { data, isLoading, isFetching, error, refetch } = useGetBalanceQuery();
+  const { data, isLoading, error, refetch } = useGetBalanceQuery();
   const currency = data?.currency;
-  const onRefresh = useCallback(() => refetch(), [refetch]);
+  // Drive the spinner only from a user pull — not the auto refetch-on-mount, which on iOS
+  // leaves a programmatic RefreshControl spinner stuck until the user drags.
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await refetch();
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refetch]);
 
   const renderItem = ({ item }) => {
     const pct = item.target && item.target > 0 ? Math.min(1, (item.balance ?? 0) / item.target) : null;
@@ -57,7 +67,7 @@ export default function VaultsList() {
           keyExtractor={(item) => String(item.id)}
           renderItem={renderItem}
           contentContainerStyle={{ padding: spacing(2), paddingBottom: spacing(10) }}
-          refreshControl={<RefreshControl refreshing={isFetching && !!data} onRefresh={onRefresh} />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         />
       </QueryBoundary>
 

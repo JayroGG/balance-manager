@@ -16,10 +16,20 @@ export default function TransactionsList() {
   const router = useRouter();
   const [typeFilter, setTypeFilter] = useState('all');
   const filters = typeFilter === 'all' ? undefined : { type: typeFilter };
-  const { data, isLoading, isFetching, error, refetch } = useGetTransactionsQuery(filters);
+  const { data, isLoading, error, refetch } = useGetTransactionsQuery(filters);
   const { data: balance } = useGetBalanceQuery();
   const currency = balance?.currency;
-  const onRefresh = useCallback(() => refetch(), [refetch]);
+  // Drive the spinner only from a user pull — not the auto refetch-on-mount, which on iOS
+  // leaves a programmatic RefreshControl spinner stuck until the user drags.
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await refetch();
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refetch]);
 
   const renderItem = ({ item }) => {
     const income = item.type === 'income';
@@ -63,7 +73,7 @@ export default function TransactionsList() {
           keyExtractor={(item) => String(item.id)}
           renderItem={renderItem}
           contentContainerStyle={{ paddingHorizontal: spacing(2), paddingBottom: spacing(10) }}
-          refreshControl={<RefreshControl refreshing={isFetching && !!data} onRefresh={onRefresh} />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         />
       </QueryBoundary>
 
