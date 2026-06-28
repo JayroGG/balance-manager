@@ -91,18 +91,18 @@ export default function TransactionForm({ initial, categories = [], onSubmit, su
       <Field label={t('transactions.date')} value={occurredAt} onChangeText={setOccurredAt} placeholder="YYYY-MM-DD" autoCapitalize="none" />
 
       {error ? <Muted style={styles.err}>{error.message}</Muted> : null}
+      {/* Create: keep the primary CTA (disabled until valid). Edit: show Save only when there are valid
+          unsaved changes — it hides again once saved (locked) or when nothing has changed. */}
       {readOnly ? (
         <Muted style={styles.readOnly}>{t('teams.readOnly')}</Muted>
-      ) : (
+      ) : !isEdit || (amountValid && !locked) ? (
         <AppButton
           title={t('common.save')}
-          successTitle={t('common.saved')}
           onPress={submit}
           loading={submitting}
-          disabled={!amountValid || locked}
-          success={locked && !submitting}
+          disabled={!amountValid}
         />
-      )}
+      ) : null}
     </ScrollView>
   );
 }

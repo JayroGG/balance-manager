@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import {
@@ -23,6 +23,7 @@ const ROLES = ['owner', 'member', 'guest'];
 export default function ManageTeam() {
   const { id } = useLocalSearchParams();
   const { t } = useTranslation();
+  const router = useRouter();
 
   const { data: teams } = useGetTeamsQuery();
   const team = teams?.find((tm) => String(tm.id) === String(id));
@@ -110,7 +111,7 @@ export default function ManageTeam() {
         onPress: async () => {
           try {
             await deleteTeam({ id }).unwrap();
-            // back to the list (the Team tag invalidation refreshes it)
+            router.back(); // back to the list; the tabs guard resets context to personal if this was active
           } catch (e) {
             // 400 when the team still has transactions/vaults
             Alert.alert(t('common.error'), e?.message ?? t('teams.deleteNotEmpty'));

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { Alert, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import {
   useGetVaultQuery,
@@ -196,16 +197,18 @@ export default function VaultDetail() {
             <SectionTitle>{t('common.edit')}</SectionTitle>
             <Field label={t('vaults.name')} value={name} onChangeText={setName} />
             <Field label={t('vaults.targetAmount')} value={target} onChangeText={setTarget} keyboardType="decimal-pad" placeholder="0.00" />
-            <AppButton
-              title={t('common.save')}
-              successTitle={t('common.saved')}
-              onPress={onSave}
-              loading={saving}
-              disabled={!name.trim() || !dirty}
-              success={!dirty && !!vault && !saving}
-            />
-            <AppButton title={t('common.delete')} variant="danger" onPress={onDelete} loading={deleting} disabled={!canDelete} style={{ marginTop: spacing(1.5) }} />
-            {!canDelete ? <Muted style={{ marginTop: spacing(1) }}>{t('vaults.deleteNeedsZero')}</Muted> : null}
+            {/* Save only when there are valid unsaved changes; it hides again once saved. */}
+            {dirty && name.trim() ? (
+              <AppButton title={t('common.save')} onPress={onSave} loading={saving} />
+            ) : null}
+            {/* A vault deletes only at a zero balance — show a small trash icon, else the reason. */}
+            {canDelete ? (
+              <Pressable onPress={onDelete} disabled={deleting} hitSlop={12} style={styles.deleteIcon}>
+                {deleting ? <ActivityIndicator color={colors.danger} /> : <Ionicons name="trash-outline" size={22} color={colors.danger} />}
+              </Pressable>
+            ) : (
+              <Muted style={styles.deleteHint}>{t('vaults.deleteNeedsZero')}</Muted>
+            )}
           </>
         ) : null}
       </QueryBoundary>
@@ -224,4 +227,6 @@ const styles = StyleSheet.create({
   action: { fontWeight: '700', fontSize: font.md },
   histAmount: { fontWeight: '700', color: colors.text },
   histDate: { color: colors.muted, fontSize: font.sm, marginTop: spacing(0.5) },
+  deleteIcon: { alignSelf: 'center', padding: spacing(2), marginTop: spacing(1) },
+  deleteHint: { textAlign: 'center', marginTop: spacing(1.5) },
 });

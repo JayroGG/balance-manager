@@ -1,8 +1,11 @@
+import { useEffect } from 'react';
 import { Tabs, Redirect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import { selectIsAuthed } from '../../src/reducers/auth';
+import { selectActiveTeamId, setActiveTeam } from '../../src/reducers/context';
+import { useGetTeamsQuery } from '../../src/services/api/teams';
 import { colors } from '../../src/components/theme';
 
 const icon =
@@ -12,9 +15,21 @@ const icon =
 
 export default function TabsLayout() {
   const { t } = useTranslation();
+  const dispatch = useDispatch();
   // Runtime guard: a 401 or logout clears auth → bounce out of the tabs. (Cold start is handled by
   // app/index.jsx's boot redirect.)
   const authed = useSelector(selectIsAuthed);
+  const activeTeamId = useSelector(selectActiveTeamId);
+  const { data: teams } = useGetTeamsQuery(undefined, { skip: !authed });
+
+  // If the active team disappears (deleted, or you were removed), fall back to personal — otherwise the
+  // stale ?team_id= keeps 403/404-ing and the dashboard sits on a phantom context. (ADR-012)
+  useEffect(() => {
+    if (activeTeamId != null && teams && !teams.some((tm) => tm.id === activeTeamId)) {
+      dispatch(setActiveTeam(null));
+    }
+  }, [activeTeamId, teams, dispatch]);
+
   if (!authed) return <Redirect href="/(auth)/login" />;
   return (
     <Tabs
