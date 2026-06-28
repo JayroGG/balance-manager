@@ -31,6 +31,7 @@ module.exports = () => ({
       'expo-router',
       'expo-secure-store',
       'expo-localization',
+      './plugins/withAndroidReleaseSigning',
       [
         'expo-splash-screen',
         {
