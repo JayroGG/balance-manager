@@ -1,9 +1,11 @@
 # ADR-001 — Authentication as a modular client seam (bypass now, Auth0 + RBAC north star)
 
-- **Status:** Accepted
+- **Status:** Superseded by [ADR-011](ADR-011-auth-jwt-and-team-context.md)
 - **Date:** 2026-06-25
 - **Deciders:** Jayro Gómez
 - **Supersedes / Related:** Mirrors backend `balance` ADR-001; refines PRD §7 and PRD §9 Phase 2.
+  Superseded by **ADR-011** — real auth is the backend's own email/password JWT (not Auth0), it ships in
+  Expo Go with no dev build, and the bypass is now dev-only.
 
 ## Context
 

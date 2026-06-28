@@ -1,6 +1,8 @@
-import { Tabs } from 'expo-router';
+import { Tabs, Redirect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
+import { selectIsAuthed } from '../../src/reducers/auth';
 import { colors } from '../../src/components/theme';
 
 const icon =
@@ -10,6 +12,10 @@ const icon =
 
 export default function TabsLayout() {
   const { t } = useTranslation();
+  // Runtime guard: a 401 or logout clears auth → bounce out of the tabs. (Cold start is handled by
+  // app/index.jsx's boot redirect.)
+  const authed = useSelector(selectIsAuthed);
+  if (!authed) return <Redirect href="/(auth)/login" />;
   return (
     <Tabs
       screenOptions={{

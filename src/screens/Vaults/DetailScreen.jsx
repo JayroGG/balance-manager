@@ -11,6 +11,7 @@ import {
   useWithdrawVaultMutation,
 } from '../../services/api/vaults';
 import { useGetBalanceQuery } from '../../services/api/balance';
+import { useActiveTeamId } from '../../hooks/useActiveTeamId';
 import { Screen, Card, MoneyText, AppButton, Field, SectionTitle, Muted, QueryBoundary } from '../../components/ui';
 import { colors, font, spacing } from '../../components/theme';
 import { formatDateTime } from '../../utils/dates';
@@ -20,10 +21,11 @@ export default function VaultDetail() {
   const vaultId = Number(id);
   const router = useRouter();
   const { t } = useTranslation();
+  const teamId = useActiveTeamId();
 
-  const { data: balance } = useGetBalanceQuery();
-  const { data: vault, isLoading, error, refetch } = useGetVaultQuery(id);
-  const { data: history } = useGetVaultHistoryQuery(id);
+  const { data: balance } = useGetBalanceQuery(teamId);
+  const { data: vault, isLoading, error, refetch } = useGetVaultQuery({ id, team_id: teamId });
+  const { data: history } = useGetVaultHistoryQuery({ id, team_id: teamId });
   const currency = balance?.currency;
   const figures = balance?.vaults?.find((v) => v.id === vaultId);
 
@@ -73,8 +75,8 @@ export default function VaultDetail() {
   const onConfirm = async () => {
     const action = picker;
     try {
-      if (action === 'allocate') await allocate({ id: vaultId, amount: amountNum }).unwrap();
-      else await withdraw({ id: vaultId, amount: amountNum }).unwrap();
+      if (action === 'allocate') await allocate({ id: vaultId, amount: amountNum, team_id: teamId }).unwrap();
+      else await withdraw({ id: vaultId, amount: amountNum, team_id: teamId }).unwrap();
       setPicker(null);
       setAmount('');
       triggerFlash(action);
@@ -87,7 +89,7 @@ export default function VaultDetail() {
     const body = { name: name.trim() };
     body.target_amount = target !== '' && Number(target) > 0 ? Number(target) : null;
     try {
-      await updateVault({ id: vaultId, ...body }).unwrap();
+      await updateVault({ id: vaultId, ...body, team_id: teamId }).unwrap();
     } catch (e) {
       Alert.alert(t('common.error'), e?.message ?? '');
     }
@@ -103,7 +105,7 @@ export default function VaultDetail() {
         style: 'destructive',
         onPress: async () => {
           try {
-            await deleteVault(vaultId).unwrap();
+            await deleteVault({ id: vaultId, team_id: teamId }).unwrap();
             router.back();
           } catch (e) {
             Alert.alert(t('common.error'), e?.message ?? '');

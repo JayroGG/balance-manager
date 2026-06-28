@@ -14,10 +14,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { baseApi } from '../services/api/baseApi';
 import '../services/api'; // side-effect: register all entity endpoints (injectEndpoints)
 import authReducer from '../reducers/auth';
+import contextReducer from '../reducers/context';
 
 const rootReducer = combineReducers({
   [baseApi.reducerPath]: baseApi.reducer,
   auth: authReducer,
+  context: contextReducer,
 });
 
 // Persist the RTK Query cache only → instant cold-start paint + offline reads (ADR-007).
@@ -26,7 +28,7 @@ const persistConfig = {
   key: 'root',
   version: 1,
   storage: AsyncStorage,
-  whitelist: [baseApi.reducerPath],
+  whitelist: [baseApi.reducerPath, 'context'],
 };
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

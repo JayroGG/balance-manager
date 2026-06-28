@@ -85,5 +85,16 @@
     "auth": "Autenticación",
     "authBypassed": "Omitida (prototipo)",
     "clearCache": "Borrar datos en caché"
+  },
+  "auth": {
+    "email": "Correo",
+    "password": "Contraseña",
+    "signIn": "Iniciar sesión",
+    "invalidCredentials": "Credenciales inválidas",
+    "logout": "Cerrar sesión"
+  },
+  "context": {
+    "personal": "Personal",
+    "switchContext": "Cambiar contexto"
   }
 }

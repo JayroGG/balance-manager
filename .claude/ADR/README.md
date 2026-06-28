@@ -28,7 +28,7 @@ Statuses: `Proposed` · `Accepted` · `Deprecated` · `Superseded by ADR-NNN`.
 
 | ADR | Title | Status |
 |-----|-------|--------|
-| [ADR-001](ADR-001-auth-strategy.md) | Authentication as a modular client seam (bypass now, Auth0 + RBAC north star) | Accepted |
+| [ADR-001](ADR-001-auth-strategy.md) | Authentication as a modular client seam (bypass now, Auth0 + RBAC north star) | Superseded by ADR-011 |
 | [ADR-002](ADR-002-documentation-and-workflow-standard.md) | Documentation & agent-workflow standard | Accepted |
 | [ADR-003](ADR-003-expo-managed-first-prebuild-on-demand.md) | Expo managed-first, prebuild-on-demand (RN template baseline) | Accepted |
 | [ADR-004](ADR-004-navigation-expo-router.md) | Navigation via expo-router (supersedes PRD `stacks/`) | Accepted |
@@ -38,3 +38,4 @@ Statuses: `Proposed` · `Accepted` · `Deprecated` · `Superseded by ADR-NNN`.
 | [ADR-008](ADR-008-app-structure-thin-routes-src-screens.md) | App structure: thin `app/` routes, `src/screens`, atomic `src/components/ui` | Accepted |
 | [ADR-009](ADR-009-amount-based-vault-allocation.md) | Amount-based vault allocation (follows backend ADR-004) | Accepted |
 | [ADR-010](ADR-010-testing-jest-expo-preset.md) | Testing: Jest with the `jest-expo` preset (not bare `react-native`) | Accepted |
+| [ADR-011](ADR-011-auth-jwt-and-team-context.md) | Auth via the backend's email/password JWT, and a client-side team context (supersedes ADR-001) | Accepted |

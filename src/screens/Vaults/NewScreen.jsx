@@ -3,12 +3,14 @@ import { View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useAddVaultMutation } from '../../services/api/vaults';
+import { useActiveTeamId } from '../../hooks/useActiveTeamId';
 import { Screen, Field, AppButton, Muted } from '../../components/ui';
 import { spacing } from '../../components/theme';
 
 export default function NewVault() {
   const router = useRouter();
   const { t } = useTranslation();
+  const teamId = useActiveTeamId();
   const [name, setName] = useState('');
   const [target, setTarget] = useState('');
   const [addVault, { isLoading, error }] = useAddVaultMutation();
@@ -18,7 +20,7 @@ export default function NewVault() {
     const body = { name: name.trim() };
     if (target !== '' && Number(target) > 0) body.target_amount = Number(target);
     try {
-      await addVault(body).unwrap();
+      await addVault({ ...body, team_id: teamId }).unwrap();
       router.back();
     } catch {}
   };

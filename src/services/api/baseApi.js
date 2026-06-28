@@ -1,7 +1,8 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import { REHYDRATE } from 'redux-persist';
 import { Config } from '../../utils/config';
-import { selectToken } from '../../reducers/auth';
+import { selectToken, clearAuth } from '../../reducers/auth';
+import { clearToken } from '../storage/secure';
 
 // THE auth seam: the only place a token is attached to a request (ADR-001).
 const rawBaseQuery = fetchBaseQuery({
@@ -13,13 +14,23 @@ const rawBaseQuery = fetchBaseQuery({
   },
 });
 
-// Normalize the backend's `{ error }` body (PRD §4) into error.message for the UI.
+// Normalize the backend's `{ error }` body (PRD §4) into error.message for the UI, and treat a 401 on
+// any call but `login` as "session over": clear the token (slice + secure-store) and drop the cached
+// financial data so the tabs guard kicks the user back to login. (ADR-011)
 const baseQueryWithErrorShape = async (args, api, extraOptions) => {
   const result = await rawBaseQuery(args, api, extraOptions);
   if (result.error) {
     const data = result.error.data;
     result.error.message =
       (data && (data.error || data.message)) || `Request failed (${result.error.status})`;
+
+    if (result.error.status === 401 && api.endpoint !== 'login') {
+      api.dispatch(clearAuth());
+      await clearToken();
+      // baseApi is referenced at call-time, so the self-reference resolves; using util (not persistor)
+      // avoids a circular import.
+      api.dispatch(baseApi.util.resetApiState());
+    }
   }
   return result;
 };
@@ -28,7 +39,7 @@ const baseQueryWithErrorShape = async (args, api, extraOptions) => {
 export const baseApi = createApi({
   reducerPath: 'api',
   baseQuery: baseQueryWithErrorShape,
-  tagTypes: ['Balance', 'Transaction', 'Vault', 'VaultHistory', 'Category'],
+  tagTypes: ['Balance', 'Transaction', 'Vault', 'VaultHistory', 'Category', 'Team'],
   // Show persisted/cached data immediately, then revalidate (ADR-007).
   refetchOnReconnect: true,
   refetchOnMountOrArgChange: true,
