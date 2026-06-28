@@ -83,7 +83,12 @@ Point `.env.dev` `API_URL` at the running backend (`cd ../../Node/Projects/balan
 | `src/screens/<Name>/` | Screen bodies (Dashboard, Transactions, Vaults, Categories, Settings). |
 | `src/components/ui/` | Shared atoms/molecules, one file each + `index.js` barrel. |
 | `src/services/api/baseApi.js` | RTK Query base: `fetchBaseQuery` + token seam + `401` auto-logout + `tagTypes`. |
-| `src/services/api/{auth,teams}.js` | `login`/`logout` mutations; read-only `getTeams` query. |
+| `src/services/api/auth.js` | `login`/`logout` mutations. |
+| `src/services/api/teams.js` | `getTeams` (now returns per-team `role`) + team/member CRUD mutations (`:id`-path scoped, **not** `?team_id=`); tags `Team` / `TeamMember` (ADR-012). |
+| `src/permissions/index.js` | RBAC seam: `usePermissions` + pure `canAdd`/`canEditRow(row)`/`canManageTeam` matrix (ADR-012). |
+| `src/hooks/useActiveRole.js` | Active-context role derived from cached `getTeams` + `activeTeamId` (`null` = personal). |
+| `src/utils/jwt.js` | `decodeUser(token)` → `{ id }` from the JWT `sub` (the `myUserId` source for member gating). |
+| `src/screens/Teams/` | `ListScreen` (owned / member-of + create) and `ManageScreen` (owner: rename / members / roles / delete). |
 | `src/services/api/{balance,transactions,vaults,categories}.js` | `injectEndpoints` per entity (each threads optional `team_id`). |
 | `src/services/api/teamParam.js` | `withTeam(path, team_id)` — appends `?team_id=` (the one place it's built). |
 | `src/services/storage/{secure,prefs}.js` | Token (secure-store) / cache+prefs (AsyncStorage) seam. |
@@ -117,3 +122,8 @@ Plans go in `.claude/agents/plans/`; decisions in `.claude/ADR/`; long-term memo
 - **Team context:** `team_id` is a **query param, never a body field** — append it via `withTeam(...)` and
   destructure it out of mutation bodies. Pass the active `team_id` (from `selectActiveTeamId`) into every
   entity hook/mutation so personal/team caches stay isolated.
+- **RBAC (ADR-012):** gate every write affordance through `usePermissions()` (`src/permissions`) — guest is
+  read-only, member edits/deletes only its own rows (`row.user_id === myUserId`), owner does all, personal
+  context = full access. Role is **derived** via `useActiveRole` (never stored); `myUserId` comes from the
+  JWT `sub` (`decodeUser`). The backend enforces the same rules and `403`s a violation — surface it, don't
+  log out. Team-management endpoints are `:id`-path scoped (no `team_id`).

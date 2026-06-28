@@ -3,9 +3,10 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Redirect } from 'expo-router';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
-import { selectIsAuthed, setToken } from '../../reducers/auth';
+import { selectIsAuthed, setToken, setUser } from '../../reducers/auth';
 import { useLoginMutation } from '../../services/api/auth';
 import { setToken as persistToken } from '../../services/storage/secure';
+import { decodeUser } from '../../utils/jwt';
 import { Screen, Field, AppButton, Muted } from '../../components/ui';
 import { colors, font, spacing } from '../../components/theme';
 
@@ -28,6 +29,7 @@ export default function Login() {
       const { token } = await login({ email: email.trim(), password }).unwrap();
       await persistToken(token);
       dispatch(setToken(token));
+      dispatch(setUser(decodeUser(token))); // myUserId for member RBAC (ADR-012)
     } catch (err) {
       setErrorMessage(err?.message ?? t('auth.invalidCredentials'));
     }

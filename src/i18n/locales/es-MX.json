@@ -19,6 +19,7 @@
     "transactions": "Movimientos",
     "vaults": "Bóvedas",
     "categories": "Categorías",
+    "teams": "Equipos",
     "settings": "Ajustes"
   },
   "dashboard": {
@@ -96,5 +97,30 @@
   "context": {
     "personal": "Personal",
     "switchContext": "Cambiar contexto"
+  },
+  "teams": {
+    "title": "Equipos",
+    "manage": "Administrar equipo",
+    "name": "Nombre del equipo",
+    "create": "Crear equipo",
+    "empty": "Aún no hay equipos",
+    "owned": "Propios",
+    "memberOf": "Miembro de",
+    "members": "Miembros",
+    "noMembers": "Aún no hay miembros",
+    "addMember": "Agregar miembro",
+    "add": "Agregar",
+    "role": "Rol",
+    "rename": "Renombrar",
+    "remove": "Quitar",
+    "removeConfirm": "¿Quitar a este miembro?",
+    "deleteTeam": "Eliminar equipo",
+    "deleteConfirm": "¿Eliminar este equipo?",
+    "deleteNotEmpty": "Elimina los movimientos y bóvedas del equipo antes de borrarlo.",
+    "lastOwner": "Un equipo debe conservar al menos un propietario.",
+    "readOnly": "Solo lectura",
+    "role_owner": "Propietario",
+    "role_member": "Miembro",
+    "role_guest": "Invitado"
   }
 }

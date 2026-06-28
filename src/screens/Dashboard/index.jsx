@@ -6,7 +6,8 @@ import { useGetBalanceQuery } from '../../services/api/balance';
 import { useGetTeamsQuery } from '../../services/api/teams';
 import { setActiveTeam } from '../../reducers/context';
 import { useActiveTeamId } from '../../hooks/useActiveTeamId';
-import { Screen, Card, Chip, MoneyText, SectionTitle, QueryBoundary } from '../../components/ui';
+import { useActiveRole } from '../../hooks/useActiveRole';
+import { Screen, Card, Chip, MoneyText, SectionTitle, Muted, QueryBoundary } from '../../components/ui';
 import { colors, font, spacing } from '../../components/theme';
 
 const VaultRow = ({ vault, currency }) => {
@@ -34,6 +35,7 @@ export default function Dashboard() {
   const { t } = useTranslation();
   const dispatch = useDispatch();
   const teamId = useActiveTeamId();
+  const role = useActiveRole(); // null in personal context; 'owner'|'member'|'guest' in a team
   const { data: teams } = useGetTeamsQuery();
   const { data, isLoading, error, refetch } = useGetBalanceQuery(teamId);
   // Drive the spinner only from a user pull — not the auto refetch-on-mount, which on iOS
@@ -73,6 +75,13 @@ export default function Dashboard() {
         ))}
       </ScrollView>
 
+      {role ? (
+        <Muted style={styles.roleBadge}>
+          {t(`teams.role_${role}`)}
+          {role === 'guest' ? ` · ${t('teams.readOnly')}` : ''}
+        </Muted>
+      ) : null}
+
       <QueryBoundary isLoading={isLoading && !data} error={error} onRetry={refetch}>
         <Card style={styles.hero}>
           <Text style={styles.heroLabel}>{t('dashboard.total')}</Text>
@@ -97,6 +106,7 @@ export default function Dashboard() {
 const styles = StyleSheet.create({
   h1: { fontSize: font.xl, fontWeight: '800', color: colors.text, marginVertical: spacing(1.5) },
   switch: { flexDirection: 'row', alignItems: 'center', paddingBottom: spacing(1) },
+  roleBadge: { marginBottom: spacing(1.5), textTransform: 'capitalize' },
   hero: { backgroundColor: colors.primary, padding: spacing(3) },
   heroLabel: { color: '#DBEAFE', fontSize: font.sm, fontWeight: '600' },
   heroTotal: { color: '#FFFFFF', fontSize: font.hero, fontWeight: '800', marginTop: spacing(0.5) },

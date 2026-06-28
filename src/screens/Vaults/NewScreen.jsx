@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { Redirect, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useAddVaultMutation } from '../../services/api/vaults';
 import { useActiveTeamId } from '../../hooks/useActiveTeamId';
+import { usePermissions } from '../../permissions';
 import { Screen, Field, AppButton, Muted } from '../../components/ui';
 import { spacing } from '../../components/theme';
 
@@ -11,9 +12,13 @@ export default function NewVault() {
   const router = useRouter();
   const { t } = useTranslation();
   const teamId = useActiveTeamId();
+  const { canAdd } = usePermissions();
   const [name, setName] = useState('');
   const [target, setTarget] = useState('');
   const [addVault, { isLoading, error }] = useAddVaultMutation();
+
+  // Guard the deep-link path: the FAB is already hidden when the user can't add (ADR-012).
+  if (!canAdd) return <Redirect href="/(tabs)/vaults" />;
 
   const submit = async () => {
     if (!name.trim()) return;

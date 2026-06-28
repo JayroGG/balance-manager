@@ -7,7 +7,7 @@ import { todayISODate } from '../../utils/dates';
 
 // Shared create/edit form. Transactions are a pure ledger — no vault here; vault funding is an
 // amount-based action on the vault detail screen (ADR-009). Enforces amount > 0. (PRD §4.1)
-export default function TransactionForm({ initial, categories = [], onSubmit, submitting, error }) {
+export default function TransactionForm({ initial, categories = [], onSubmit, submitting, error, readOnly }) {
   const { t } = useTranslation();
   const [type, setType] = useState(initial?.type ?? 'expense');
   const [amount, setAmount] = useState(initial?.amount != null ? String(initial.amount) : '');
@@ -91,14 +91,18 @@ export default function TransactionForm({ initial, categories = [], onSubmit, su
       <Field label={t('transactions.date')} value={occurredAt} onChangeText={setOccurredAt} placeholder="YYYY-MM-DD" autoCapitalize="none" />
 
       {error ? <Muted style={styles.err}>{error.message}</Muted> : null}
-      <AppButton
-        title={t('common.save')}
-        successTitle={t('common.saved')}
-        onPress={submit}
-        loading={submitting}
-        disabled={!amountValid || locked}
-        success={locked && !submitting}
-      />
+      {readOnly ? (
+        <Muted style={styles.readOnly}>{t('teams.readOnly')}</Muted>
+      ) : (
+        <AppButton
+          title={t('common.save')}
+          successTitle={t('common.saved')}
+          onPress={submit}
+          loading={submitting}
+          disabled={!amountValid || locked}
+          success={locked && !submitting}
+        />
+      )}
     </ScrollView>
   );
 }
@@ -107,4 +111,5 @@ const styles = StyleSheet.create({
   label: { fontSize: font.sm, color: colors.muted, marginBottom: spacing(0.75), fontWeight: '600' },
   row: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: spacing(1) },
   err: { color: colors.danger, marginBottom: spacing(1.5) },
+  readOnly: { textAlign: 'center', marginTop: spacing(1) },
 });

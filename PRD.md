@@ -285,9 +285,14 @@ See `.claude/ADR/ADR-011-auth-jwt-and-team-context.md` and `docs/backend-auth-te
 - **Phase 2 — Auth + team context (ADR-011, this work):** real email/password JWT login/logout, `401`
   auto-logout, bypass made dev-only; a **team _context_** reusing the same screens (Dashboard
   Personal/Team switch threading `?team_id=`), with read-only `GET /teams`.
-- **Phase 3 — Team management + enhancements:** team CRUD (create/rename/delete, add/remove members) and
-  per-context RBAC; charts/insights, budgets, recurring transactions, offline-first cache, push
-  notifications, multi-currency.
+- **Phase 3 — Team management + RBAC (ADR-012, done):** per-context **RBAC** (owner/member/guest) gating
+  every financial screen via the `src/permissions` seam (member edits own rows only; guest read-only;
+  `myUserId` from the JWT `sub`), and a **Teams tab** for team CRUD (create/rename/delete) + member
+  management (add by email, change role, remove) with owner-gating and the last-owner / non-empty-delete
+  guardrails. **Deferred:** transfer-ownership, RBAC richer than the three roles, offline reconciliation
+  of role changes.
+- **Phase 4 — Enhancements (deferred):** charts/insights, budgets, recurring transactions, offline-first
+  cache, push notifications, multi-currency.
 
 ## 10. Documentation & workflow standard (adopt from commit one)
 

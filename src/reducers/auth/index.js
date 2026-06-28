@@ -25,6 +25,10 @@ const authSlice = createSlice({
     setToken: (state, action) => {
       state.token = action.payload;
     },
+    // The signed-in user, decoded from the JWT (id from `sub`). Drives member-row RBAC gating (ADR-012).
+    setUser: (state, action) => {
+      state.user = action.payload ?? null;
+    },
     clearAuth: (state) => {
       state.token = null;
       state.user = null;
@@ -32,12 +36,14 @@ const authSlice = createSlice({
   },
 });
 
-export const { hydrateAuth, setToken, clearAuth } = authSlice.actions;
+export const { hydrateAuth, setToken, setUser, clearAuth } = authSlice.actions;
 
 // Selectors — the only blessed way to read the token.
 export const selectToken = (state) =>
   state.auth.token ?? (state.auth.bypass ? PLACEHOLDER_TOKEN : null);
 export const selectIsAuthed = (state) => state.auth.bypass || !!state.auth.token;
 export const selectBootstrapped = (state) => state.auth.bootstrapped;
+// The signed-in user's id (JWT `sub`) — compared against `row.user_id` for member gating (ADR-012).
+export const selectMyUserId = (state) => state.auth.user?.id ?? null;
 
 export default authSlice.reducer;
