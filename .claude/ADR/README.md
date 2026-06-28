@@ -39,3 +39,4 @@ Statuses: `Proposed` · `Accepted` · `Deprecated` · `Superseded by ADR-NNN`.
 | [ADR-009](ADR-009-amount-based-vault-allocation.md) | Amount-based vault allocation (follows backend ADR-004) | Accepted |
 | [ADR-010](ADR-010-testing-jest-expo-preset.md) | Testing: Jest with the `jest-expo` preset (not bare `react-native`) | Accepted |
 | [ADR-011](ADR-011-auth-jwt-and-team-context.md) | Auth via the backend's email/password JWT, and a client-side team context (supersedes ADR-001) | Accepted |
+| [ADR-012](ADR-012-team-rbac-and-management.md) | Team RBAC (role-gated UI) and the team-management screen (extends ADR-011) | Accepted |
