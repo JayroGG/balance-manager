@@ -30,13 +30,25 @@ graph TD
       VDetail["[id].jsx<br/>history + allocate / withdraw"]
     end
     Cats["categories.jsx<br/>CRUD grouped by kind"]
-    Settings["settings.jsx<br/>currency, language, (auth entry)"]
+    subgraph Teams["teams/ (ADR-012)"]
+      TList["index.jsx<br/>list grouped owned / member-of + create"]
+      TManage["[id].jsx<br/>owner: rename / members / roles / delete;<br/>else read-only member list"]
+    end
+    Settings["settings.jsx<br/>currency, language, logout"]
   end
 
   TxList --> TxNew
   TxList --> TxDetail
   VList --> VDetail
+  TList --> TManage
 ```
+
+**RBAC (ADR-012).** Every financial screen gates its write affordances through one seam,
+`src/permissions` (`usePermissions` → `{ canAdd, canEditRow(row), canManageTeam }`). The active role is
+**derived** (never stored) by `useActiveRole` from the cached `GET /teams` (which now returns a per-team
+`role`) + `activeTeamId`; `null` = personal = full access. `myUserId` (for member "own-row" checks) is
+the JWT `sub` claim, decoded by `src/utils/jwt`. Guest = read-only; the backend enforces the same rules
+and `403`s a violation (surfaced, not a logout).
 
 ## 2. Data flow — RTK Query (ADR-005)
 
@@ -113,6 +125,7 @@ balance-manager/                 # app name: balance-mobile
 │   │   ├── Dashboard/index.jsx
 │   │   ├── Transactions/{ListScreen,NewScreen,EditScreen}.jsx  TransactionForm.jsx
 │   │   ├── Vaults/{ListScreen,NewScreen,DetailScreen}.jsx
+│   │   ├── Teams/{ListScreen,ManageScreen}.jsx   # team management (ADR-012)
 │   │   ├── Categories/index.jsx   Settings/index.jsx
 │   ├── components/
 │   │   ├── ui/                  # shared atoms/molecules — one file each + index.js barrel
@@ -122,9 +135,10 @@ balance-manager/                 # app name: balance-mobile
 │   ├── services/
 │   │   ├── api/                 # baseApi.js + balance/transactions/vaults/categories.js (injectEndpoints)
 │   │   └── storage/             # secure.js (token), prefs.js (cache/prefs)
-│   ├── reducers/auth/           # auth slice (token/bypass/user)
-│   ├── hooks/                   # useIdToken(), shared data hooks
-│   ├── utils/                   # config.js, money.js, dates.js
+│   ├── reducers/auth/           # auth slice (token/bypass/user; user.id = myUserId for RBAC)
+│   ├── permissions/             # RBAC seam: usePermissions + pure can*() matrix (ADR-012)
+│   ├── hooks/                   # useIdToken(), useActiveTeamId(), useActiveRole()
+│   ├── utils/                   # config.js, money.js, dates.js, jwt.js (decodeUser)
 │   └── i18n/                    # i18next init + locales/{en-US,es-MX}.json
 ├── CLAUDE.md  PRD.md  ARCHITECTURE.md  README.md
 └── .claude/ADR/   .claude/agents/plans/

@@ -4,10 +4,12 @@ jest.mock('../../utils/config', () => ({ Config: { AUTH_BYPASS: true } }));
 import reducer, {
   hydrateAuth,
   setToken,
+  setUser,
   clearAuth,
   selectToken,
   selectIsAuthed,
   selectBootstrapped,
+  selectMyUserId,
 } from './index';
 
 const PLACEHOLDER = 'bypass-placeholder-token';
@@ -40,6 +42,16 @@ describe('auth reducer', () => {
     expect(state.user).toEqual({ id: 1 });
   });
 
+  it('setUser stores the decoded user (myUserId source for RBAC)', () => {
+    const state = reducer({ token: 't', user: null, bootstrapped: true }, setUser({ id: '42' }));
+    expect(state.user).toEqual({ id: '42' });
+  });
+
+  it('setUser(null) clears the user', () => {
+    const state = reducer({ token: 't', user: { id: '42' }, bootstrapped: true }, setUser(null));
+    expect(state.user).toBeNull();
+  });
+
   it('clearAuth nulls token + user, leaving bootstrapped', () => {
     const state = reducer({ token: 't', user: { id: 1 }, bootstrapped: true }, clearAuth());
     expect(state.token).toBeNull();
@@ -70,5 +82,10 @@ describe('auth selectors (the token seam, ADR-001)', () => {
   it('selectBootstrapped reflects the flag', () => {
     expect(selectBootstrapped({ auth: { bootstrapped: true } })).toBe(true);
     expect(selectBootstrapped({ auth: { bootstrapped: false } })).toBe(false);
+  });
+
+  it('selectMyUserId reads the decoded user id, null when absent', () => {
+    expect(selectMyUserId({ auth: { user: { id: '42' } } })).toBe('42');
+    expect(selectMyUserId({ auth: { user: null } })).toBeNull();
   });
 });

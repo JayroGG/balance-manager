@@ -112,6 +112,76 @@ describe('auth + teams endpoints — URL building (ADR-011)', () => {
   });
 });
 
+describe('team management — :id-scoped URLs, no ?team_id= (ADR-012)', () => {
+  it('POSTs { name } to /teams to create', async () => {
+    store = makeStore();
+    await store.dispatch(teamsApi.endpoints.createTeam.initiate({ name: 'Household' }));
+    const request = global.fetch.mock.calls[0][0];
+    expect(request.url).toMatch(/\/teams$/);
+    expect(request.method).toBe('POST');
+    await expect(request.clone().json()).resolves.toEqual({ name: 'Household' });
+  });
+
+  it('PUTs { name } to /teams/:id to rename', async () => {
+    store = makeStore();
+    await store.dispatch(teamsApi.endpoints.updateTeam.initiate({ id: 7, name: 'Trip' }));
+    const request = global.fetch.mock.calls[0][0];
+    expect(request.url).toMatch(/\/teams\/7$/);
+    expect(request.method).toBe('PUT');
+    await expect(request.clone().json()).resolves.toEqual({ name: 'Trip' });
+  });
+
+  it('DELETEs /teams/:id', async () => {
+    store = makeStore();
+    await store.dispatch(teamsApi.endpoints.deleteTeam.initiate({ id: 7 }));
+    const request = global.fetch.mock.calls[0][0];
+    expect(request.url).toMatch(/\/teams\/7$/);
+    expect(request.method).toBe('DELETE');
+  });
+
+  it('GETs /teams/:id/members', async () => {
+    store = makeStore();
+    await store.dispatch(teamsApi.endpoints.getMembers.initiate(7));
+    expect(global.fetch.mock.calls[0][0].url).toMatch(/\/teams\/7\/members$/);
+  });
+
+  it('POSTs { email, role } to /teams/:id/members', async () => {
+    store = makeStore();
+    await store.dispatch(
+      teamsApi.endpoints.addMember.initiate({ id: 7, email: 'a@b.co', role: 'guest' }),
+    );
+    const request = global.fetch.mock.calls[0][0];
+    expect(request.url).toMatch(/\/teams\/7\/members$/);
+    expect(request.method).toBe('POST');
+    await expect(request.clone().json()).resolves.toEqual({ email: 'a@b.co', role: 'guest' });
+  });
+
+  it('omits role from the add-member body when not given (server defaults to member)', async () => {
+    store = makeStore();
+    await store.dispatch(teamsApi.endpoints.addMember.initiate({ id: 7, email: 'a@b.co' }));
+    await expect(global.fetch.mock.calls[0][0].clone().json()).resolves.toEqual({ email: 'a@b.co' });
+  });
+
+  it('PUTs { role } to /teams/:id/members/:userId to change a role', async () => {
+    store = makeStore();
+    await store.dispatch(
+      teamsApi.endpoints.updateMemberRole.initiate({ id: 7, userId: 3, role: 'owner' }),
+    );
+    const request = global.fetch.mock.calls[0][0];
+    expect(request.url).toMatch(/\/teams\/7\/members\/3$/);
+    expect(request.method).toBe('PUT');
+    await expect(request.clone().json()).resolves.toEqual({ role: 'owner' });
+  });
+
+  it('DELETEs /teams/:id/members/:userId to remove', async () => {
+    store = makeStore();
+    await store.dispatch(teamsApi.endpoints.removeMember.initiate({ id: 7, userId: 3 }));
+    const request = global.fetch.mock.calls[0][0];
+    expect(request.url).toMatch(/\/teams\/7\/members\/3$/);
+    expect(request.method).toBe('DELETE');
+  });
+});
+
 describe('team context — ?team_id= on queries, never in the body (ADR-011)', () => {
   it('appends team_id to GET /balance, /vaults, /categories', async () => {
     store = makeStore();

@@ -8,6 +8,7 @@ import {
 } from '../../services/api/transactions';
 import { useGetCategoriesQuery } from '../../services/api/categories';
 import { useActiveTeamId } from '../../hooks/useActiveTeamId';
+import { usePermissions } from '../../permissions';
 import TransactionForm from './TransactionForm';
 import { Screen, QueryBoundary, AppButton } from '../../components/ui';
 import { spacing } from '../../components/theme';
@@ -17,10 +18,13 @@ export default function TransactionDetail() {
   const router = useRouter();
   const { t } = useTranslation();
   const teamId = useActiveTeamId();
+  const { canEditRow } = usePermissions();
   const { data, isLoading, error, refetch } = useGetTransactionQuery({ id, team_id: teamId });
   const { data: categories } = useGetCategoriesQuery(teamId);
   const [updateTransaction, { isLoading: saving, error: saveError }] = useUpdateTransactionMutation();
   const [deleteTransaction, { isLoading: deleting }] = useDeleteTransactionMutation();
+  // RBAC: owner edits any row, member only their own, guest none (ADR-012). The API 403s a violation too.
+  const canEdit = canEditRow(data);
 
   const onSubmit = async (body) => {
     try {
@@ -56,14 +60,17 @@ export default function TransactionDetail() {
           onSubmit={onSubmit}
           submitting={saving}
           error={saveError}
+          readOnly={!canEdit}
         />
-        <AppButton
-          title={t('common.delete')}
-          variant="danger"
-          onPress={onDelete}
-          loading={deleting}
-          style={{ margin: spacing(2) }}
-        />
+        {canEdit ? (
+          <AppButton
+            title={t('common.delete')}
+            variant="danger"
+            onPress={onDelete}
+            loading={deleting}
+            style={{ margin: spacing(2) }}
+          />
+        ) : null}
       </QueryBoundary>
     </Screen>
   );

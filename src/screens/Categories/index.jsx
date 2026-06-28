@@ -8,6 +8,7 @@ import {
   useDeleteCategoryMutation,
 } from '../../services/api/categories';
 import { useActiveTeamId } from '../../hooks/useActiveTeamId';
+import { usePermissions } from '../../permissions';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen, Card, Field, Chip, AppButton, SectionTitle, QueryBoundary, Muted } from '../../components/ui';
 import { colors, font, spacing } from '../../components/theme';
@@ -17,6 +18,10 @@ const KINDS = ['income', 'expense', 'both'];
 export default function Categories() {
   const { t } = useTranslation();
   const teamId = useActiveTeamId();
+  // RBAC: guest is read-only; member can add but edits/deletes only its own categories; owner does all.
+  // canEditRow checks row.user_id — if the backend doesn't stamp categories, members simply can't edit
+  // team categories (conservative), and the API 403s a violation regardless (ADR-012).
+  const { canAdd, canEditRow } = usePermissions();
   const { data, isLoading, error, refetch } = useGetCategoriesQuery(teamId);
   const [addCategory, { isLoading: adding }] = useAddCategoryMutation();
   const [updateCategory, { isLoading: updating }] = useUpdateCategoryMutation();
@@ -74,25 +79,27 @@ export default function Categories() {
     <Screen scroll>
       <Text style={styles.h1}>{t('categories.title')}</Text>
 
-      <Card>
-        <Field label={t('categories.name')} value={name} onChangeText={setName} placeholder="—" />
-        <Text style={styles.label}>{t('categories.kind')}</Text>
-        <View style={styles.row}>
-          {KINDS.map((k) => (
-            <Chip key={k} label={t(`categories.${k}`)} active={kind === k} onPress={() => setKind(k)} />
-          ))}
-        </View>
-        <View style={styles.row}>
-          <AppButton
-            title={editing ? t('common.save') : t('common.create')}
-            onPress={submit}
-            loading={adding || updating}
-            disabled={!name.trim()}
-            style={{ flex: 1, marginRight: editing ? spacing(1) : 0 }}
-          />
-          {editing ? <AppButton title={t('common.cancel')} variant="ghost" onPress={reset} style={{ flex: 1 }} /> : null}
-        </View>
-      </Card>
+      {canAdd ? (
+        <Card>
+          <Field label={t('categories.name')} value={name} onChangeText={setName} placeholder="—" />
+          <Text style={styles.label}>{t('categories.kind')}</Text>
+          <View style={styles.row}>
+            {KINDS.map((k) => (
+              <Chip key={k} label={t(`categories.${k}`)} active={kind === k} onPress={() => setKind(k)} />
+            ))}
+          </View>
+          <View style={styles.row}>
+            <AppButton
+              title={editing ? t('common.save') : t('common.create')}
+              onPress={submit}
+              loading={adding || updating}
+              disabled={!name.trim()}
+              style={{ flex: 1, marginRight: editing ? spacing(1) : 0 }}
+            />
+            {editing ? <AppButton title={t('common.cancel')} variant="ghost" onPress={reset} style={{ flex: 1 }} /> : null}
+          </View>
+        </Card>
+      ) : null}
 
       <QueryBoundary isLoading={isLoading && !data} error={error} onRetry={refetch}>
         {grouped.map(({ kind: k, items }) =>
@@ -100,12 +107,14 @@ export default function Categories() {
             <View key={k}>
               <SectionTitle>{t(`categories.${k}`)}</SectionTitle>
               {items.map((c) => (
-                <Card key={c.id} onPress={() => startEdit(c)}>
+                <Card key={c.id} onPress={canEditRow(c) ? () => startEdit(c) : undefined}>
                   <View style={styles.rowBetween}>
                     <Text style={styles.name}>{c.name}</Text>
-                    <Pressable hitSlop={10} onPress={() => onDelete(c)}>
-                      <Ionicons name="trash-outline" size={20} color={colors.danger} />
-                    </Pressable>
+                    {canEditRow(c) ? (
+                      <Pressable hitSlop={10} onPress={() => onDelete(c)}>
+                        <Ionicons name="trash-outline" size={20} color={colors.danger} />
+                      </Pressable>
+                    ) : null}
                   </View>
                 </Card>
               ))}

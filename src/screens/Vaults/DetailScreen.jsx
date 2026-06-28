@@ -12,6 +12,7 @@ import {
 } from '../../services/api/vaults';
 import { useGetBalanceQuery } from '../../services/api/balance';
 import { useActiveTeamId } from '../../hooks/useActiveTeamId';
+import { usePermissions } from '../../permissions';
 import { Screen, Card, MoneyText, AppButton, Field, SectionTitle, Muted, QueryBoundary } from '../../components/ui';
 import { colors, font, spacing } from '../../components/theme';
 import { formatDateTime } from '../../utils/dates';
@@ -22,12 +23,16 @@ export default function VaultDetail() {
   const router = useRouter();
   const { t } = useTranslation();
   const teamId = useActiveTeamId();
+  const { canEditRow } = usePermissions();
 
   const { data: balance } = useGetBalanceQuery(teamId);
   const { data: vault, isLoading, error, refetch } = useGetVaultQuery({ id, team_id: teamId });
   const { data: history } = useGetVaultHistoryQuery({ id, team_id: teamId });
   const currency = balance?.currency;
   const figures = balance?.vaults?.find((v) => v.id === vaultId);
+  // RBAC: owner edits any vault, member only their own, guest none — gate allocate/withdraw/save/delete
+  // (the API 403s a violation too). History + balances stay visible to all roles (ADR-012).
+  const canEdit = canEditRow(vault);
 
   // Allocate/withdraw move an amount between spendable and the vault (ADR-009).
   const [picker, setPicker] = useState(null); // null | 'allocate' | 'withdraw'
@@ -126,25 +131,27 @@ export default function VaultDetail() {
           </Text>
         </Card>
 
-        <View style={styles.actions}>
-          <AppButton
-            title={t('vaults.allocate')}
-            successTitle={t('vaults.allocated')}
-            success={flashed === 'allocate'}
-            onPress={() => openPicker('allocate')}
-            style={{ flex: 1, marginRight: spacing(1) }}
-          />
-          <AppButton
-            title={t('vaults.withdraw')}
-            successTitle={t('vaults.withdrawn')}
-            success={flashed === 'withdraw'}
-            variant="ghost"
-            onPress={() => openPicker('withdraw')}
-            style={{ flex: 1 }}
-          />
-        </View>
+        {canEdit ? (
+          <View style={styles.actions}>
+            <AppButton
+              title={t('vaults.allocate')}
+              successTitle={t('vaults.allocated')}
+              success={flashed === 'allocate'}
+              onPress={() => openPicker('allocate')}
+              style={{ flex: 1, marginRight: spacing(1) }}
+            />
+            <AppButton
+              title={t('vaults.withdraw')}
+              successTitle={t('vaults.withdrawn')}
+              success={flashed === 'withdraw'}
+              variant="ghost"
+              onPress={() => openPicker('withdraw')}
+              style={{ flex: 1 }}
+            />
+          </View>
+        ) : null}
 
-        {picker ? (
+        {canEdit && picker ? (
           <Card>
             <Muted>{picker === 'allocate' ? t('vaults.allocateHint') : t('vaults.withdrawHint')}</Muted>
             <Field
@@ -184,19 +191,23 @@ export default function VaultDetail() {
           <Muted>{t('vaults.noHistory')}</Muted>
         )}
 
-        <SectionTitle>{t('common.edit')}</SectionTitle>
-        <Field label={t('vaults.name')} value={name} onChangeText={setName} />
-        <Field label={t('vaults.targetAmount')} value={target} onChangeText={setTarget} keyboardType="decimal-pad" placeholder="0.00" />
-        <AppButton
-          title={t('common.save')}
-          successTitle={t('common.saved')}
-          onPress={onSave}
-          loading={saving}
-          disabled={!name.trim() || !dirty}
-          success={!dirty && !!vault && !saving}
-        />
-        <AppButton title={t('common.delete')} variant="danger" onPress={onDelete} loading={deleting} disabled={!canDelete} style={{ marginTop: spacing(1.5) }} />
-        {!canDelete ? <Muted style={{ marginTop: spacing(1) }}>{t('vaults.deleteNeedsZero')}</Muted> : null}
+        {canEdit ? (
+          <>
+            <SectionTitle>{t('common.edit')}</SectionTitle>
+            <Field label={t('vaults.name')} value={name} onChangeText={setName} />
+            <Field label={t('vaults.targetAmount')} value={target} onChangeText={setTarget} keyboardType="decimal-pad" placeholder="0.00" />
+            <AppButton
+              title={t('common.save')}
+              successTitle={t('common.saved')}
+              onPress={onSave}
+              loading={saving}
+              disabled={!name.trim() || !dirty}
+              success={!dirty && !!vault && !saving}
+            />
+            <AppButton title={t('common.delete')} variant="danger" onPress={onDelete} loading={deleting} disabled={!canDelete} style={{ marginTop: spacing(1.5) }} />
+            {!canDelete ? <Muted style={{ marginTop: spacing(1) }}>{t('vaults.deleteNeedsZero')}</Muted> : null}
+          </>
+        ) : null}
       </QueryBoundary>
     </Screen>
   );

@@ -8,6 +8,7 @@ import { Stack } from 'expo-router';
 import { store, persistor } from '../src/store';
 import { hydrateAuth } from '../src/reducers/auth';
 import { getToken } from '../src/services/storage/secure';
+import { decodeUser } from '../src/utils/jwt';
 import { initI18n } from '../src/i18n';
 
 // Keep the splash up until the cold-start bootstrap finishes (ADR-001/006/007).
@@ -21,7 +22,7 @@ function Bootstrap({ children }) {
       try {
         await initI18n();
         const token = await getToken(); // null in bypass mode → selectToken serves a placeholder
-        store.dispatch(hydrateAuth({ token }));
+        store.dispatch(hydrateAuth({ token, user: decodeUser(token) }));
       } finally {
         setReady(true);
         await SplashScreen.hideAsync();

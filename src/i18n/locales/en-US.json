@@ -19,6 +19,7 @@
     "transactions": "Transactions",
     "vaults": "Vaults",
     "categories": "Categories",
+    "teams": "Teams",
     "settings": "Settings"
   },
   "dashboard": {
@@ -96,5 +97,30 @@
   "context": {
     "personal": "Personal",
     "switchContext": "Switch context"
+  },
+  "teams": {
+    "title": "Teams",
+    "manage": "Manage team",
+    "name": "Team name",
+    "create": "Create team",
+    "empty": "No teams yet",
+    "owned": "Owned",
+    "memberOf": "Member of",
+    "members": "Members",
+    "noMembers": "No members yet",
+    "addMember": "Add member",
+    "add": "Add",
+    "role": "Role",
+    "rename": "Rename",
+    "remove": "Remove",
+    "removeConfirm": "Remove this member?",
+    "deleteTeam": "Delete team",
+    "deleteConfirm": "Delete this team?",
+    "deleteNotEmpty": "Remove this team's transactions and vaults before deleting.",
+    "lastOwner": "A team must keep at least one owner.",
+    "readOnly": "Read-only",
+    "role_owner": "Owner",
+    "role_member": "Member",
+    "role_guest": "Guest"
   }
 }

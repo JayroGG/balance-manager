@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useGetBalanceQuery } from '../../services/api/balance';
 import { useActiveTeamId } from '../../hooks/useActiveTeamId';
+import { usePermissions } from '../../permissions';
 import { Screen, Card, MoneyText, QueryBoundary } from '../../components/ui';
 import { colors, font, spacing } from '../../components/theme';
 
@@ -12,6 +13,7 @@ export default function VaultsList() {
   const { t } = useTranslation();
   const router = useRouter();
   const teamId = useActiveTeamId();
+  const { canAdd } = usePermissions();
   // Per-vault balances/targets come from /balance (PRD note).
   const { data, isLoading, error, refetch } = useGetBalanceQuery(teamId);
   const currency = data?.currency;
@@ -73,9 +75,11 @@ export default function VaultsList() {
         />
       </QueryBoundary>
 
-      <Pressable style={styles.fab} onPress={() => router.push('/(tabs)/vaults/new')}>
-        <Ionicons name="add" size={28} color={colors.primaryText} />
-      </Pressable>
+      {canAdd ? (
+        <Pressable style={styles.fab} onPress={() => router.push('/(tabs)/vaults/new')}>
+          <Ionicons name="add" size={28} color={colors.primaryText} />
+        </Pressable>
+      ) : null}
     </Screen>
   );
 }

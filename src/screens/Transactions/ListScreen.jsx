@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { useGetTransactionsQuery } from '../../services/api/transactions';
 import { useGetBalanceQuery } from '../../services/api/balance';
 import { useActiveTeamId } from '../../hooks/useActiveTeamId';
+import { usePermissions } from '../../permissions';
 import { Screen, Card, MoneyText, Chip, QueryBoundary } from '../../components/ui';
 import { colors, font, spacing } from '../../components/theme';
 import { formatDate } from '../../utils/dates';
@@ -16,6 +17,7 @@ export default function TransactionsList() {
   const { t } = useTranslation();
   const router = useRouter();
   const teamId = useActiveTeamId();
+  const { canAdd } = usePermissions();
   const [typeFilter, setTypeFilter] = useState('all');
   const filters = { team_id: teamId, ...(typeFilter === 'all' ? {} : { type: typeFilter }) };
   const { data, isLoading, error, refetch } = useGetTransactionsQuery(filters);
@@ -79,9 +81,11 @@ export default function TransactionsList() {
         />
       </QueryBoundary>
 
-      <Pressable style={styles.fab} onPress={() => router.push('/(tabs)/transactions/new')}>
-        <Ionicons name="add" size={28} color={colors.primaryText} />
-      </Pressable>
+      {canAdd ? (
+        <Pressable style={styles.fab} onPress={() => router.push('/(tabs)/transactions/new')}>
+          <Ionicons name="add" size={28} color={colors.primaryText} />
+        </Pressable>
+      ) : null}
     </Screen>
   );
 }
