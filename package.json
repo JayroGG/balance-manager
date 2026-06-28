@@ -1,8 +1,28 @@
 {
   "name": "balance-mobile",
   "version": "1.0.0",
+  "description": "Expo React Native client for the balance personal-finance API (transactions, categories, savings vaults, and a computed balance).",
   "main": "expo-router/entry",
   "private": true,
+  "license": "MIT",
+  "author": "Jayro Gómez <jaxjayro@gmail.com> (https://github.com/JayroGG)",
+  "homepage": "https://github.com/JayroGG/balance-manager#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JayroGG/balance-manager.git"
+  },
+  "bugs": {
+    "url": "https://github.com/JayroGG/balance-manager/issues"
+  },
+  "keywords": [
+    "expo",
+    "react-native",
+    "expo-router",
+    "redux-toolkit",
+    "rtk-query",
+    "personal-finance",
+    "budgeting"
+  ],
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
