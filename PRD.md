@@ -25,6 +25,8 @@ Where this section conflicts with §5, **this section and the ADRs win**:
 | Storage | AsyncStorage | **expo-secure-store (token) + AsyncStorage (cache)**; MMKV deferred | ADR-006 |
 | Persistence/offline | non-goal | **redux-persist cache now** (fast cold start + offline reads); **local-first sync** is the Phase-3 north star | ADR-007 |
 | App structure | screens under `screens/`, navigators under `stacks/` | **thin `app/` route shims → `src/screens/` → `src/components/ui/` (atomic, one file each)** | ADR-008 |
+| Auth | wired but bypassed; Auth0 + RBAC north star | **Backend email/password JWT** (`/auth/login`,`/auth/logout`; not Auth0) — ships in Expo Go, no dev build; **bypass is dev-only** | ADR-011 |
+| Team context | (none) | **Personal vs team via `?team_id=` query param** (never in body); same screens reused + a Dashboard switch; team-management CRUD deferred | ADR-011 |
 
 Everything in §4 (the **backend contract**), §8 (screens/flows), and §9 (phases) stands unchanged.
 §5 and §6 below are the **original draft**; where they differ from this table, the table + ADRs win.
@@ -68,9 +70,16 @@ Configure per environment via `react-native-config` (`API_URL`).
 **Money:** the API speaks **decimals** (e.g. `19.99`); never send cents. Amounts are always
 **positive** — the `type` field (`income` / `expense`) carries the sign meaning.
 
-**Identity (today):** none required. The backend injects `req.userId = 1`. The app should already
-send an `Authorization: Bearer <token>` header through a single injection point so that enabling
-real auth later is a config change, not a refactor (see §7).
+**Identity (now required — ADR-011):** every request carries `Authorization: Bearer <token>`, where the
+token is the backend's own **email/password JWT** (`POST /auth/login` → `{ token }`; `POST /auth/logout`
+to revoke; a `401` on any call but `/auth/login` means the session is over). The header is set in one
+place (`baseApi.prepareHeaders`). A **dev-only** `AUTH_BYPASS` still sends a placeholder token. See §7 and
+`docs/backend-auth-teams-contract.md`.
+
+**Team context (ADR-011):** `transactions`, `vaults`, `categories`, `balance` are **personal** (no param)
+or **team** (`?team_id=T`). `team_id` travels in the **query string only — never in a request body**; the
+server injects it on writes. Response shapes are unchanged (rows gained a `team_id` field). A read-only
+`GET /teams` populates the Dashboard's Personal/Team switch.
 
 **Errors:** non-2xx responses return `{ "error": "<message>" }`. Standard codes: `400` (validation),
 `404` (missing or soft-deleted), `500`. The API client must surface `error` as the user-facing message.
@@ -237,21 +246,24 @@ export const getBalance = async (token, baseUrl) => {
 ```
 `token` is injected centrally; in bypass mode it is a throwaway value (the backend ignores it).
 
-## 7. Auth — modular, bypassed in the prototype
+## 7. Auth — the backend's JWT, bypass dev-only (ADR-011, supersedes ADR-001)
 
-Aligns with backend **ADR-001**. Authentication is a **single seam**, not scattered logic.
+Authentication is a **single seam**, not scattered logic. **ADR-011 supersedes ADR-001:** real auth is the
+backend's **email/password JWT** (not Auth0), and it ships in **Expo Go** with no dev build.
 
-- **One injection point:** every API call gets its `Authorization` header from one place
-  (an interceptor/helper or a `useIdToken()` hook). Screens and slices never touch tokens directly.
-- **Prototype (now):** `AUTH_BYPASS=true`. No login screen on the critical path; the app boots
-  straight into the tabs and sends a placeholder token. The backend currently ignores it
-  (`req.userId = 1`).
-- **North star (deferred, recorded):** **Auth0** via `react-native-auth0` — hosted login, `idToken`
-  as the Bearer token, `jwt-decode` for claims, **roles & permissions** gating screens/actions.
-  When enabled, only the auth seam and an `AuthStack` change; the rest of the app is untouched.
-- **Guard:** `AUTH_BYPASS` must default to off outside development builds.
+- **One injection point:** every API call gets its `Authorization: Bearer <token>` header from
+  `src/services/api/baseApi.js` `prepareHeaders`, reading the `auth` slice. Screens/slices never touch the
+  token directly.
+- **Login / logout:** `src/screens/Login` (email + password) calls `POST /auth/login`; the JWT is stored
+  in `expo-secure-store` + the `auth` slice. Settings logs out via `POST /auth/logout`, then clears the
+  token, resets the team context, and purges cached data.
+- **`401` = session over:** a `401` on any endpoint **except `/auth/login`** clears auth + cache and routes
+  to login. `/auth/login` is exempt so a bad password is an inline error, not a logout.
+- **Bypass is dev-only:** `AUTH_BYPASS` is honored **only when `ENV === 'dev'`** (hardened in
+  `src/utils/config.js`); stage + prod always require real login.
+- **Deferred:** full team-management CRUD and per-context RBAC (only read-only `GET /teams` is wired now).
 
-Write this as `ADR-001` in the new repo's `.claude/ADR/` (copy/adapt from `balance`).
+See `.claude/ADR/ADR-011-auth-jwt-and-team-context.md` and `docs/backend-auth-teams-contract.md`.
 
 ## 8. Screens & flows (prototype scope)
 
@@ -268,12 +280,14 @@ Write this as `ADR-001` in the new repo's `.claude/ADR/` (copy/adapt from `balan
 
 ## 9. Phases
 
-- **Phase 1 — Prototype (this PRD):** scaffold + doc standard; API client for all four resources;
-  Redux slices; Dashboard, Transactions CRUD, Vaults (allocate/withdraw/history), Categories; auth bypassed.
-- **Phase 2 — Auth:** flip the seam to DB-hashed or Auth0 per backend readiness; add `AuthStack`,
-  login, token refresh, RBAC-gated UI.
-- **Phase 3 — Enhancements:** charts/insights, budgets, recurring transactions, offline cache,
-  push notifications, multi-currency.
+- **Phase 1 — Prototype:** scaffold + doc standard; API client for all four resources; Redux slices;
+  Dashboard, Transactions CRUD, Vaults (allocate/withdraw/history), Categories; auth bypassed.
+- **Phase 2 — Auth + team context (ADR-011, this work):** real email/password JWT login/logout, `401`
+  auto-logout, bypass made dev-only; a **team _context_** reusing the same screens (Dashboard
+  Personal/Team switch threading `?team_id=`), with read-only `GET /teams`.
+- **Phase 3 — Team management + enhancements:** team CRUD (create/rename/delete, add/remove members) and
+  per-context RBAC; charts/insights, budgets, recurring transactions, offline-first cache, push
+  notifications, multi-currency.
 
 ## 10. Documentation & workflow standard (adopt from commit one)
 

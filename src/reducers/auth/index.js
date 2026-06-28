@@ -1,8 +1,8 @@
 import { createSlice } from '@reduxjs/toolkit';
 import { Config } from '../../utils/config';
 
-// Auth state = the single source the API token seam reads (ADR-001). In bypass mode we serve a
-// placeholder token the backend ignores; with real auth (Auth0, Phase 2) `token` holds the idToken.
+// Auth state = the single source the API token seam reads (ADR-001/011). In dev bypass mode we serve a
+// placeholder token the backend ignores; with real auth `token` holds the backend's email/password JWT.
 const PLACEHOLDER_TOKEN = 'bypass-placeholder-token';
 
 const initialState = {

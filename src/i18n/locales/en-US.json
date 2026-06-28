@@ -85,5 +85,16 @@
     "auth": "Authentication",
     "authBypassed": "Bypassed (prototype)",
     "clearCache": "Clear cached data"
+  },
+  "auth": {
+    "email": "Email",
+    "password": "Password",
+    "signIn": "Sign in",
+    "invalidCredentials": "Invalid credentials",
+    "logout": "Log out"
+  },
+  "context": {
+    "personal": "Personal",
+    "switchContext": "Switch context"
   }
 }

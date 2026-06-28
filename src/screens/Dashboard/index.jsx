@@ -1,8 +1,12 @@
 import { useCallback, useState } from 'react';
-import { RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useDispatch } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import { useGetBalanceQuery } from '../../services/api/balance';
-import { Screen, Card, MoneyText, SectionTitle, QueryBoundary } from '../../components/ui';
+import { useGetTeamsQuery } from '../../services/api/teams';
+import { setActiveTeam } from '../../reducers/context';
+import { useActiveTeamId } from '../../hooks/useActiveTeamId';
+import { Screen, Card, Chip, MoneyText, SectionTitle, QueryBoundary } from '../../components/ui';
 import { colors, font, spacing } from '../../components/theme';
 
 const VaultRow = ({ vault, currency }) => {
@@ -28,7 +32,10 @@ const VaultRow = ({ vault, currency }) => {
 
 export default function Dashboard() {
   const { t } = useTranslation();
-  const { data, isLoading, error, refetch } = useGetBalanceQuery();
+  const dispatch = useDispatch();
+  const teamId = useActiveTeamId();
+  const { data: teams } = useGetTeamsQuery();
+  const { data, isLoading, error, refetch } = useGetBalanceQuery(teamId);
   // Drive the spinner only from a user pull — not the auto refetch-on-mount, which on iOS
   // leaves a programmatic RefreshControl spinner stuck until the user drags.
   const [refreshing, setRefreshing] = useState(false);
@@ -45,6 +52,27 @@ export default function Dashboard() {
   return (
     <Screen scroll refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
       <Text style={styles.h1}>{t('dashboard.title')}</Text>
+
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.switch}
+      >
+        <Chip
+          label={t('context.personal')}
+          active={teamId == null}
+          onPress={() => dispatch(setActiveTeam(null))}
+        />
+        {teams?.map((team) => (
+          <Chip
+            key={team.id}
+            label={team.name}
+            active={teamId === team.id}
+            onPress={() => dispatch(setActiveTeam(team.id))}
+          />
+        ))}
+      </ScrollView>
+
       <QueryBoundary isLoading={isLoading && !data} error={error} onRetry={refetch}>
         <Card style={styles.hero}>
           <Text style={styles.heroLabel}>{t('dashboard.total')}</Text>
@@ -68,6 +96,7 @@ export default function Dashboard() {
 
 const styles = StyleSheet.create({
   h1: { fontSize: font.xl, fontWeight: '800', color: colors.text, marginVertical: spacing(1.5) },
+  switch: { flexDirection: 'row', alignItems: 'center', paddingBottom: spacing(1) },
   hero: { backgroundColor: colors.primary, padding: spacing(3) },
   heroLabel: { color: '#DBEAFE', fontSize: font.sm, fontWeight: '600' },
   heroTotal: { color: '#FFFFFF', fontSize: font.hero, fontWeight: '800', marginTop: spacing(0.5) },

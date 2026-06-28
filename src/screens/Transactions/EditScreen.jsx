@@ -7,6 +7,7 @@ import {
   useDeleteTransactionMutation,
 } from '../../services/api/transactions';
 import { useGetCategoriesQuery } from '../../services/api/categories';
+import { useActiveTeamId } from '../../hooks/useActiveTeamId';
 import TransactionForm from './TransactionForm';
 import { Screen, QueryBoundary, AppButton } from '../../components/ui';
 import { spacing } from '../../components/theme';
@@ -15,14 +16,15 @@ export default function TransactionDetail() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const { t } = useTranslation();
-  const { data, isLoading, error, refetch } = useGetTransactionQuery(id);
-  const { data: categories } = useGetCategoriesQuery();
+  const teamId = useActiveTeamId();
+  const { data, isLoading, error, refetch } = useGetTransactionQuery({ id, team_id: teamId });
+  const { data: categories } = useGetCategoriesQuery(teamId);
   const [updateTransaction, { isLoading: saving, error: saveError }] = useUpdateTransactionMutation();
   const [deleteTransaction, { isLoading: deleting }] = useDeleteTransactionMutation();
 
   const onSubmit = async (body) => {
     try {
-      await updateTransaction({ id, ...body }).unwrap();
+      await updateTransaction({ id, ...body, team_id: teamId }).unwrap();
       return true; // form shows the ✓ Saved lock; user stays on the screen
     } catch {
       return false;
@@ -37,7 +39,7 @@ export default function TransactionDetail() {
         style: 'destructive',
         onPress: async () => {
           try {
-            await deleteTransaction(id).unwrap();
+            await deleteTransaction({ id, team_id: teamId }).unwrap();
             router.back();
           } catch {}
         },

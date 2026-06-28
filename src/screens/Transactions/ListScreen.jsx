@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useGetTransactionsQuery } from '../../services/api/transactions';
 import { useGetBalanceQuery } from '../../services/api/balance';
+import { useActiveTeamId } from '../../hooks/useActiveTeamId';
 import { Screen, Card, MoneyText, Chip, QueryBoundary } from '../../components/ui';
 import { colors, font, spacing } from '../../components/theme';
 import { formatDate } from '../../utils/dates';
@@ -14,10 +15,11 @@ const TYPE_FILTERS = ['all', 'income', 'expense'];
 export default function TransactionsList() {
   const { t } = useTranslation();
   const router = useRouter();
+  const teamId = useActiveTeamId();
   const [typeFilter, setTypeFilter] = useState('all');
-  const filters = typeFilter === 'all' ? undefined : { type: typeFilter };
+  const filters = { team_id: teamId, ...(typeFilter === 'all' ? {} : { type: typeFilter }) };
   const { data, isLoading, error, refetch } = useGetTransactionsQuery(filters);
-  const { data: balance } = useGetBalanceQuery();
+  const { data: balance } = useGetBalanceQuery(teamId);
   const currency = balance?.currency;
   // Drive the spinner only from a user pull — not the auto refetch-on-mount, which on iOS
   // leaves a programmatic RefreshControl spinner stuck until the user drags.

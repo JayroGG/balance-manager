@@ -3,9 +3,12 @@ jest.mock('../../utils/config', () => ({ Config: { API_URL: 'http://localhost', 
 
 import { configureStore, combineReducers } from '@reduxjs/toolkit';
 import { baseApi } from './baseApi';
+import { authApi } from './auth';
+import { teamsApi } from './teams';
 import { balanceApi } from './balance';
 import { transactionsApi } from './transactions';
 import { vaultsApi } from './vaults';
+import { categoriesApi } from './categories';
 import authReducer from '../../reducers/auth';
 
 const makeStore = () =>
@@ -81,6 +84,81 @@ describe('vault actions — amount-based allocate (ADR-009)', () => {
     expect(request.url).toContain('/vaults/3/allocate');
     expect(request.method).toBe('POST');
     await expect(request.clone().json()).resolves.toEqual({ amount: 50 });
+  });
+});
+
+describe('auth + teams endpoints — URL building (ADR-011)', () => {
+  it('POSTs credentials to /auth/login', async () => {
+    store = makeStore();
+    await store.dispatch(authApi.endpoints.login.initiate({ email: 'a@b.co', password: 'pw' }));
+    const request = global.fetch.mock.calls[0][0];
+    expect(request.url).toMatch(/\/auth\/login$/);
+    expect(request.method).toBe('POST');
+    await expect(request.clone().json()).resolves.toEqual({ email: 'a@b.co', password: 'pw' });
+  });
+
+  it('POSTs to /auth/logout', async () => {
+    store = makeStore();
+    await store.dispatch(authApi.endpoints.logout.initiate());
+    const request = global.fetch.mock.calls[0][0];
+    expect(request.url).toMatch(/\/auth\/logout$/);
+    expect(request.method).toBe('POST');
+  });
+
+  it('GETs /teams', async () => {
+    store = makeStore();
+    await store.dispatch(teamsApi.endpoints.getTeams.initiate());
+    expect(global.fetch.mock.calls[0][0].url).toMatch(/\/teams$/);
+  });
+});
+
+describe('team context — ?team_id= on queries, never in the body (ADR-011)', () => {
+  it('appends team_id to GET /balance, /vaults, /categories', async () => {
+    store = makeStore();
+    await store.dispatch(balanceApi.endpoints.getBalance.initiate(5));
+    await store.dispatch(vaultsApi.endpoints.getVaults.initiate(5));
+    await store.dispatch(categoriesApi.endpoints.getCategories.initiate(5));
+    const urls = fetchedUrls();
+    expect(urls.some((u) => /\/balance\?team_id=5$/.test(u))).toBe(true);
+    expect(urls.some((u) => /\/vaults\?team_id=5$/.test(u))).toBe(true);
+    expect(urls.some((u) => /\/categories\?team_id=5$/.test(u))).toBe(true);
+  });
+
+  it('merges team_id alongside existing transaction filters', async () => {
+    store = makeStore();
+    await store.dispatch(
+      transactionsApi.endpoints.getTransactions.initiate({ type: 'expense', team_id: 5 }),
+    );
+    const url = global.fetch.mock.calls[0][0].url;
+    expect(url).toContain('type=expense');
+    expect(url).toContain('team_id=5');
+  });
+
+  it('omits team_id entirely in personal context (null)', async () => {
+    store = makeStore();
+    await store.dispatch(balanceApi.endpoints.getBalance.initiate(null));
+    expect(global.fetch.mock.calls[0][0].url).not.toContain('team_id');
+  });
+
+  it('sends team_id in the URL but NOT the body on a write', async () => {
+    store = makeStore();
+    await store.dispatch(
+      transactionsApi.endpoints.addTransaction.initiate({ type: 'income', amount: 10, team_id: 5 }),
+    );
+    const request = global.fetch.mock.calls[0][0];
+    expect(request.url).toContain('team_id=5');
+    await expect(request.clone().json()).resolves.toEqual({ type: 'income', amount: 10 });
+  });
+
+  it('strips team_id from a vault PUT body, keeping it in the URL', async () => {
+    store = makeStore();
+    await store.dispatch(
+      vaultsApi.endpoints.updateVault.initiate({ id: 2, name: 'Trip', team_id: 5 }),
+    );
+    const request = global.fetch.mock.calls[0][0];
+    expect(request.url).toContain('/vaults/2?team_id=5');
+    expect(request.method).toBe('PUT');
+    await expect(request.clone().json()).resolves.toEqual({ name: 'Trip' });
   });
 });
 

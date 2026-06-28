@@ -7,6 +7,7 @@ import {
   useUpdateCategoryMutation,
   useDeleteCategoryMutation,
 } from '../../services/api/categories';
+import { useActiveTeamId } from '../../hooks/useActiveTeamId';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen, Card, Field, Chip, AppButton, SectionTitle, QueryBoundary, Muted } from '../../components/ui';
 import { colors, font, spacing } from '../../components/theme';
@@ -15,7 +16,8 @@ const KINDS = ['income', 'expense', 'both'];
 
 export default function Categories() {
   const { t } = useTranslation();
-  const { data, isLoading, error, refetch } = useGetCategoriesQuery();
+  const teamId = useActiveTeamId();
+  const { data, isLoading, error, refetch } = useGetCategoriesQuery(teamId);
   const [addCategory, { isLoading: adding }] = useAddCategoryMutation();
   const [updateCategory, { isLoading: updating }] = useUpdateCategoryMutation();
   const [deleteCategory] = useDeleteCategoryMutation();
@@ -40,8 +42,8 @@ export default function Categories() {
     if (!name.trim()) return;
     const body = { name: name.trim(), kind };
     try {
-      if (editing) await updateCategory({ id: editing.id, ...body }).unwrap();
-      else await addCategory(body).unwrap();
+      if (editing) await updateCategory({ id: editing.id, ...body, team_id: teamId }).unwrap();
+      else await addCategory({ ...body, team_id: teamId }).unwrap();
       reset();
     } catch (e) {
       Alert.alert(t('common.error'), e?.message ?? '');
@@ -56,7 +58,7 @@ export default function Categories() {
         style: 'destructive',
         onPress: async () => {
           try {
-            await deleteCategory(cat.id).unwrap();
+            await deleteCategory({ id: cat.id, team_id: teamId }).unwrap();
             if (editing?.id === cat.id) reset();
           } catch (e) {
             Alert.alert(t('common.error'), e?.message ?? '');

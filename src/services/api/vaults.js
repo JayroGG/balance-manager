@@ -1,41 +1,46 @@
 import { baseApi } from './baseApi';
+import { withTeam } from './teamParam';
 
 // /vaults — CRUD + history + allocate/withdraw. Per-vault balances/targets come from GET /balance,
 // so allocate/withdraw (and vault edits) invalidate Balance too. Allocate/withdraw move an `amount`
-// between spendable and the vault (not a tagged transaction). (PRD §4.1, ADR-009 / backend ADR-004)
+// between spendable and the vault (not a tagged transaction). Every arg carries an optional team_id →
+// URL `?team_id=` (never the body) and part of the cache key. (PRD §4.1, ADR-009 / ADR-011)
 const LIST_TAG = { type: 'Vault', id: 'LIST' };
 
 export const vaultsApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
     getVaults: build.query({
-      query: () => '/vaults',
+      // arg: team_id (null/undefined = personal)
+      query: (team_id) => withTeam('/vaults', team_id),
       providesTags: (result) =>
         result ? [...result.map((v) => ({ type: 'Vault', id: v.id })), LIST_TAG] : [LIST_TAG],
     }),
     getVault: build.query({
-      query: (id) => `/vaults/${id}`,
-      providesTags: (r, e, id) => [{ type: 'Vault', id }],
+      // arg: { id, team_id? }
+      query: ({ id, team_id }) => withTeam(`/vaults/${id}`, team_id),
+      providesTags: (r, e, { id }) => [{ type: 'Vault', id }],
     }),
     getVaultHistory: build.query({
-      query: (id) => `/vaults/${id}/history`,
-      providesTags: (r, e, id) => [{ type: 'VaultHistory', id }],
+      // arg: { id, team_id? }
+      query: ({ id, team_id }) => withTeam(`/vaults/${id}/history`, team_id),
+      providesTags: (r, e, { id }) => [{ type: 'VaultHistory', id }],
     }),
     addVault: build.mutation({
-      query: (body) => ({ url: '/vaults', method: 'POST', body }),
+      query: ({ team_id, ...body }) => ({ url: withTeam('/vaults', team_id), method: 'POST', body }),
       invalidatesTags: [LIST_TAG, 'Balance'],
     }),
     updateVault: build.mutation({
-      query: ({ id, ...body }) => ({ url: `/vaults/${id}`, method: 'PUT', body }),
+      query: ({ id, team_id, ...body }) => ({ url: withTeam(`/vaults/${id}`, team_id), method: 'PUT', body }),
       invalidatesTags: (r, e, { id }) => [{ type: 'Vault', id }, LIST_TAG, 'Balance'],
     }),
     deleteVault: build.mutation({
-      query: (id) => ({ url: `/vaults/${id}`, method: 'DELETE' }),
-      invalidatesTags: (r, e, id) => [{ type: 'Vault', id }, LIST_TAG, 'Balance'],
+      query: ({ id, team_id }) => ({ url: withTeam(`/vaults/${id}`, team_id), method: 'DELETE' }),
+      invalidatesTags: (r, e, { id }) => [{ type: 'Vault', id }, LIST_TAG, 'Balance'],
     }),
     allocateVault: build.mutation({
-      // arg: { id, amount } — moves spendable → vault (decimal). Bounded by `available` (400 if over).
-      query: ({ id, amount }) => ({
-        url: `/vaults/${id}/allocate`,
+      // arg: { id, amount, team_id? } — moves spendable → vault (decimal). Bounded by `available` (400 if over).
+      query: ({ id, amount, team_id }) => ({
+        url: withTeam(`/vaults/${id}/allocate`, team_id),
         method: 'POST',
         body: { amount },
       }),
@@ -47,9 +52,9 @@ export const vaultsApi = baseApi.injectEndpoints({
       ],
     }),
     withdrawVault: build.mutation({
-      // arg: { id, amount } — moves vault → spendable (decimal). Bounded by the vault balance (400 if over).
-      query: ({ id, amount }) => ({
-        url: `/vaults/${id}/withdraw`,
+      // arg: { id, amount, team_id? } — moves vault → spendable (decimal). Bounded by the vault balance (400 if over).
+      query: ({ id, amount, team_id }) => ({
+        url: withTeam(`/vaults/${id}/withdraw`, team_id),
         method: 'POST',
         body: { amount },
       }),
