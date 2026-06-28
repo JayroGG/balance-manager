@@ -1,5 +1,6 @@
-import { Alert } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import {
   useGetTransactionQuery,
@@ -10,8 +11,8 @@ import { useGetCategoriesQuery } from '../../services/api/categories';
 import { useActiveTeamId } from '../../hooks/useActiveTeamId';
 import { usePermissions } from '../../permissions';
 import TransactionForm from './TransactionForm';
-import { Screen, QueryBoundary, AppButton } from '../../components/ui';
-import { spacing } from '../../components/theme';
+import { Screen, QueryBoundary } from '../../components/ui';
+import { colors, spacing } from '../../components/theme';
 
 export default function TransactionDetail() {
   const { id } = useLocalSearchParams();
@@ -63,15 +64,15 @@ export default function TransactionDetail() {
           readOnly={!canEdit}
         />
         {canEdit ? (
-          <AppButton
-            title={t('common.delete')}
-            variant="danger"
-            onPress={onDelete}
-            loading={deleting}
-            style={{ margin: spacing(2) }}
-          />
+          <Pressable onPress={onDelete} disabled={deleting} hitSlop={12} style={styles.deleteIcon}>
+            {deleting ? <ActivityIndicator color={colors.danger} /> : <Ionicons name="trash-outline" size={22} color={colors.danger} />}
+          </Pressable>
         ) : null}
       </QueryBoundary>
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  deleteIcon: { alignSelf: 'center', padding: spacing(2), marginTop: spacing(1) },
+});
