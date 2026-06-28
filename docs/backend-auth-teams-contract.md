@@ -60,9 +60,52 @@ cached separately and refetch on a context switch.
 | `403` | Authenticated but not a member of the requested `team_id`. |
 | `404` | Missing or soft-deleted resource (treat as gone). |
 
-## Teams API
+## RBAC + team management (ADR-012)
 
-| Method | Path | Body | Returns | Status |
-|---|---|---|---|---|
-| GET | `/teams` | — | `200` array of `{ id, name, … }` | **Wired (read-only)** — populates the Dashboard switch. |
-| POST / PUT / DELETE `/teams[/:id]`, member add/remove | — | — | — | **Not yet wired.** Team-management CRUD + RBAC are deferred (ADR-011). |
+> Confirmed against the running API — see the backend's `answers-to-rn-client-rbac.md`.
+
+### Roles
+Every membership has a role: `owner | member | guest`. `GET /teams` returns **your** role per team.
+**Reads are open to all roles** (incl. `GET /vaults/:id/history`). Writes:
+
+| Role | Add | Edit / delete / allocate / withdraw | Manage team |
+|---|---|---|---|
+| `owner` | ✅ | ✅ any row | ✅ |
+| `member` | ✅ | ✅ **only rows where `row.user_id === myUserId`** | ❌ |
+| `guest` | ❌ | ❌ | ❌ |
+
+- **`user_id` is on every transaction / vault / category row** (categories are team-scoped, same rule).
+  Vault allocate/withdraw/delete gate on **`vault.user_id`** (not the history actor).
+- `myUserId` = the JWT **`sub`** claim — an **integer** equal to row `user_id` (compare with
+  `String(a) === String(b)` to be decoder-safe). Login JWT payload: `{ sub, email, jti, iat, exp }` —
+  **no `name`**; use `email` as the display identifier.
+- **Personal** (no `?team_id=`) is never a team and never appears in `/teams` — full access, no role.
+- The API enforces all of this and `403`s a violation — **`403` ≠ logout** (only `401` is). Gate the UI
+  too; the API is the backstop.
+
+### Team management API (all `:id`-path scoped — never `?team_id=`)
+
+| Method | Path | Body | Returns |
+|---|---|---|---|
+| GET | `/teams` | — | `200` `[{ id:int, user_id, name, role, … }]` (`role` always present) |
+| POST | `/teams` | `{ name }` | `201` team row **without** `role` (creator is owner → assume owner or refetch) |
+| PUT | `/teams/:id` | `{ name }` | `200` team row (no `role`) |
+| DELETE | `/teams/:id` | — | `204` (blocked → `400` if not empty) |
+| GET | `/teams/:id/members` | — | `200` `[{ user_id, role, email }]` (exact keys; no `name`) |
+| POST | `/teams/:id/members` | `{ email, role? }` | `201` + updated member array (`role` default `member`) |
+| PUT | `/teams/:id/members/:userId` | `{ role }` | `200` + updated member array |
+| DELETE | `/teams/:id/members/:userId` | — | `204` |
+
+Write endpoints return the updated member array; the client refetches via the `TeamMember` tag anyway.
+
+### Confirmed error strings (`{ "error": "<msg>" }`) — map on **status + context**, string is fallback
+
+| Case | Status | `error` |
+|---|---|---|
+| Add member, unregistered email | `404` | `User not found` → client shows localized "No account for that email" |
+| Demote / remove the last owner | `400` | `Cannot demote/remove the last owner` |
+| Delete a non-empty team | `400` | `Cannot delete a team with active transactions or vaults` |
+| Not a member of `team_id` | `403` | `Not a member of this team` |
+| Guest write | `403` | `Guests have read-only access` |
+| Member modifies another's row | `403` | `Members can only modify records they created` |
+| Vault delete with non-zero balance | `400` | `Cannot delete a vault with a non-zero balance; withdraw it to zero first` |

@@ -44,6 +44,14 @@ export default function ManageTeam() {
 
   const ownerCount = (members ?? []).filter((m) => m.role === 'owner').length;
 
+  // Add-by-email returns 404 "User not found" when the email has no account — show a friendlier,
+  // localized message; fall back to the backend's string otherwise (ADR-012, confirmed by BE).
+  const addErrorMessage = addError
+    ? addError.status === 404
+      ? t('teams.noAccountForEmail')
+      : addError.message
+    : null;
+
   const onRename = async () => {
     if (!name.trim()) return;
     try {
@@ -204,7 +212,7 @@ export default function ManageTeam() {
                 <Chip key={r} label={t(`teams.role_${r}`)} active={addRole === r} onPress={() => setAddRole(r)} />
               ))}
             </View>
-            {addError ? <Muted style={styles.err}>{addError.message}</Muted> : null}
+            {addErrorMessage ? <Muted style={styles.err}>{addErrorMessage}</Muted> : null}
             <AppButton title={t('teams.add')} onPress={onAdd} loading={addingMember} disabled={!addEmail.trim()} />
           </Card>
 

@@ -110,6 +110,7 @@
     "noMembers": "Aún no hay miembros",
     "addMember": "Agregar miembro",
     "add": "Agregar",
+    "noAccountForEmail": "No hay cuenta para ese correo",
     "role": "Rol",
     "rename": "Renombrar",
     "remove": "Quitar",
