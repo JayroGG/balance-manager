@@ -39,6 +39,9 @@ yarn-error.*
 /.claude*
 .qodo/
 
+# jest coverage output
+/coverage
+
 # typescript
 *.tsbuildinfo
 
