@@ -37,3 +37,4 @@ Statuses: `Proposed` · `Accepted` · `Deprecated` · `Superseded by ADR-NNN`.
 | [ADR-007](ADR-007-persistence-and-offline-strategy.md) | Persistence & offline: cache-persist now, local-first sync north star | Accepted |
 | [ADR-008](ADR-008-app-structure-thin-routes-src-screens.md) | App structure: thin `app/` routes, `src/screens`, atomic `src/components/ui` | Accepted |
 | [ADR-009](ADR-009-amount-based-vault-allocation.md) | Amount-based vault allocation (follows backend ADR-004) | Accepted |
+| [ADR-010](ADR-010-testing-jest-expo-preset.md) | Testing: Jest with the `jest-expo` preset (not bare `react-native`) | Accepted |
