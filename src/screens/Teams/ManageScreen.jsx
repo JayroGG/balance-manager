@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -28,6 +28,12 @@ export default function ManageTeam() {
   const { data: teams } = useGetTeamsQuery();
   const team = teams?.find((tm) => String(tm.id) === String(id));
   const isOwner = team?.role === 'owner';
+
+  // The screen reads the team from the GET /teams cache. Once that resolves and the team isn't in it
+  // (deleted, or you were removed), bail to the list instead of rendering an empty, controls-less shell.
+  useEffect(() => {
+    if (teams && !team) router.back();
+  }, [teams, team, router]);
 
   const { data: members, isLoading, error, refetch } = useGetMembersQuery(id);
 

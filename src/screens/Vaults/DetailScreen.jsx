@@ -13,6 +13,7 @@ import {
 } from '../../services/api/vaults';
 import { useGetBalanceQuery } from '../../services/api/balance';
 import { useActiveTeamId } from '../../hooks/useActiveTeamId';
+import { useDismissOnContextChange } from '../../hooks/useOnContextChange';
 import { usePermissions } from '../../permissions';
 import { Screen, Card, MoneyText, AppButton, Field, SectionTitle, Muted, QueryBoundary } from '../../components/ui';
 import { colors, font, spacing } from '../../components/theme';
@@ -24,6 +25,8 @@ export default function VaultDetail() {
   const router = useRouter();
   const { t } = useTranslation();
   const teamId = useActiveTeamId();
+  // This vault id is scoped to the context it was opened in — leave the screen if the context switches.
+  useDismissOnContextChange();
   const { canEditRow } = usePermissions();
 
   const { data: balance } = useGetBalanceQuery(teamId);
