@@ -9,6 +9,7 @@ import {
 } from '../../services/api/transactions';
 import { useGetCategoriesQuery } from '../../services/api/categories';
 import { useActiveTeamId } from '../../hooks/useActiveTeamId';
+import { useDismissOnContextChange } from '../../hooks/useOnContextChange';
 import { usePermissions } from '../../permissions';
 import TransactionForm from './TransactionForm';
 import { Screen, QueryBoundary } from '../../components/ui';
@@ -19,6 +20,8 @@ export default function TransactionDetail() {
   const router = useRouter();
   const { t } = useTranslation();
   const teamId = useActiveTeamId();
+  // This transaction id is scoped to the context it was opened in — leave the screen if it switches.
+  useDismissOnContextChange();
   const { canEditRow } = usePermissions();
   const { data, isLoading, error, refetch } = useGetTransactionQuery({ id, team_id: teamId });
   const { data: categories } = useGetCategoriesQuery(teamId);

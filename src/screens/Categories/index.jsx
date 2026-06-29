@@ -8,6 +8,7 @@ import {
   useDeleteCategoryMutation,
 } from '../../services/api/categories';
 import { useActiveTeamId } from '../../hooks/useActiveTeamId';
+import { useOnContextChange } from '../../hooks/useOnContextChange';
 import { usePermissions } from '../../permissions';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen, Card, Field, Chip, AppButton, SectionTitle, QueryBoundary, Muted } from '../../components/ui';
@@ -36,6 +37,10 @@ export default function Categories() {
     setName('');
     setKind('both');
   };
+
+  // `editing` holds a category id from the current context — clear the inline form if it switches, or a
+  // Save would target the old id in the new context (403/404).
+  useOnContextChange(reset);
 
   const startEdit = (cat) => {
     setEditing(cat);
