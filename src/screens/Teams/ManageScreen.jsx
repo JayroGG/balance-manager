@@ -12,7 +12,7 @@ import {
   useUpdateMemberRoleMutation,
   useRemoveMemberMutation,
 } from '../../services/api/teams';
-import { Screen, Card, Field, Chip, ColorSwatchPicker, AppButton, SectionTitle, Muted, QueryBoundary } from '../../components/ui';
+import { Screen, ScreenHeader, Card, Field, Chip, ColorSwatchPicker, AppButton, SectionTitle, Muted, QueryBoundary } from '../../components/ui';
 import { useTheme } from '../../hooks/useTheme';
 import { DEFAULT_ACCENT, font, spacing } from '../../components/theme';
 import { isValidHex, normalizeHex } from '../../utils/colors';
@@ -205,14 +205,17 @@ export default function ManageTeam() {
           </View>
         </Card>
       ) : (
-        <View style={styles.titleRow}>
-          <Text style={styles.h1} numberOfLines={1}>{team?.name ?? ''}</Text>
-          {isOwner ? (
-            <Pressable hitSlop={10} onPress={() => { setName(team?.name ?? ''); setEditingName(true); }}>
-              <Text style={styles.rename}>{t('teams.rename')}</Text>
-            </Pressable>
-          ) : null}
-        </View>
+        <ScreenHeader
+          back
+          title={team?.name ?? ''}
+          right={
+            isOwner ? (
+              <Pressable hitSlop={10} onPress={() => { setName(team?.name ?? ''); setEditingName(true); }}>
+                <Text style={styles.rename}>{t('teams.rename')}</Text>
+              </Pressable>
+            ) : null
+          }
+        />
       )}
 
       {isOwner ? (
@@ -278,8 +281,6 @@ export default function ManageTeam() {
 
 const makeStyles = (colors) =>
   StyleSheet.create({
-  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginVertical: spacing(1.5) },
-  h1: { fontSize: font.xl, fontWeight: '800', color: colors.text, flex: 1, marginRight: spacing(1) },
   rename: { color: colors.primary, fontWeight: '700', fontSize: font.md },
   rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   row: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', marginBottom: spacing(0.5) },

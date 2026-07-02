@@ -8,7 +8,7 @@ import { useGetBalanceQuery } from '../../services/api/balance';
 import { useActiveTeamId } from '../../hooks/useActiveTeamId';
 import { usePermissions } from '../../permissions';
 import { useTheme } from '../../hooks/useTheme';
-import { Screen, Card, MoneyText, Chip, QueryBoundary } from '../../components/ui';
+import { Screen, ScreenHeader, Card, MoneyText, Chip, QueryBoundary } from '../../components/ui';
 import { font, spacing } from '../../components/theme';
 import { formatDate } from '../../utils/dates';
 
@@ -63,6 +63,7 @@ export default function TransactionsList() {
 
   return (
     <Screen padded={false}>
+      <ScreenHeader title={t('transactions.title')} style={styles.headerPad} />
       <View style={styles.filters}>
         {TYPE_FILTERS.map((f) => (
           <Chip key={f} label={f === 'all' ? t('transactions.all') : t(`transactions.${f}`)} active={typeFilter === f} onPress={() => setTypeFilter(f)} />
@@ -95,6 +96,7 @@ export default function TransactionsList() {
 
 const makeStyles = (colors) =>
   StyleSheet.create({
+  headerPad: { paddingHorizontal: spacing(2), marginBottom: 0 },
   filters: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: spacing(2), paddingTop: spacing(1) },
   rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   desc: { fontSize: font.md, fontWeight: '600', color: colors.text },

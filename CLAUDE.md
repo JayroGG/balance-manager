@@ -137,4 +137,6 @@ Plans go in `.claude/agents/plans/`; decisions in `.claude/ADR/`; long-term memo
   is the active team's `color` (derived from the cached `getTeams`, never stored); personal = default.
   Text on the accent uses `colors.primaryText` (contrast-derived) — never hardcode white. `themeMode` is a
   device pref (`prefs` slice): persisted, not reset on logout. Hex validation only at the form boundary
-  (`isValidHex`/`normalizeHex`).
+  (`isValidHex`/`normalizeHex`). **Native stack headers are hidden app-wide** — every screen renders the
+  shared `ScreenHeader` (large title; `back` chevron on pushed/modal screens; `right` action slot) so all
+  screens share the Dashboard look.

@@ -13,7 +13,7 @@ import { clearToken } from '../../services/storage/secure';
 import { persistor } from '../../store';
 import { Config } from '../../utils/config';
 import { LANGUAGES, changeLanguage } from '../../i18n';
-import { Screen, Card, Chip, AppButton, SectionTitle } from '../../components/ui';
+import { Screen, ScreenHeader, Card, Chip, AppButton, SectionTitle } from '../../components/ui';
 import { font, spacing } from '../../components/theme';
 
 const Row = ({ label, value }) => {
@@ -60,7 +60,7 @@ export default function Settings() {
 
   return (
     <Screen scroll>
-      <Text style={styles.h1}>{t('settings.title')}</Text>
+      <ScreenHeader title={t('settings.title')} />
 
       <Card>
         <Row label={t('settings.currency')} value={data?.currency ?? '—'} />
@@ -104,7 +104,6 @@ export default function Settings() {
 
 const makeStyles = (colors) =>
   StyleSheet.create({
-    h1: { fontSize: font.xl, fontWeight: '800', color: colors.text, marginVertical: spacing(1.5) },
     row: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: spacing(0.75) },
     label: { color: colors.muted, fontSize: font.md },
     value: { color: colors.text, fontSize: font.md, fontWeight: '600' },

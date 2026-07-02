@@ -138,7 +138,7 @@ balance-manager/                 # app name: balance-mobile
 │   │   ├── Categories/index.jsx   Settings/index.jsx
 │   ├── components/
 │   │   ├── ui/                  # shared atoms/molecules — one file each + index.js barrel
-│   │   │   └── {Screen,Card,Button,Field,Chip,ColorSwatchPicker,MoneyText,Typography,EmptyState,QueryBoundary}.jsx
+│   │   │   └── {Screen,ScreenHeader,Card,Button,Field,Chip,ColorSwatchPicker,MoneyText,Typography,EmptyState,QueryBoundary}.jsx
 │   │   └── theme.js             # light/dark palettes + makeColors(scheme, accent) + PRESET_TEAM_COLORS; spacing/radius/font (ADR-013)
 │   ├── store/                   # configureStore + RTKQ middleware + redux-persist + setupListeners
 │   ├── services/

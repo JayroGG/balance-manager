@@ -8,7 +8,7 @@ import { setActiveTeam } from '../../reducers/context';
 import { useActiveTeamId } from '../../hooks/useActiveTeamId';
 import { useActiveRole } from '../../hooks/useActiveRole';
 import { useTheme } from '../../hooks/useTheme';
-import { Screen, Card, Chip, MoneyText, SectionTitle, Muted, QueryBoundary } from '../../components/ui';
+import { Screen, ScreenHeader, Card, Chip, MoneyText, SectionTitle, Muted, QueryBoundary } from '../../components/ui';
 import { DEFAULT_ACCENT, font, spacing } from '../../components/theme';
 
 const VaultRow = ({ vault, currency }) => {
@@ -58,7 +58,7 @@ export default function Dashboard() {
 
   return (
     <Screen scroll refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
-      <Text style={styles.h1}>{t('dashboard.title')}</Text>
+      <ScreenHeader title={t('dashboard.title')} />
 
       <ScrollView
         horizontal
@@ -113,7 +113,6 @@ export default function Dashboard() {
 // Hero text derives from primaryText so it stays readable on ANY team accent (ADR-013).
 const makeStyles = (colors) =>
   StyleSheet.create({
-    h1: { fontSize: font.xl, fontWeight: '800', color: colors.text, marginVertical: spacing(1.5) },
     switch: { flexDirection: 'row', alignItems: 'center', paddingBottom: spacing(1) },
     roleBadge: { marginBottom: spacing(1.5), textTransform: 'capitalize' },
     hero: { backgroundColor: colors.primary, padding: spacing(3) },

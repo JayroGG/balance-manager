@@ -11,7 +11,7 @@ import { useActiveTeamId } from '../../hooks/useActiveTeamId';
 import { useOnContextChange } from '../../hooks/useOnContextChange';
 import { usePermissions } from '../../permissions';
 import { Ionicons } from '@expo/vector-icons';
-import { Screen, Card, Field, Chip, AppButton, SectionTitle, QueryBoundary, Muted } from '../../components/ui';
+import { Screen, ScreenHeader, Card, Field, Chip, AppButton, SectionTitle, QueryBoundary, Muted } from '../../components/ui';
 import { useTheme } from '../../hooks/useTheme';
 import { font, spacing } from '../../components/theme';
 
@@ -85,7 +85,7 @@ export default function Categories() {
 
   return (
     <Screen scroll>
-      <Text style={styles.h1}>{t('categories.title')}</Text>
+      <ScreenHeader title={t('categories.title')} />
 
       {canAdd ? (
         <Card>
@@ -137,7 +137,6 @@ export default function Categories() {
 
 const makeStyles = (colors) =>
   StyleSheet.create({
-  h1: { fontSize: font.xl, fontWeight: '800', color: colors.text, marginVertical: spacing(1.5) },
   label: { fontSize: font.sm, color: colors.muted, marginBottom: spacing(0.75), fontWeight: '600' },
   row: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', marginBottom: spacing(0.5) },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },

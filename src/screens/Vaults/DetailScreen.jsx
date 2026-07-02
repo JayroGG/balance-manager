@@ -15,7 +15,7 @@ import { useGetBalanceQuery } from '../../services/api/balance';
 import { useActiveTeamId } from '../../hooks/useActiveTeamId';
 import { useDismissOnContextChange } from '../../hooks/useOnContextChange';
 import { usePermissions } from '../../permissions';
-import { Screen, Card, MoneyText, AppButton, Field, SectionTitle, Muted, QueryBoundary } from '../../components/ui';
+import { Screen, ScreenHeader, Card, MoneyText, AppButton, Field, SectionTitle, Muted, QueryBoundary } from '../../components/ui';
 import { useTheme } from '../../hooks/useTheme';
 import { font, spacing } from '../../components/theme';
 import { formatDateTime } from '../../utils/dates';
@@ -129,6 +129,7 @@ export default function VaultDetail() {
 
   return (
     <Screen scroll>
+      <ScreenHeader back title={t('vaults.title')} />
       <QueryBoundary isLoading={isLoading && !vault} error={error} onRetry={refetch}>
         <Card style={styles.hero}>
           <Text style={styles.name}>{figures?.name ?? vault?.name}</Text>
@@ -225,7 +226,7 @@ export default function VaultDetail() {
 // Hero text derives from primaryText so it stays readable on ANY team accent (ADR-013).
 const makeStyles = (colors) =>
   StyleSheet.create({
-  hero: { backgroundColor: colors.primary, padding: spacing(3), marginTop: spacing(2) },
+  hero: { backgroundColor: colors.primary, padding: spacing(3) },
   name: { color: colors.primaryText, opacity: 0.85, fontSize: font.md, fontWeight: '700' },
   balance: { color: colors.primaryText, fontSize: font.hero, fontWeight: '800', marginTop: spacing(0.5) },
   target: { color: colors.primaryText, opacity: 0.85, fontSize: font.sm, marginTop: spacing(1) },

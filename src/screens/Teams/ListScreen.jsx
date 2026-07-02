@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useGetTeamsQuery, useCreateTeamMutation } from '../../services/api/teams';
-import { Screen, Card, Field, ColorSwatchPicker, AppButton, SectionTitle, Muted, QueryBoundary } from '../../components/ui';
+import { Screen, ScreenHeader, Card, Field, ColorSwatchPicker, AppButton, SectionTitle, Muted, QueryBoundary } from '../../components/ui';
 import { useTheme } from '../../hooks/useTheme';
 import { PRESET_TEAM_COLORS, font, spacing } from '../../components/theme';
 import { isValidHex, normalizeHex } from '../../utils/colors';
@@ -58,12 +58,14 @@ export default function TeamsList() {
 
   return (
     <Screen scroll>
-      <View style={styles.header}>
-        <Text style={styles.h1}>{t('teams.title')}</Text>
-        <Pressable hitSlop={10} onPress={() => setAdding((v) => !v)}>
-          <Ionicons name={adding ? 'close' : 'add'} size={26} color={colors.primary} />
-        </Pressable>
-      </View>
+      <ScreenHeader
+        title={t('teams.title')}
+        right={
+          <Pressable hitSlop={10} onPress={() => setAdding((v) => !v)}>
+            <Ionicons name={adding ? 'close' : 'add'} size={26} color={colors.primary} />
+          </Pressable>
+        }
+      />
 
       {adding ? (
         <Card>
@@ -107,8 +109,6 @@ export default function TeamsList() {
 
 const makeStyles = (colors) =>
   StyleSheet.create({
-    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginVertical: spacing(1.5) },
-    h1: { fontSize: font.xl, fontWeight: '800', color: colors.text },
     rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     right: { flexDirection: 'row', alignItems: 'center' },
     dot: { width: 12, height: 12, borderRadius: 999, marginRight: spacing(1) },

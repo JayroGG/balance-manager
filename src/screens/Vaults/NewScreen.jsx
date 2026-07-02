@@ -6,7 +6,7 @@ import { useAddVaultMutation } from '../../services/api/vaults';
 import { useActiveTeamId } from '../../hooks/useActiveTeamId';
 import { useDismissOnContextChange } from '../../hooks/useOnContextChange';
 import { usePermissions } from '../../permissions';
-import { Screen, Field, AppButton, Muted } from '../../components/ui';
+import { Screen, ScreenHeader, Field, AppButton, Muted } from '../../components/ui';
 import { useTheme } from '../../hooks/useTheme';
 import { spacing } from '../../components/theme';
 
@@ -37,7 +37,8 @@ export default function NewVault() {
 
   return (
     <Screen>
-      <View style={{ paddingTop: spacing(2) }}>
+      <ScreenHeader back title={t('vaults.new')} />
+      <View>
         <Field label={t('vaults.name')} value={name} onChangeText={setName} placeholder="—" />
         <Field
           label={t('vaults.targetAmount')}

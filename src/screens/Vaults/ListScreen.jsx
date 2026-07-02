@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { useGetBalanceQuery } from '../../services/api/balance';
 import { useActiveTeamId } from '../../hooks/useActiveTeamId';
 import { usePermissions } from '../../permissions';
-import { Screen, Card, MoneyText, QueryBoundary } from '../../components/ui';
+import { Screen, ScreenHeader, Card, MoneyText, QueryBoundary } from '../../components/ui';
 import { useTheme } from '../../hooks/useTheme';
 import { font, spacing } from '../../components/theme';
 
@@ -62,6 +62,7 @@ export default function VaultsList() {
 
   return (
     <Screen padded={false}>
+      <ScreenHeader title={t('vaults.title')} style={styles.headerPad} />
       <QueryBoundary
         isLoading={isLoading && !data}
         error={error}
@@ -89,6 +90,7 @@ export default function VaultsList() {
 
 const makeStyles = (colors) =>
   StyleSheet.create({
+  headerPad: { paddingHorizontal: spacing(2), marginBottom: 0 },
   rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   name: { fontSize: font.md, fontWeight: '700', color: colors.text },
   balance: { fontSize: font.md, fontWeight: '700', color: colors.text },

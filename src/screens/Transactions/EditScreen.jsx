@@ -12,7 +12,7 @@ import { useActiveTeamId } from '../../hooks/useActiveTeamId';
 import { useDismissOnContextChange } from '../../hooks/useOnContextChange';
 import { usePermissions } from '../../permissions';
 import TransactionForm from './TransactionForm';
-import { Screen, QueryBoundary } from '../../components/ui';
+import { Screen, ScreenHeader, QueryBoundary } from '../../components/ui';
 import { useTheme } from '../../hooks/useTheme';
 import { spacing } from '../../components/theme';
 
@@ -59,6 +59,7 @@ export default function TransactionDetail() {
 
   return (
     <Screen padded={false}>
+      <ScreenHeader back title={t('transactions.edit')} style={styles.headerPad} />
       <QueryBoundary isLoading={isLoading && !data} error={error} onRetry={refetch}>
         <TransactionForm
           initial={data}
@@ -79,5 +80,6 @@ export default function TransactionDetail() {
 }
 
 const styles = StyleSheet.create({
+  headerPad: { paddingHorizontal: spacing(2), marginBottom: 0 },
   deleteIcon: { alignSelf: 'center', padding: spacing(2), marginTop: spacing(1) },
 });
