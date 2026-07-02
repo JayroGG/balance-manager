@@ -1,9 +1,11 @@
 import { ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, spacing } from '../theme';
+import { spacing } from '../theme';
+import { useTheme } from '../../hooks/useTheme';
 
 export const Screen = ({ children, scroll = false, refreshControl, padded = true, style }) => {
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
   if (scroll) {
     return (
       <ScrollView

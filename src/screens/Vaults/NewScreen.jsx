@@ -6,12 +6,14 @@ import { useAddVaultMutation } from '../../services/api/vaults';
 import { useActiveTeamId } from '../../hooks/useActiveTeamId';
 import { useDismissOnContextChange } from '../../hooks/useOnContextChange';
 import { usePermissions } from '../../permissions';
-import { Screen, Field, AppButton, Muted } from '../../components/ui';
+import { Screen, ScreenHeader, Field, AppButton, Muted } from '../../components/ui';
+import { useTheme } from '../../hooks/useTheme';
 import { spacing } from '../../components/theme';
 
 export default function NewVault() {
   const router = useRouter();
   const { t } = useTranslation();
+  const { colors } = useTheme();
   const teamId = useActiveTeamId();
   const { canAdd } = usePermissions();
   const [name, setName] = useState('');
@@ -35,7 +37,8 @@ export default function NewVault() {
 
   return (
     <Screen>
-      <View style={{ paddingTop: spacing(2) }}>
+      <ScreenHeader back title={t('vaults.new')} />
+      <View>
         <Field label={t('vaults.name')} value={name} onChangeText={setName} placeholder="—" />
         <Field
           label={t('vaults.targetAmount')}
@@ -44,7 +47,7 @@ export default function NewVault() {
           keyboardType="decimal-pad"
           placeholder="0.00"
         />
-        {error ? <Muted style={{ color: '#DC2626', marginBottom: spacing(1.5) }}>{error.message}</Muted> : null}
+        {error ? <Muted style={{ color: colors.danger, marginBottom: spacing(1.5) }}>{error.message}</Muted> : null}
         <AppButton title={t('common.create')} onPress={submit} loading={isLoading} disabled={!name.trim()} />
       </View>
     </Screen>

@@ -2,13 +2,16 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Field, AppButton, Chip, Muted } from '../../components/ui';
-import { colors, font, spacing } from '../../components/theme';
+import { useTheme } from '../../hooks/useTheme';
+import { font, spacing } from '../../components/theme';
 import { todayISODate } from '../../utils/dates';
 
 // Shared create/edit form. Transactions are a pure ledger — no vault here; vault funding is an
 // amount-based action on the vault detail screen (ADR-009). Enforces amount > 0. (PRD §4.1)
 export default function TransactionForm({ initial, categories = [], onSubmit, submitting, error, readOnly }) {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
   const [type, setType] = useState(initial?.type ?? 'expense');
   const [amount, setAmount] = useState(initial?.amount != null ? String(initial.amount) : '');
   const [categoryId, setCategoryId] = useState(initial?.category_id ?? null);
@@ -107,7 +110,8 @@ export default function TransactionForm({ initial, categories = [], onSubmit, su
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors) =>
+  StyleSheet.create({
   label: { fontSize: font.sm, color: colors.muted, marginBottom: spacing(0.75), fontWeight: '600' },
   row: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: spacing(1) },
   err: { color: colors.danger, marginBottom: spacing(1.5) },

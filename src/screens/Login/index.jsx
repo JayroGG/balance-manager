@@ -8,11 +8,14 @@ import { useLoginMutation } from '../../services/api/auth';
 import { setToken as persistToken } from '../../services/storage/secure';
 import { decodeUser } from '../../utils/jwt';
 import { Screen, Field, AppButton, Muted } from '../../components/ui';
-import { colors, font, spacing } from '../../components/theme';
+import { useTheme } from '../../hooks/useTheme';
+import { font, spacing } from '../../components/theme';
 
 // Email/password → JWT. The token lands in secure-store + the auth slice (the single token seam reads it).
 // A bad password 401s on /auth/login, which is exempt from the auto-logout — we render its message inline.
 export default function Login() {
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
   const authed = useSelector(selectIsAuthed);
   const dispatch = useDispatch();
   const { t } = useTranslation();
@@ -69,7 +72,8 @@ export default function Login() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors) =>
+  StyleSheet.create({
   wrap: { flex: 1, justifyContent: 'center', gap: spacing(0.5) },
   title: {
     fontSize: font.hero,

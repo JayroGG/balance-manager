@@ -4,25 +4,36 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useGetTeamsQuery, useCreateTeamMutation } from '../../services/api/teams';
-import { Screen, Card, Field, AppButton, SectionTitle, Muted, QueryBoundary } from '../../components/ui';
-import { colors, font, spacing } from '../../components/theme';
+import { Screen, ScreenHeader, Card, Field, ColorSwatchPicker, AppButton, SectionTitle, Muted, QueryBoundary } from '../../components/ui';
+import { useTheme } from '../../hooks/useTheme';
+import { PRESET_TEAM_COLORS, font, spacing } from '../../components/theme';
+import { isValidHex, normalizeHex } from '../../utils/colors';
 
 // Teams list — the entry point to team management (ADR-012). Grouped by role: teams you OWN (tap →
 // owner Manage screen) vs teams you were invited to (tap → read-only member list). Any user can create.
+// Each team carries a color that themes the app while it's the active context (ADR-013).
 export default function TeamsList() {
   const { t } = useTranslation();
   const router = useRouter();
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
   const { data: teams, isLoading, error, refetch } = useGetTeamsQuery();
   const [createTeam, { isLoading: creating }] = useCreateTeamMutation();
 
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState('');
+  const [color, setColor] = useState(PRESET_TEAM_COLORS[0]);
+  const [colorInvalid, setColorInvalid] = useState(false);
 
   const onCreate = async () => {
     if (!name.trim()) return;
+    // Validate the custom hex at the boundary; empty = no color (backend stores null).
+    if (color && !isValidHex(color)) return setColorInvalid(true);
+    setColorInvalid(false);
     try {
-      await createTeam({ name: name.trim() }).unwrap();
+      await createTeam({ name: name.trim(), color: color ? normalizeHex(color) : undefined }).unwrap();
       setName('');
+      setColor(PRESET_TEAM_COLORS[0]);
       setAdding(false);
     } catch (e) {
       Alert.alert(t('common.error'), e?.message ?? '');
@@ -35,6 +46,7 @@ export default function TeamsList() {
   const Item = ({ team }) => (
     <Card onPress={() => router.push(`/(tabs)/teams/${team.id}`)}>
       <View style={styles.rowBetween}>
+        <View style={[styles.dot, { backgroundColor: team.color ?? colors.border }]} />
         <Text style={styles.name}>{team.name}</Text>
         <View style={styles.right}>
           <Muted style={styles.role}>{t(`teams.role_${team.role}`)}</Muted>
@@ -46,16 +58,27 @@ export default function TeamsList() {
 
   return (
     <Screen scroll>
-      <View style={styles.header}>
-        <Text style={styles.h1}>{t('teams.title')}</Text>
-        <Pressable hitSlop={10} onPress={() => setAdding((v) => !v)}>
-          <Ionicons name={adding ? 'close' : 'add'} size={26} color={colors.primary} />
-        </Pressable>
-      </View>
+      <ScreenHeader
+        title={t('teams.title')}
+        right={
+          <Pressable hitSlop={10} onPress={() => setAdding((v) => !v)}>
+            <Ionicons name={adding ? 'close' : 'add'} size={26} color={colors.primary} />
+          </Pressable>
+        }
+      />
 
       {adding ? (
         <Card>
           <Field label={t('teams.name')} value={name} onChangeText={setName} placeholder="—" autoFocus />
+          <ColorSwatchPicker
+            label={t('teams.color')}
+            value={color}
+            onChange={(next) => {
+              setColor(next);
+              setColorInvalid(false);
+            }}
+          />
+          {colorInvalid ? <Muted style={styles.err}>{t('teams.invalidColor')}</Muted> : null}
           <AppButton title={t('teams.create')} onPress={onCreate} loading={creating} disabled={!name.trim()} />
         </Card>
       ) : null}
@@ -84,11 +107,12 @@ export default function TeamsList() {
   );
 }
 
-const styles = StyleSheet.create({
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginVertical: spacing(1.5) },
-  h1: { fontSize: font.xl, fontWeight: '800', color: colors.text },
-  rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  right: { flexDirection: 'row', alignItems: 'center' },
-  name: { fontSize: font.md, fontWeight: '700', color: colors.text, flex: 1 },
-  role: { textTransform: 'capitalize', marginRight: spacing(0.75) },
-});
+const makeStyles = (colors) =>
+  StyleSheet.create({
+    rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    right: { flexDirection: 'row', alignItems: 'center' },
+    dot: { width: 12, height: 12, borderRadius: 999, marginRight: spacing(1) },
+    name: { fontSize: font.md, fontWeight: '700', color: colors.text, flex: 1 },
+    role: { textTransform: 'capitalize', marginRight: spacing(0.75) },
+    err: { color: colors.danger, marginBottom: spacing(1.5) },
+  });

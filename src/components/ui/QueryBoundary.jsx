@@ -1,12 +1,15 @@
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { colors, spacing } from '../theme';
+import { spacing } from '../theme';
+import { useTheme } from '../../hooks/useTheme';
 import { AppButton } from './Button';
 import { EmptyState } from './EmptyState';
 
 // Wraps query results: spinner while first-loading, error + retry, empty state, else children.
 export const QueryBoundary = ({ isLoading, error, isEmpty, onRetry, emptyText, children }) => {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
   if (isLoading) {
     return (
       <View style={styles.centered}>
@@ -26,7 +29,8 @@ export const QueryBoundary = ({ isLoading, error, isEmpty, onRetry, emptyText, c
   return children;
 };
 
-const styles = StyleSheet.create({
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing(3) },
-  error: { color: colors.danger, marginBottom: spacing(1.5), textAlign: 'center' },
-});
+const makeStyles = (colors) =>
+  StyleSheet.create({
+    centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing(3) },
+    error: { color: colors.danger, marginBottom: spacing(1.5), textAlign: 'center' },
+  });

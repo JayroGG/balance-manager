@@ -12,8 +12,10 @@ import {
   useUpdateMemberRoleMutation,
   useRemoveMemberMutation,
 } from '../../services/api/teams';
-import { Screen, Card, Field, Chip, AppButton, SectionTitle, Muted, QueryBoundary } from '../../components/ui';
-import { colors, font, spacing } from '../../components/theme';
+import { Screen, ScreenHeader, Card, Field, Chip, ColorSwatchPicker, AppButton, SectionTitle, Muted, QueryBoundary } from '../../components/ui';
+import { useTheme } from '../../hooks/useTheme';
+import { DEFAULT_ACCENT, font, spacing } from '../../components/theme';
+import { isValidHex, normalizeHex } from '../../utils/colors';
 
 const ROLES = ['owner', 'member', 'guest'];
 
@@ -24,6 +26,8 @@ export default function ManageTeam() {
   const { id } = useLocalSearchParams();
   const { t } = useTranslation();
   const router = useRouter();
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
 
   const { data: teams } = useGetTeamsQuery();
   const team = teams?.find((tm) => String(tm.id) === String(id));
@@ -48,6 +52,28 @@ export default function ManageTeam() {
   const [addEmail, setAddEmail] = useState('');
   const [addRole, setAddRole] = useState('member');
   const [menuFor, setMenuFor] = useState(null); // user_id of the expanded member row
+
+  // Team color (ADR-013). Seeded from the saved color; re-seeds when a save lands (team.color changes),
+  // which also hides the Save button again. Saving the ACTIVE team's color re-tints the app live.
+  const savedColor = team?.color ?? DEFAULT_ACCENT;
+  const [color, setColor] = useState(savedColor);
+  const [colorInvalid, setColorInvalid] = useState(false);
+  useEffect(() => {
+    setColor(savedColor);
+    setColorInvalid(false);
+  }, [savedColor]);
+  const colorDirty = color !== savedColor;
+
+  const onSaveColor = async () => {
+    const hex = normalizeHex(color);
+    if (!isValidHex(color) || !hex) return setColorInvalid(true);
+    setColorInvalid(false);
+    try {
+      await updateTeam({ id, color: hex }).unwrap();
+    } catch (e) {
+      Alert.alert(t('common.error'), e?.message ?? '');
+    }
+  };
 
   const ownerCount = (members ?? []).filter((m) => m.role === 'owner').length;
 
@@ -179,15 +205,37 @@ export default function ManageTeam() {
           </View>
         </Card>
       ) : (
-        <View style={styles.titleRow}>
-          <Text style={styles.h1} numberOfLines={1}>{team?.name ?? ''}</Text>
-          {isOwner ? (
-            <Pressable hitSlop={10} onPress={() => { setName(team?.name ?? ''); setEditingName(true); }}>
-              <Text style={styles.rename}>{t('teams.rename')}</Text>
-            </Pressable>
-          ) : null}
-        </View>
+        <ScreenHeader
+          back
+          title={team?.name ?? ''}
+          right={
+            isOwner ? (
+              <Pressable hitSlop={10} onPress={() => { setName(team?.name ?? ''); setEditingName(true); }}>
+                <Text style={styles.rename}>{t('teams.rename')}</Text>
+              </Pressable>
+            ) : null
+          }
+        />
       )}
+
+      {isOwner ? (
+        <>
+          <SectionTitle>{t('teams.color')}</SectionTitle>
+          <Card>
+            <ColorSwatchPicker
+              value={color}
+              onChange={(next) => {
+                setColor(next);
+                setColorInvalid(false);
+              }}
+            />
+            {colorInvalid ? <Muted style={styles.err}>{t('teams.invalidColor')}</Muted> : null}
+            {colorDirty ? (
+              <AppButton title={t('common.save')} onPress={onSaveColor} loading={renaming} />
+            ) : null}
+          </Card>
+        </>
+      ) : null}
 
       <SectionTitle>{t('teams.members')}</SectionTitle>
       <QueryBoundary
@@ -231,9 +279,8 @@ export default function ManageTeam() {
   );
 }
 
-const styles = StyleSheet.create({
-  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginVertical: spacing(1.5) },
-  h1: { fontSize: font.xl, fontWeight: '800', color: colors.text, flex: 1, marginRight: spacing(1) },
+const makeStyles = (colors) =>
+  StyleSheet.create({
   rename: { color: colors.primary, fontWeight: '700', fontSize: font.md },
   rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   row: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', marginBottom: spacing(0.5) },

@@ -1,4 +1,4 @@
-import { render, fireEvent, screen } from '@testing-library/react-native';
+import { renderWithStore as render, fireEvent, screen } from '../../test-utils/renderWithStore';
 import { AppButton } from './Button';
 
 // Behaviour-only tests: render the label, fire the callback, respect disabled/loading/success.

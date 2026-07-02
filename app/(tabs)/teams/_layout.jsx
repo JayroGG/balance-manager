@@ -1,12 +1,14 @@
 import { Stack } from 'expo-router';
-import { useTranslation } from 'react-i18next';
+import { useTheme } from '../../../src/hooks/useTheme';
 
+// Native headers are hidden app-wide — screens render their own ScreenHeader (ADR-013 congruence).
+// contentStyle keeps push/modal transitions on the themed background.
 export default function TeamsLayout() {
-  const { t } = useTranslation();
+  const { colors } = useTheme();
   return (
-    <Stack>
-      <Stack.Screen name="index" options={{ title: t('teams.title') }} />
-      <Stack.Screen name="[id]" options={{ title: t('teams.manage') }} />
+    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
+      <Stack.Screen name="index" />
+      <Stack.Screen name="[id]" />
     </Stack>
   );
 }

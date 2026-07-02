@@ -1,13 +1,15 @@
 import { Stack } from 'expo-router';
-import { useTranslation } from 'react-i18next';
+import { useTheme } from '../../../src/hooks/useTheme';
 
+// Native headers are hidden app-wide — screens render their own ScreenHeader (ADR-013 congruence).
+// contentStyle keeps push/modal transitions on the themed background.
 export default function TransactionsLayout() {
-  const { t } = useTranslation();
+  const { colors } = useTheme();
   return (
-    <Stack>
-      <Stack.Screen name="index" options={{ title: t('transactions.title') }} />
-      <Stack.Screen name="new" options={{ title: t('transactions.new'), presentation: 'modal' }} />
-      <Stack.Screen name="[id]" options={{ title: t('transactions.edit') }} />
+    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
+      <Stack.Screen name="index" />
+      <Stack.Screen name="new" options={{ presentation: 'modal' }} />
+      <Stack.Screen name="[id]" />
     </Stack>
   );
 }

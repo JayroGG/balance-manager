@@ -11,13 +11,16 @@ import { useActiveTeamId } from '../../hooks/useActiveTeamId';
 import { useOnContextChange } from '../../hooks/useOnContextChange';
 import { usePermissions } from '../../permissions';
 import { Ionicons } from '@expo/vector-icons';
-import { Screen, Card, Field, Chip, AppButton, SectionTitle, QueryBoundary, Muted } from '../../components/ui';
-import { colors, font, spacing } from '../../components/theme';
+import { Screen, ScreenHeader, Card, Field, Chip, AppButton, SectionTitle, QueryBoundary, Muted } from '../../components/ui';
+import { useTheme } from '../../hooks/useTheme';
+import { font, spacing } from '../../components/theme';
 
 const KINDS = ['income', 'expense', 'both'];
 
 export default function Categories() {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
   const teamId = useActiveTeamId();
   // RBAC: guest is read-only; member can add but edits/deletes only its own categories; owner does all.
   // canEditRow checks row.user_id — if the backend doesn't stamp categories, members simply can't edit
@@ -82,7 +85,7 @@ export default function Categories() {
 
   return (
     <Screen scroll>
-      <Text style={styles.h1}>{t('categories.title')}</Text>
+      <ScreenHeader title={t('categories.title')} />
 
       {canAdd ? (
         <Card>
@@ -132,8 +135,8 @@ export default function Categories() {
   );
 }
 
-const styles = StyleSheet.create({
-  h1: { fontSize: font.xl, fontWeight: '800', color: colors.text, marginVertical: spacing(1.5) },
+const makeStyles = (colors) =>
+  StyleSheet.create({
   label: { fontSize: font.sm, color: colors.muted, marginBottom: spacing(0.75), fontWeight: '600' },
   row: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', marginBottom: spacing(0.5) },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },

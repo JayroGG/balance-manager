@@ -7,10 +7,13 @@ import { useGetTeamsQuery } from '../../services/api/teams';
 import { setActiveTeam } from '../../reducers/context';
 import { useActiveTeamId } from '../../hooks/useActiveTeamId';
 import { useActiveRole } from '../../hooks/useActiveRole';
-import { Screen, Card, Chip, MoneyText, SectionTitle, Muted, QueryBoundary } from '../../components/ui';
-import { colors, font, spacing } from '../../components/theme';
+import { useTheme } from '../../hooks/useTheme';
+import { Screen, ScreenHeader, Card, Chip, MoneyText, SectionTitle, Muted, QueryBoundary } from '../../components/ui';
+import { DEFAULT_ACCENT, font, spacing } from '../../components/theme';
 
 const VaultRow = ({ vault, currency }) => {
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
   const pct =
     vault.target && vault.target > 0 ? Math.min(1, (vault.balance ?? 0) / vault.target) : null;
   return (
@@ -36,6 +39,8 @@ export default function Dashboard() {
   const dispatch = useDispatch();
   const teamId = useActiveTeamId();
   const role = useActiveRole(); // null in personal context; 'owner'|'member'|'guest' in a team
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
   const { data: teams } = useGetTeamsQuery();
   const { data, isLoading, error, refetch } = useGetBalanceQuery(teamId);
   // Drive the spinner only from a user pull — not the auto refetch-on-mount, which on iOS
@@ -53,7 +58,7 @@ export default function Dashboard() {
 
   return (
     <Screen scroll refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
-      <Text style={styles.h1}>{t('dashboard.title')}</Text>
+      <ScreenHeader title={t('dashboard.title')} />
 
       <ScrollView
         horizontal
@@ -63,6 +68,7 @@ export default function Dashboard() {
         <Chip
           label={t('context.personal')}
           active={teamId == null}
+          dot={DEFAULT_ACCENT}
           onPress={() => dispatch(setActiveTeam(null))}
         />
         {teams?.map((team) => (
@@ -70,6 +76,7 @@ export default function Dashboard() {
             key={team.id}
             label={team.name}
             active={teamId === team.id}
+            dot={team.color ?? undefined}
             onPress={() => dispatch(setActiveTeam(team.id))}
           />
         ))}
@@ -103,20 +110,21 @@ export default function Dashboard() {
   );
 }
 
-const styles = StyleSheet.create({
-  h1: { fontSize: font.xl, fontWeight: '800', color: colors.text, marginVertical: spacing(1.5) },
-  switch: { flexDirection: 'row', alignItems: 'center', paddingBottom: spacing(1) },
-  roleBadge: { marginBottom: spacing(1.5), textTransform: 'capitalize' },
-  hero: { backgroundColor: colors.primary, padding: spacing(3) },
-  heroLabel: { color: '#DBEAFE', fontSize: font.sm, fontWeight: '600' },
-  heroTotal: { color: '#FFFFFF', fontSize: font.hero, fontWeight: '800', marginTop: spacing(0.5) },
-  availRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: spacing(2) },
-  heroAvail: { color: '#FFFFFF', fontSize: font.lg, fontWeight: '700' },
-  vaultHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  vaultName: { fontSize: font.md, fontWeight: '700', color: colors.text },
-  vaultBalance: { fontSize: font.md, fontWeight: '700', color: colors.text },
-  track: { height: 6, backgroundColor: colors.border, borderRadius: 999, marginTop: spacing(1.25), overflow: 'hidden' },
-  fill: { height: 6, backgroundColor: colors.success, borderRadius: 999 },
-  vaultTarget: { fontSize: font.sm, color: colors.muted, marginTop: spacing(0.75) },
-  empty: { color: colors.muted, paddingVertical: spacing(2) },
-});
+// Hero text derives from primaryText so it stays readable on ANY team accent (ADR-013).
+const makeStyles = (colors) =>
+  StyleSheet.create({
+    switch: { flexDirection: 'row', alignItems: 'center', paddingBottom: spacing(1) },
+    roleBadge: { marginBottom: spacing(1.5), textTransform: 'capitalize' },
+    hero: { backgroundColor: colors.primary, padding: spacing(3) },
+    heroLabel: { color: colors.primaryText, opacity: 0.85, fontSize: font.sm, fontWeight: '600' },
+    heroTotal: { color: colors.primaryText, fontSize: font.hero, fontWeight: '800', marginTop: spacing(0.5) },
+    availRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: spacing(2) },
+    heroAvail: { color: colors.primaryText, fontSize: font.lg, fontWeight: '700' },
+    vaultHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    vaultName: { fontSize: font.md, fontWeight: '700', color: colors.text },
+    vaultBalance: { fontSize: font.md, fontWeight: '700', color: colors.text },
+    track: { height: 6, backgroundColor: colors.border, borderRadius: 999, marginTop: spacing(1.25), overflow: 'hidden' },
+    fill: { height: 6, backgroundColor: colors.success, borderRadius: 999 },
+    vaultTarget: { fontSize: font.sm, color: colors.muted, marginTop: spacing(0.75) },
+    empty: { color: colors.muted, paddingVertical: spacing(2) },
+  });

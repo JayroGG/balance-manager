@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { selectIsAuthed } from '../../src/reducers/auth';
 import { selectActiveTeamId, setActiveTeam } from '../../src/reducers/context';
 import { useGetTeamsQuery } from '../../src/services/api/teams';
-import { colors } from '../../src/components/theme';
+import { useTheme } from '../../src/hooks/useTheme';
 
 const icon =
   (name) =>
@@ -20,6 +20,7 @@ export default function TabsLayout() {
   // app/index.jsx's boot redirect.)
   const authed = useSelector(selectIsAuthed);
   const activeTeamId = useSelector(selectActiveTeamId);
+  const { colors } = useTheme(); // team accent + scheme → the tab bar re-tints on context switch (ADR-013)
   const { data: teams } = useGetTeamsQuery(undefined, { skip: !authed });
 
   // If the active team disappears (deleted, or you were removed), fall back to personal — otherwise the
@@ -37,6 +38,7 @@ export default function TabsLayout() {
         headerShown: false,
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.muted,
+        tabBarStyle: { backgroundColor: colors.card, borderTopColor: colors.border },
       }}
     >
       <Tabs.Screen name="dashboard" options={{ title: t('tabs.dashboard'), tabBarIcon: icon('home-outline') }} />

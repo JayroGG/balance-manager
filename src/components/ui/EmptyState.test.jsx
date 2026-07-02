@@ -1,7 +1,7 @@
-import { render, screen } from '@testing-library/react-native';
+import { renderWithStore as render, screen } from '../../test-utils/renderWithStore';
 import { EmptyState } from './EmptyState';
 
-// Behaviour-only: the provided text is rendered.
+// Behaviour-only: the provided text is rendered. (Store wrapper: Muted reads useTheme.)
 describe('EmptyState', () => {
   it('renders the given text', () => {
     render(<EmptyState text="No transactions yet" />);
