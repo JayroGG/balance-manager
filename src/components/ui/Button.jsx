@@ -1,7 +1,9 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text } from 'react-native';
-import { colors, font, radius, spacing } from '../theme';
+import { font, radius, spacing } from '../theme';
+import { useTheme } from '../../hooks/useTheme';
 
 export const AppButton = ({ title, successTitle, onPress, variant = 'primary', disabled, loading, success, style }) => {
+  const { colors } = useTheme();
   const baseTint =
     variant === 'danger' ? colors.danger : variant === 'ghost' ? 'transparent' : colors.primary;
   const tint = success ? colors.success : baseTint;

@@ -50,6 +50,15 @@ graph TD
 the JWT `sub` claim, decoded by `src/utils/jwt`. Guest = read-only; the backend enforces the same rules
 and `403`s a violation (surfaced, not a logout).
 
+**Theming (ADR-013).** Colors are **derived, never stored**, through one seam — `useTheme()`
+(`src/hooks/useTheme.js`) → `{ colors, scheme, accent }`: the scheme comes from the persisted
+`prefs.themeMode` (`system|light|dark`, System follows `useColorScheme()`), the **accent from the active
+team's `color`** in the cached `GET /teams` (personal / no color → `DEFAULT_ACCENT`), and
+`makeColors(scheme, accent)` (pure, `src/components/theme.js`) builds the palette with a
+contrast-derived `primaryText`. Switching context re-tints the whole app (tab bar included) — that's
+the context signal. There is no static `colors` export; components use
+`const styles = makeStyles(colors)` factories (React Compiler memoizes).
+
 ## 2. Data flow — RTK Query (ADR-005)
 
 Components call generated hooks only; the token is attached in exactly one place; mutations invalidate
@@ -129,16 +138,16 @@ balance-manager/                 # app name: balance-mobile
 │   │   ├── Categories/index.jsx   Settings/index.jsx
 │   ├── components/
 │   │   ├── ui/                  # shared atoms/molecules — one file each + index.js barrel
-│   │   │   └── {Screen,Card,Button,Field,Chip,MoneyText,Typography,EmptyState,QueryBoundary}.jsx
-│   │   └── theme.js             # colors / spacing / radius / font
+│   │   │   └── {Screen,Card,Button,Field,Chip,ColorSwatchPicker,MoneyText,Typography,EmptyState,QueryBoundary}.jsx
+│   │   └── theme.js             # light/dark palettes + makeColors(scheme, accent) + PRESET_TEAM_COLORS; spacing/radius/font (ADR-013)
 │   ├── store/                   # configureStore + RTKQ middleware + redux-persist + setupListeners
 │   ├── services/
 │   │   ├── api/                 # baseApi.js + balance/transactions/vaults/categories.js (injectEndpoints)
 │   │   └── storage/             # secure.js (token), prefs.js (cache/prefs)
-│   ├── reducers/auth/           # auth slice (token/bypass/user; user.id = myUserId for RBAC)
+│   ├── reducers/{auth,context,prefs}/  # auth (token/user), context (activeTeamId), prefs (themeMode — ADR-013)
 │   ├── permissions/             # RBAC seam: usePermissions + pure can*() matrix (ADR-012)
-│   ├── hooks/                   # useIdToken(), useActiveTeamId(), useActiveRole()
-│   ├── utils/                   # config.js, money.js, dates.js, jwt.js (decodeUser)
+│   ├── hooks/                   # useIdToken(), useActiveTeamId(), useActiveRole(), useTheme() (ADR-013)
+│   ├── utils/                   # config.js, money.js, dates.js, jwt.js (decodeUser), colors.js (hex + contrast)
 │   └── i18n/                    # i18next init + locales/{en-US,es-MX}.json
 ├── CLAUDE.md  PRD.md  ARCHITECTURE.md  README.md
 └── .claude/ADR/   .claude/agents/plans/

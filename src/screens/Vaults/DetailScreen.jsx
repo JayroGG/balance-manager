@@ -16,7 +16,8 @@ import { useActiveTeamId } from '../../hooks/useActiveTeamId';
 import { useDismissOnContextChange } from '../../hooks/useOnContextChange';
 import { usePermissions } from '../../permissions';
 import { Screen, Card, MoneyText, AppButton, Field, SectionTitle, Muted, QueryBoundary } from '../../components/ui';
-import { colors, font, spacing } from '../../components/theme';
+import { useTheme } from '../../hooks/useTheme';
+import { font, spacing } from '../../components/theme';
 import { formatDateTime } from '../../utils/dates';
 
 export default function VaultDetail() {
@@ -24,6 +25,8 @@ export default function VaultDetail() {
   const vaultId = Number(id);
   const router = useRouter();
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
   const teamId = useActiveTeamId();
   // This vault id is scoped to the context it was opened in — leave the screen if the context switches.
   useDismissOnContextChange();
@@ -219,11 +222,13 @@ export default function VaultDetail() {
   );
 }
 
-const styles = StyleSheet.create({
+// Hero text derives from primaryText so it stays readable on ANY team accent (ADR-013).
+const makeStyles = (colors) =>
+  StyleSheet.create({
   hero: { backgroundColor: colors.primary, padding: spacing(3), marginTop: spacing(2) },
-  name: { color: '#DBEAFE', fontSize: font.md, fontWeight: '700' },
-  balance: { color: '#FFFFFF', fontSize: font.hero, fontWeight: '800', marginTop: spacing(0.5) },
-  target: { color: '#DBEAFE', fontSize: font.sm, marginTop: spacing(1) },
+  name: { color: colors.primaryText, opacity: 0.85, fontSize: font.md, fontWeight: '700' },
+  balance: { color: colors.primaryText, fontSize: font.hero, fontWeight: '800', marginTop: spacing(0.5) },
+  target: { color: colors.primaryText, opacity: 0.85, fontSize: font.sm, marginTop: spacing(1) },
   actions: { flexDirection: 'row', marginVertical: spacing(1.5) },
   maxHint: { marginBottom: spacing(1.5) },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },

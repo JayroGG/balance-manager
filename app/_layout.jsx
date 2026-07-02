@@ -9,6 +9,7 @@ import { store, persistor } from '../src/store';
 import { hydrateAuth } from '../src/reducers/auth';
 import { getToken } from '../src/services/storage/secure';
 import { decodeUser } from '../src/utils/jwt';
+import { useTheme } from '../src/hooks/useTheme';
 import { initI18n } from '../src/i18n';
 
 // Keep the splash up until the cold-start bootstrap finishes (ADR-001/006/007).
@@ -34,12 +35,18 @@ function Bootstrap({ children }) {
   return children;
 }
 
+// Status-bar icons follow the active scheme (must live inside the Redux Provider — useTheme reads it).
+function ThemedStatusBar() {
+  const { scheme } = useTheme();
+  return <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />;
+}
+
 export default function RootLayout() {
   return (
     <Provider store={store}>
       <PersistGate loading={null} persistor={persistor}>
         <SafeAreaProvider>
-          <StatusBar style="dark" />
+          <ThemedStatusBar />
           <Bootstrap>
             <Stack screenOptions={{ headerShown: false }}>
               <Stack.Screen name="index" />

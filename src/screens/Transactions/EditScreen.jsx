@@ -13,12 +13,14 @@ import { useDismissOnContextChange } from '../../hooks/useOnContextChange';
 import { usePermissions } from '../../permissions';
 import TransactionForm from './TransactionForm';
 import { Screen, QueryBoundary } from '../../components/ui';
-import { colors, spacing } from '../../components/theme';
+import { useTheme } from '../../hooks/useTheme';
+import { spacing } from '../../components/theme';
 
 export default function TransactionDetail() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const { t } = useTranslation();
+  const { colors } = useTheme();
   const teamId = useActiveTeamId();
   // This transaction id is scoped to the context it was opened in — leave the screen if it switches.
   useDismissOnContextChange();

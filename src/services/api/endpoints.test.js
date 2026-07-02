@@ -122,6 +122,29 @@ describe('team management — :id-scoped URLs, no ?team_id= (ADR-012)', () => {
     await expect(request.clone().json()).resolves.toEqual({ name: 'Household' });
   });
 
+  it('POSTs { name, color } when a color is chosen (ADR-013)', async () => {
+    store = makeStore();
+    await store.dispatch(teamsApi.endpoints.createTeam.initiate({ name: 'Design', color: '#7C3AED' }));
+    await expect(global.fetch.mock.calls[0][0].clone().json()).resolves.toEqual({
+      name: 'Design',
+      color: '#7C3AED',
+    });
+  });
+
+  it('PUTs a color-only body to /teams/:id (no name required — ADR-013)', async () => {
+    store = makeStore();
+    await store.dispatch(teamsApi.endpoints.updateTeam.initiate({ id: 7, color: '#DC2626' }));
+    const request = global.fetch.mock.calls[0][0];
+    expect(request.url).toMatch(/\/teams\/7$/);
+    await expect(request.clone().json()).resolves.toEqual({ color: '#DC2626' });
+  });
+
+  it('PUTs { color: null } to clear a team color (ADR-013)', async () => {
+    store = makeStore();
+    await store.dispatch(teamsApi.endpoints.updateTeam.initiate({ id: 7, color: null }));
+    await expect(global.fetch.mock.calls[0][0].clone().json()).resolves.toEqual({ color: null });
+  });
+
   it('PUTs { name } to /teams/:id to rename', async () => {
     store = makeStore();
     await store.dispatch(teamsApi.endpoints.updateTeam.initiate({ id: 7, name: 'Trip' }));

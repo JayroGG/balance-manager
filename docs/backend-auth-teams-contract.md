@@ -87,9 +87,9 @@ Every membership has a role: `owner | member | guest`. `GET /teams` returns **yo
 
 | Method | Path | Body | Returns |
 |---|---|---|---|
-| GET | `/teams` | — | `200` `[{ id:int, user_id, name, role, … }]` (`role` always present) |
-| POST | `/teams` | `{ name }` | `201` team row **without** `role` (creator is owner → assume owner or refetch) |
-| PUT | `/teams/:id` | `{ name }` | `200` team row (no `role`) |
+| GET | `/teams` | — | `200` `[{ id:int, user_id, name, color, role, … }]` (`role` always present) |
+| POST | `/teams` | `{ name, color? }` | `201` team row **without** `role` (creator is owner → assume owner or refetch) |
+| PUT | `/teams/:id` | `{ name?, color? }` (≥ 1 field) | `200` team row (no `role`) |
 | DELETE | `/teams/:id` | — | `204` (blocked → `400` if not empty) |
 | GET | `/teams/:id/members` | — | `200` `[{ user_id, role, email }]` (exact keys; no `name`) |
 | POST | `/teams/:id/members` | `{ email, role? }` | `201` + updated member array (`role` default `member`) |
@@ -97,6 +97,12 @@ Every membership has a role: `owner | member | guest`. `GET /teams` returns **yo
 | DELETE | `/teams/:id/members/:userId` | — | `204` |
 
 Write endpoints return the updated member array; the client refetches via the `TeamMember` tag anyway.
+
+**Team `color` (ADR-013, backend `react-native-team-color-update.md`):** nullable `"#RRGGBB"` — input
+accepts 6 hex digits, `#` optional, case-insensitive; stored/returned normalized (`#` + uppercase).
+`color: null` on PUT **clears** it. Invalid → `400 { "error": "color must be a hex color like #RRGGBB" }`;
+neither field on PUT → `400 Provide at least one field: name, color`. `null` = client renders the
+default accent.
 
 ### Confirmed error strings (`{ "error": "<msg>" }`) — map on **status + context**, string is fallback
 

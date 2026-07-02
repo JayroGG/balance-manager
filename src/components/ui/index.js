@@ -3,6 +3,7 @@ export { Card } from './Card';
 export { AppButton } from './Button';
 export { Field } from './Field';
 export { Chip } from './Chip';
+export { ColorSwatchPicker } from './ColorSwatchPicker';
 export { MoneyText } from './MoneyText';
 export { SectionTitle, Muted } from './Typography';
 export { EmptyState } from './EmptyState';

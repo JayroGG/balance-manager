@@ -7,11 +7,14 @@ import { useGetBalanceQuery } from '../../services/api/balance';
 import { useActiveTeamId } from '../../hooks/useActiveTeamId';
 import { usePermissions } from '../../permissions';
 import { Screen, Card, MoneyText, QueryBoundary } from '../../components/ui';
-import { colors, font, spacing } from '../../components/theme';
+import { useTheme } from '../../hooks/useTheme';
+import { font, spacing } from '../../components/theme';
 
 export default function VaultsList() {
   const { t } = useTranslation();
   const router = useRouter();
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
   const teamId = useActiveTeamId();
   const { canAdd } = usePermissions();
   // Per-vault balances/targets come from /balance (PRD note).
@@ -84,7 +87,8 @@ export default function VaultsList() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors) =>
+  StyleSheet.create({
   rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   name: { fontSize: font.md, fontWeight: '700', color: colors.text },
   balance: { fontSize: font.md, fontWeight: '700', color: colors.text },

@@ -11,11 +11,22 @@ export const teamsApi = baseApi.injectEndpoints({
       providesTags: ['Team'],
     }),
     createTeam: build.mutation({
-      query: ({ name }) => ({ url: '/teams', method: 'POST', body: { name } }),
+      // arg: { name, color? } — color is a '#RRGGBB' hex (validated at the form boundary).
+      query: ({ name, color }) => ({
+        url: '/teams',
+        method: 'POST',
+        body: color ? { name, color } : { name },
+      }),
       invalidatesTags: ['Team'],
     }),
     updateTeam: build.mutation({
-      query: ({ id, name }) => ({ url: `/teams/${id}`, method: 'PUT', body: { name } }),
+      // arg: { id, name?, color? } — send only what's given; color: null explicitly clears (ADR-013).
+      query: ({ id, name, color }) => {
+        const body = {};
+        if (name !== undefined) body.name = name;
+        if (color !== undefined) body.color = color;
+        return { url: `/teams/${id}`, method: 'PUT', body };
+      },
       invalidatesTags: ['Team'],
     }),
     deleteTeam: build.mutation({

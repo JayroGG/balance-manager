@@ -6,25 +6,34 @@ import { useLogoutMutation } from '../../services/api/auth';
 import { baseApi } from '../../services/api/baseApi';
 import { clearAuth } from '../../reducers/auth';
 import { resetContext } from '../../reducers/context';
+import { setThemeMode, selectThemeMode, THEME_MODES } from '../../reducers/prefs';
 import { useActiveTeamId } from '../../hooks/useActiveTeamId';
+import { useTheme } from '../../hooks/useTheme';
 import { clearToken } from '../../services/storage/secure';
 import { persistor } from '../../store';
 import { Config } from '../../utils/config';
 import { LANGUAGES, changeLanguage } from '../../i18n';
 import { Screen, Card, Chip, AppButton, SectionTitle } from '../../components/ui';
-import { colors, font, spacing } from '../../components/theme';
+import { font, spacing } from '../../components/theme';
 
-const Row = ({ label, value }) => (
-  <View style={styles.row}>
-    <Text style={styles.label}>{label}</Text>
-    <Text style={styles.value}>{value}</Text>
-  </View>
-);
+const Row = ({ label, value }) => {
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
+  return (
+    <View style={styles.row}>
+      <Text style={styles.label}>{label}</Text>
+      <Text style={styles.value}>{value}</Text>
+    </View>
+  );
+};
 
 export default function Settings() {
   const { t, i18n } = useTranslation();
   const dispatch = useDispatch();
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
   const bypass = useSelector((s) => s.auth.bypass);
+  const themeMode = useSelector(selectThemeMode);
   const teamId = useActiveTeamId();
   const { data } = useGetBalanceQuery(teamId);
   const [logout, { isLoading: loggingOut }] = useLogoutMutation();
@@ -36,6 +45,7 @@ export default function Settings() {
 
   // Real logout: best-effort revoke, then drop the token (slice + secure-store), reset context, and
   // purge cached financial data. The tabs guard then redirects to login. (ADR-011)
+  // themeMode is a device pref, not session data — deliberately NOT reset here (ADR-013).
   const onLogout = async () => {
     try {
       await logout().unwrap();
@@ -68,8 +78,20 @@ export default function Settings() {
         />
       )}
 
+      <SectionTitle>{t('settings.appearance')}</SectionTitle>
+      <View style={styles.chipRow}>
+        {THEME_MODES.map((mode) => (
+          <Chip
+            key={mode}
+            label={t(`settings.theme_${mode}`)}
+            active={themeMode === mode}
+            onPress={() => dispatch(setThemeMode(mode))}
+          />
+        ))}
+      </View>
+
       <SectionTitle>{t('settings.language')}</SectionTitle>
-      <View style={styles.langRow}>
+      <View style={styles.chipRow}>
         {LANGUAGES.map((l) => (
           <Chip key={l.key} label={l.label} active={i18n.language === l.key} onPress={() => changeLanguage(l.key)} />
         ))}
@@ -80,10 +102,11 @@ export default function Settings() {
   );
 }
 
-const styles = StyleSheet.create({
-  h1: { fontSize: font.xl, fontWeight: '800', color: colors.text, marginVertical: spacing(1.5) },
-  row: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: spacing(0.75) },
-  label: { color: colors.muted, fontSize: font.md },
-  value: { color: colors.text, fontSize: font.md, fontWeight: '600' },
-  langRow: { flexDirection: 'row', flexWrap: 'wrap' },
-});
+const makeStyles = (colors) =>
+  StyleSheet.create({
+    h1: { fontSize: font.xl, fontWeight: '800', color: colors.text, marginVertical: spacing(1.5) },
+    row: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: spacing(0.75) },
+    label: { color: colors.muted, fontSize: font.md },
+    value: { color: colors.text, fontSize: font.md, fontWeight: '600' },
+    chipRow: { flexDirection: 'row', flexWrap: 'wrap' },
+  });

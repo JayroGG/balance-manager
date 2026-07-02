@@ -12,12 +12,15 @@ import { useOnContextChange } from '../../hooks/useOnContextChange';
 import { usePermissions } from '../../permissions';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen, Card, Field, Chip, AppButton, SectionTitle, QueryBoundary, Muted } from '../../components/ui';
-import { colors, font, spacing } from '../../components/theme';
+import { useTheme } from '../../hooks/useTheme';
+import { font, spacing } from '../../components/theme';
 
 const KINDS = ['income', 'expense', 'both'];
 
 export default function Categories() {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
   const teamId = useActiveTeamId();
   // RBAC: guest is read-only; member can add but edits/deletes only its own categories; owner does all.
   // canEditRow checks row.user_id — if the backend doesn't stamp categories, members simply can't edit
@@ -132,7 +135,8 @@ export default function Categories() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors) =>
+  StyleSheet.create({
   h1: { fontSize: font.xl, fontWeight: '800', color: colors.text, marginVertical: spacing(1.5) },
   label: { fontSize: font.sm, color: colors.muted, marginBottom: spacing(0.75), fontWeight: '600' },
   row: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', marginBottom: spacing(0.5) },

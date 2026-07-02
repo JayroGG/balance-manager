@@ -84,9 +84,14 @@ Point `.env.dev` `API_URL` at the running backend (`cd ../../Node/Projects/balan
 | `src/components/ui/` | Shared atoms/molecules, one file each + `index.js` barrel. |
 | `src/services/api/baseApi.js` | RTK Query base: `fetchBaseQuery` + token seam + `401` auto-logout + `tagTypes`. |
 | `src/services/api/auth.js` | `login`/`logout` mutations. |
-| `src/services/api/teams.js` | `getTeams` (now returns per-team `role`) + team/member CRUD mutations (`:id`-path scoped, **not** `?team_id=`); tags `Team` / `TeamMember` (ADR-012). |
+| `src/services/api/teams.js` | `getTeams` (returns per-team `role` + `color`) + team/member CRUD mutations (`:id`-path scoped, **not** `?team_id=`); tags `Team` / `TeamMember` (ADR-012/013). |
 | `src/permissions/index.js` | RBAC seam: `usePermissions` + pure `canAdd`/`canEditRow(row)`/`canManageTeam` matrix (ADR-012). |
 | `src/hooks/useActiveRole.js` | Active-context role derived from cached `getTeams` + `activeTeamId` (`null` = personal). |
+| `src/hooks/useTheme.js` | THE theme seam (ADR-013): `{ colors, scheme, accent }` — scheme from `prefs.themeMode` + OS, accent from the active team's `color` (cached `getTeams`); personal = default. |
+| `src/components/theme.js` | Light/dark palettes + pure `makeColors(scheme, accent)` + `PRESET_TEAM_COLORS` + `DEFAULT_ACCENT`; static `spacing`/`radius`/`font`. **No static `colors` export.** |
+| `src/reducers/prefs/` | `prefs` slice: `themeMode` (`system\|light\|dark`); persisted, **not** reset on logout. |
+| `src/utils/colors.js` | `isValidHex` / `normalizeHex` / `contrastOn` (YIQ) — hex boundary validation + accent contrast. |
+| `src/components/ui/ColorSwatchPicker.jsx` | 10 preset swatches + custom-hex field; emits raw text, consumers validate at save. |
 | `src/utils/jwt.js` | `decodeUser(token)` → `{ id }` from the JWT `sub` (the `myUserId` source for member gating). |
 | `src/screens/Teams/` | `ListScreen` (owned / member-of + create) and `ManageScreen` (owner: rename / members / roles / delete). |
 | `src/services/api/{balance,transactions,vaults,categories}.js` | `injectEndpoints` per entity (each threads optional `team_id`). |
@@ -127,3 +132,9 @@ Plans go in `.claude/agents/plans/`; decisions in `.claude/ADR/`; long-term memo
   context = full access. Role is **derived** via `useActiveRole` (never stored); `myUserId` comes from the
   JWT `sub` (`decodeUser`). The backend enforces the same rules and `403`s a violation — surface it, don't
   log out. Team-management endpoints are `:id`-path scoped (no `team_id`).
+- **Theming (ADR-013):** never import a static color — components call `useTheme()` and build styles with
+  a `const styles = makeStyles(colors)` factory (React Compiler memoizes; no hand-memoization). The accent
+  is the active team's `color` (derived from the cached `getTeams`, never stored); personal = default.
+  Text on the accent uses `colors.primaryText` (contrast-derived) — never hardcode white. `themeMode` is a
+  device pref (`prefs` slice): persisted, not reset on logout. Hex validation only at the form boundary
+  (`isValidHex`/`normalizeHex`).

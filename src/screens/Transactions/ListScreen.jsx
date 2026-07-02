@@ -7,8 +7,9 @@ import { useGetTransactionsQuery } from '../../services/api/transactions';
 import { useGetBalanceQuery } from '../../services/api/balance';
 import { useActiveTeamId } from '../../hooks/useActiveTeamId';
 import { usePermissions } from '../../permissions';
+import { useTheme } from '../../hooks/useTheme';
 import { Screen, Card, MoneyText, Chip, QueryBoundary } from '../../components/ui';
-import { colors, font, spacing } from '../../components/theme';
+import { font, spacing } from '../../components/theme';
 import { formatDate } from '../../utils/dates';
 
 const TYPE_FILTERS = ['all', 'income', 'expense'];
@@ -16,6 +17,8 @@ const TYPE_FILTERS = ['all', 'income', 'expense'];
 export default function TransactionsList() {
   const { t } = useTranslation();
   const router = useRouter();
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
   const teamId = useActiveTeamId();
   const { canAdd } = usePermissions();
   const [typeFilter, setTypeFilter] = useState('all');
@@ -90,7 +93,8 @@ export default function TransactionsList() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors) =>
+  StyleSheet.create({
   filters: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: spacing(2), paddingTop: spacing(1) },
   rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   desc: { fontSize: font.md, fontWeight: '600', color: colors.text },
