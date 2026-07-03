@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import { useGetBalanceQuery } from '../../services/api/balance';
+import { useGetCapturesQuery } from '../../services/api/captures';
 import { useLogoutMutation } from '../../services/api/auth';
 import { baseApi } from '../../services/api/baseApi';
 import { clearAuth } from '../../reducers/auth';
@@ -59,6 +60,8 @@ export default function Settings() {
   const themeMode = useSelector(selectThemeMode);
   const teamId = useActiveTeamId();
   const { data } = useGetBalanceQuery(teamId);
+  // Lean inbox badge: the pending-captures count on the Settings row (ADR-014).
+  const { data: pending } = useGetCapturesQuery({ status: 'pending' });
   const [logout, { isLoading: loggingOut }] = useLogoutMutation();
 
   const onClearCache = async () => {
@@ -106,6 +109,12 @@ export default function Settings() {
         icon="card-outline"
         label={t('settings.paymentSources')}
         onPress={() => router.push('/(tabs)/settings/sources')}
+      />
+      <NavRow
+        icon="mail-unread-outline"
+        label={t('settings.reviewInbox')}
+        badge={pending?.length || null}
+        onPress={() => router.push('/(tabs)/settings/inbox')}
       />
 
       <SectionTitle>{t('settings.appearance')}</SectionTitle>

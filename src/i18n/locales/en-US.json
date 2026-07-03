@@ -91,7 +91,21 @@
     "authBypassed": "Bypassed (prototype)",
     "clearCache": "Clear cached data",
     "automation": "Automation",
-    "paymentSources": "Payment sources"
+    "paymentSources": "Payment sources",
+    "reviewInbox": "Review inbox"
+  },
+  "inbox": {
+    "title": "Review inbox",
+    "hint": "Payments your automations reported but couldn't be matched to a source.",
+    "empty": "Nothing to review",
+    "unknownMerchant": "Unknown merchant",
+    "link": "Link to source",
+    "linkToSource": "Which source paid this?",
+    "noSources": "Create a payment source first",
+    "discard": "Discard",
+    "discardConfirm": "Discard this capture?",
+    "result_pending": "Still pending — it couldn't be posted (check the source's context balance).",
+    "result_duplicate": "Marked as a duplicate of an existing capture."
   },
   "sources": {
     "title": "Payment sources",

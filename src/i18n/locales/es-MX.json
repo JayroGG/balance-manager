@@ -91,7 +91,21 @@
     "authBypassed": "Omitida (prototipo)",
     "clearCache": "Borrar datos en caché",
     "automation": "Automatización",
-    "paymentSources": "Fuentes de pago"
+    "paymentSources": "Fuentes de pago",
+    "reviewInbox": "Bandeja de revisión"
+  },
+  "inbox": {
+    "title": "Bandeja de revisión",
+    "hint": "Pagos reportados por tus automatizaciones que no se pudieron asociar a una fuente.",
+    "empty": "Nada por revisar",
+    "unknownMerchant": "Comercio desconocido",
+    "link": "Asociar a fuente",
+    "linkToSource": "¿Qué fuente pagó esto?",
+    "noSources": "Primero crea una fuente de pago",
+    "discard": "Descartar",
+    "discardConfirm": "¿Descartar esta captura?",
+    "result_pending": "Sigue pendiente — no se pudo registrar (revisa el saldo del contexto de la fuente).",
+    "result_duplicate": "Marcada como duplicado de una captura existente."
   },
   "sources": {
     "title": "Fuentes de pago",

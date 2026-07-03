@@ -39,8 +39,8 @@ gitignored in the mobile repo — use `git add -f .claude/agents/plans/004-auto-
 - [x] B4. Update backend contract doc with final transfer shapes
 ### Phase C — mobile (implements against A10's doc — re-verify shapes first)
 - [x] C1. RTK Query endpoints: `sources.js`, `captures.js`, `transfers.js` + tags
-- [ ] C2. Settings stack conversion (`settings/{index,sources,source,inbox}.jsx` shims)
-- [ ] C3. Sources manager screen (list + create/edit + routing picker + aliases)
+- [x] C2. Settings stack conversion (`settings/{index,sources,source,inbox}.jsx` shims)
+- [x] C3. Sources manager screen (list + create/edit + routing picker + aliases)
 - [ ] C4. Review inbox screen (pending captures → link/confirm/discard) + badge
 - [ ] C5. Transfer action (form + `usePermissions` gating both ends)
 - [ ] C6. Transaction list/detail: show source/auto-captured provenance (read-only)
