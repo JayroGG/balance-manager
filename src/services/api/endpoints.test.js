@@ -12,6 +12,7 @@ import { categoriesApi } from './categories';
 import { sourcesApi } from './sources';
 import { capturesApi } from './captures';
 import { transfersApi } from './transfers';
+import { tokensApi } from './tokens';
 import authReducer from '../../reducers/auth';
 
 const makeStore = () =>
@@ -354,6 +355,22 @@ describe('auto-capture — transfers (ADR-014)', () => {
     expect(balanceCalls()).toBeGreaterThan(1);
 
     balanceSub.unsubscribe();
+  });
+});
+
+describe('automation tokens — /auth/tokens URLs and bodies (ADR-014)', () => {
+  it('GETs the list, POSTs { name } to mint, DELETEs /auth/tokens/:id to revoke', async () => {
+    store = makeStore();
+    await store.dispatch(tokensApi.endpoints.getTokens.initiate());
+    await store.dispatch(tokensApi.endpoints.createToken.initiate({ name: 'iphone-shortcut' }));
+    await store.dispatch(tokensApi.endpoints.revokeToken.initiate({ id: 3 }));
+
+    const requests = global.fetch.mock.calls.map((c) => c[0]);
+    expect(requests.some((r) => /\/auth\/tokens$/.test(r.url) && r.method === 'GET')).toBe(true);
+    const mint = requests.find((r) => /\/auth\/tokens$/.test(r.url) && r.method === 'POST');
+    expect(mint).toBeDefined();
+    await expect(mint.clone().json()).resolves.toEqual({ name: 'iphone-shortcut' });
+    expect(requests.some((r) => /\/auth\/tokens\/3$/.test(r.url) && r.method === 'DELETE')).toBe(true);
   });
 });
 

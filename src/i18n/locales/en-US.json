@@ -96,7 +96,22 @@
     "clearCache": "Clear cached data",
     "automation": "Automation",
     "paymentSources": "Payment sources",
-    "reviewInbox": "Review inbox"
+    "reviewInbox": "Review inbox",
+    "automationTokens": "Automation tokens"
+  },
+  "tokens": {
+    "title": "Automation tokens",
+    "hint": "Long-lived keys for your phone automations (iOS Shortcuts, MacroDroid). They can only report captures — nothing else.",
+    "name": "Name",
+    "mint": "Create token",
+    "shownOnce": "Copy it now — it won't be shown again.",
+    "done": "Done",
+    "active": "Active tokens",
+    "issued": "Issued",
+    "expires": "expires",
+    "revoke": "Revoke",
+    "revokeConfirm": "Revoke this token? Its automation will stop working immediately.",
+    "empty": "No automation tokens yet"
   },
   "inbox": {
     "title": "Review inbox",

@@ -6,6 +6,7 @@ export * from './categories';
 export * from './captures';
 export * from './sources';
 export * from './teams';
+export * from './tokens';
 export * from './transactions';
 export * from './transfers';
 export * from './vaults';

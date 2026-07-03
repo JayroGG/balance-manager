@@ -101,6 +101,7 @@ Point `.env.dev` `API_URL` at the running backend (`cd ../../Node/Projects/balan
 | `src/screens/Sources/` | `ListScreen` + `EditScreen` (routing picker limited to writable teams; inline alias management). |
 | `src/screens/Inbox/` | Review inbox: pending captures → link-to-source/confirm/discard; count badges the Settings row. |
 | `src/screens/Transfers/NewScreen.jsx` | Transfer form (Dashboard header action); pickers exclude guest teams. |
+| `src/services/api/tokens.js` + `src/screens/Tokens/` | Automation tokens (tag `Token`): mint/list/revoke ingest-scoped keys; the secret renders once at mint time (selectable text). |
 | `src/services/api/teamParam.js` | `withTeam(path, team_id)` — appends `?team_id=` (the one place it's built). |
 | `src/services/storage/{secure,prefs}.js` | Token (secure-store) / cache+prefs (AsyncStorage) seam. |
 | `src/reducers/auth/` | `auth` slice: token/bypass/user (token-injection source of truth). |

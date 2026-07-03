@@ -96,7 +96,22 @@
     "clearCache": "Borrar datos en caché",
     "automation": "Automatización",
     "paymentSources": "Fuentes de pago",
-    "reviewInbox": "Bandeja de revisión"
+    "reviewInbox": "Bandeja de revisión",
+    "automationTokens": "Tokens de automatización"
+  },
+  "tokens": {
+    "title": "Tokens de automatización",
+    "hint": "Claves de larga duración para tus automatizaciones (Atajos de iOS, MacroDroid). Solo pueden reportar capturas — nada más.",
+    "name": "Nombre",
+    "mint": "Crear token",
+    "shownOnce": "Cópialo ahora — no se volverá a mostrar.",
+    "done": "Listo",
+    "active": "Tokens activos",
+    "issued": "Creado",
+    "expires": "expira",
+    "revoke": "Revocar",
+    "revokeConfirm": "¿Revocar este token? Su automatización dejará de funcionar de inmediato.",
+    "empty": "Aún no hay tokens de automatización"
   },
   "inbox": {
     "title": "Bandeja de revisión",

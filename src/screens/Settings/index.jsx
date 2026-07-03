@@ -116,6 +116,11 @@ export default function Settings() {
         badge={pending?.length || null}
         onPress={() => router.push('/(tabs)/settings/inbox')}
       />
+      <NavRow
+        icon="key-outline"
+        label={t('settings.automationTokens')}
+        onPress={() => router.push('/(tabs)/settings/tokens')}
+      />
 
       <SectionTitle>{t('settings.appearance')}</SectionTitle>
       <View style={styles.chipRow}>

@@ -42,6 +42,7 @@ graph TD
       SSources["sources.jsx<br/>payment sources list"]
       SSource["source.jsx<br/>create/edit + routing + aliases"]
       SInbox["inbox.jsx<br/>review inbox (pending captures)"]
+      STokens["tokens.jsx<br/>automation tokens (mint/revoke)"]
     end
   end
 
@@ -53,6 +54,7 @@ graph TD
   SIndex --> SSources
   SSources --> SSource
   SIndex --> SInbox
+  SIndex --> STokens
 ```
 
 **Auto-capture (ADR-014).** Devices (iOS Shortcuts / MacroDroid) post payment-notification evidence
@@ -151,7 +153,7 @@ balance-manager/                 # app name: balance-mobile
 │   ├── index.jsx                # boot redirect (router infra)
 │   ├── (auth)/      _layout.jsx  login.jsx
 │   └── (tabs)/      _layout.jsx  categories.jsx
-│        dashboard/{_layout,index,transfer}.jsx   settings/{_layout,index,sources,source,inbox}.jsx
+│        dashboard/{_layout,index,transfer}.jsx   settings/{_layout,index,sources,source,inbox,tokens}.jsx
 │        transactions/{index,new,[id]}.jsx   vaults/{index,new,[id]}.jsx   teams/{index,[id]}.jsx
 │        # each (tabs) screen file is a 1-line shim: `export { default } from '../../src/screens/X'`
 ├── src/                         # ALL real code lives here
