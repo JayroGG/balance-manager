@@ -9,6 +9,9 @@ import { balanceApi } from './balance';
 import { transactionsApi } from './transactions';
 import { vaultsApi } from './vaults';
 import { categoriesApi } from './categories';
+import { sourcesApi } from './sources';
+import { capturesApi } from './captures';
+import { transfersApi } from './transfers';
 import authReducer from '../../reducers/auth';
 
 const makeStore = () =>
@@ -252,6 +255,105 @@ describe('team context — ?team_id= on queries, never in the body (ADR-011)', (
     expect(request.url).toContain('/vaults/2?team_id=5');
     expect(request.method).toBe('PUT');
     await expect(request.clone().json()).resolves.toEqual({ name: 'Trip' });
+  });
+});
+
+describe('auto-capture — sources/aliases URLs and bodies (ADR-014)', () => {
+  it('GETs /payment-sources and POSTs a source with its routing rule in the body', async () => {
+    store = makeStore();
+    await store.dispatch(sourcesApi.endpoints.getSources.initiate());
+    await store.dispatch(
+      sourcesApi.endpoints.addSource.initiate({ name: 'Nu account', type: 'account', target_team_id: 4 }),
+    );
+    expect(fetchedUrls()[0]).toMatch(/\/payment-sources$/);
+    const request = global.fetch.mock.calls[1][0];
+    expect(request.url).toMatch(/\/payment-sources$/);
+    expect(request.method).toBe('POST');
+    await expect(request.clone().json()).resolves.toEqual({
+      name: 'Nu account', type: 'account', target_team_id: 4,
+    });
+  });
+
+  it('PUTs updates to /payment-sources/:id with the id out of the body', async () => {
+    store = makeStore();
+    await store.dispatch(sourcesApi.endpoints.updateSource.initiate({ id: 3, target_team_id: null }));
+    const request = global.fetch.mock.calls[0][0];
+    expect(request.url).toMatch(/\/payment-sources\/3$/);
+    expect(request.method).toBe('PUT');
+    await expect(request.clone().json()).resolves.toEqual({ target_team_id: null });
+  });
+
+  it('filters aliases by source and POSTs/DELETEs them', async () => {
+    store = makeStore();
+    await store.dispatch(sourcesApi.endpoints.getAliases.initiate({ source_id: 3 }));
+    await store.dispatch(
+      sourcesApi.endpoints.addAlias.initiate({ source_id: 3, channel: 'google_wallet', match_kind: 'card_last4', value: '0347' }),
+    );
+    await store.dispatch(sourcesApi.endpoints.deleteAlias.initiate({ id: 9 }));
+    // Tag invalidation interleaves refetches — assert presence, not call order.
+    const requests = global.fetch.mock.calls.map((c) => c[0]);
+    expect(requests.some((r) => /\/source-aliases\?source_id=3$/.test(r.url))).toBe(true);
+    expect(requests.some((r) => /\/source-aliases$/.test(r.url) && r.method === 'POST')).toBe(true);
+    expect(requests.some((r) => /\/source-aliases\/9$/.test(r.url) && r.method === 'DELETE')).toBe(true);
+  });
+});
+
+describe('auto-capture — review inbox actions (ADR-014)', () => {
+  it('reads the inbox via ?status=pending', async () => {
+    store = makeStore();
+    await store.dispatch(capturesApi.endpoints.getCaptures.initiate({ status: 'pending' }));
+    expect(fetchedUrls()[0]).toMatch(/\/captures\?status=pending$/);
+  });
+
+  it('POSTs confirm with source and overrides in the body, id in the path', async () => {
+    store = makeStore();
+    await store.dispatch(
+      capturesApi.endpoints.confirmCapture.initiate({ id: 12, source_id: 3, category_id: 7 }),
+    );
+    const request = global.fetch.mock.calls[0][0];
+    expect(request.url).toMatch(/\/captures\/12\/confirm$/);
+    expect(request.method).toBe('POST');
+    await expect(request.clone().json()).resolves.toEqual({ source_id: 3, category_id: 7 });
+  });
+
+  it('POSTs discard with no body fields', async () => {
+    store = makeStore();
+    await store.dispatch(capturesApi.endpoints.discardCapture.initiate({ id: 12 }));
+    expect(fetchedUrls()[0]).toMatch(/\/captures\/12\/discard$/);
+  });
+});
+
+describe('auto-capture — transfers (ADR-014)', () => {
+  it('POSTs the two contexts in the body (the deliberate team_id-in-body exception)', async () => {
+    store = makeStore();
+    await store.dispatch(
+      transfersApi.endpoints.addTransfer.initiate({ amount: 300, to_team_id: 4, description: 'capital' }),
+    );
+    const request = global.fetch.mock.calls[0][0];
+    expect(request.url).toMatch(/\/transfers$/);
+    expect(request.method).toBe('POST');
+    await expect(request.clone().json()).resolves.toEqual({ amount: 300, to_team_id: 4, description: 'capital' });
+  });
+
+  it('DELETEs /transfers/:group_id', async () => {
+    store = makeStore();
+    await store.dispatch(transfersApi.endpoints.deleteTransfer.initiate({ group_id: 'abc-123' }));
+    const request = global.fetch.mock.calls[0][0];
+    expect(request.url).toMatch(/\/transfers\/abc-123$/);
+    expect(request.method).toBe('DELETE');
+  });
+
+  it('refetches transactions and balance after a transfer (both ends stay consistent)', async () => {
+    store = makeStore();
+    const balanceSub = store.dispatch(balanceApi.endpoints.getBalance.initiate());
+    await balanceSub;
+    expect(balanceCalls()).toBe(1);
+
+    await store.dispatch(transfersApi.endpoints.addTransfer.initiate({ amount: 10, to_team_id: 4 }));
+    await waitForBalanceCalls(2);
+    expect(balanceCalls()).toBeGreaterThan(1);
+
+    balanceSub.unsubscribe();
   });
 });
 
