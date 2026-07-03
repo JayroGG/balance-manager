@@ -1,8 +1,12 @@
 # Research — Automatic movement capture from card payments (Google Wallet / Apple Pay)
 
-> **Status:** research input for a future ADR (candidate ADR-013 or later). Not a decision yet.
+> **Status:** research input for a future ADR (candidate ADR-014 or later). Not a decision yet.
 > Authored 2026-07-02. Companion to `PRD.md` §9 (Phase 4 enhancements) and backend repo
 > `/Users/jayro/Dev/Node/Projects/balance`.
+> **Amended 2026-07-02 (design session):** §8 adds the **domain model** (payment sources, aliases,
+> captures, dedup, per-source routing, cross-context transfers). It supersedes §5.5 and resolves
+> several §7 open questions. The backend request derived from §8 lives in
+> `docs/backend-auto-capture-request.md`.
 
 ## 1. Goal
 
@@ -143,8 +147,10 @@ Whichever capture path wins, ingestion has shared requirements the ADR should de
 4. **Review state.** Auto-captured rows should arguably land as `pending` (uncategorized, editable)
    with an in-app "review inbox," since merchant strings ≠ categories. Alternatively a
    merchant→category mapping table that learns from user corrections.
-5. **Team/context.** Automations can't know the active team — auto-captured movements should default
-   to **personal** context; moving one to a team is a manual edit (or a per-card rule later).
+5. **Team/context.** ~~Automations can't know the active team — auto-captured movements should default
+   to **personal** context; moving one to a team is a manual edit (or a per-card rule later).~~
+   **Superseded by §8:** the *source* (card/account) decides the context via a per-source routing
+   rule, not the app's active context — see §8.2 `payment_sources.target_team_id`.
 
 ## 6. Suggested shape for the ADR (aim high, ship lean)
 
@@ -163,6 +169,189 @@ Whichever capture path wins, ingestion has shared requirements the ADR should de
   email alerts look like? (Determines parser effort and whether notifications even fire for the
   user's cards.)
 - Long-lived token design: does the backend add an API-key entity, or a `?ttl=` login variant?
-- Does auto-capture create real transactions immediately or a pending/review state first?
+- ~~Does auto-capture create real transactions immediately or a pending/review state first?~~
+  **Resolved in §8.3:** auto-post when alias → source → routing all resolve; `pending` inbox only
+  for unknown sources / ambiguous dedup.
 - Belvo (or Finerio/Syncfy) coverage + free-tier limits for the user's specific MX banks.
-- Where does dedup live — DB unique key on `(source, external_ref)` vs heuristic matching?
+- ~~Where does dedup live — DB unique key on `(source, external_ref)` vs heuristic matching?~~
+  **Resolved in §8.3:** both — a unique `notification_hash` per channel (exact re-delivery) plus a
+  heuristic `(source_id, amount, direction, time-window)` match for cross-channel doubles.
+
+## 8. Domain model — sources, aliases, captures, transfers (design session 2026-07-02)
+
+> This section is the data model underneath whichever capture path from §3 wins. It answers the
+> questions the capture options can't: which **context** an auto movement lands in, how the same
+> physical card is recognized across **different apps' notifications**, how **duplicates** collapse,
+> and how a **cross-context transfer** is represented. Backend contract:
+> `docs/backend-auto-capture-request.md`.
+
+### 8.1 Core insight
+
+A notification is **not** a transaction — it is *evidence* that a payment happened, reported by one
+channel. The same payment can produce N pieces of evidence (a Google Wallet tap notification **and**
+the Nu app's own push for the same purchase). So the model needs an intermediate layer between
+"notification arrived" and "transaction exists"; that layer is where identity resolution, dedup, and
+routing happen.
+
+Three concerns, kept separate:
+
+1. **The instrument** (which pot of money paid) → `payment_sources`
+2. **The channel** (which app reported it, and under what label) → `source_aliases`
+3. **The routing** (which context the transaction lands in) → a rule on the source, **not** the
+   app's active context (an automation can't know what tab is open; the source is deterministic).
+
+A key refinement: a **debit card is not its own pot of money — it is an access method to the
+account**. Nu debit purchases and SPEI transfers via CLABE hit the *same* balance, so they are one
+source with multiple recognition aliases. A **credit card genuinely is its own pot** (debt) and gets
+its own source. Cards/accounts belong to the **user**, never to a context; what belongs to the pair
+(source → context) is the routing rule.
+
+### 8.2 Entities
+
+```mermaid
+erDiagram
+  PAYMENT_SOURCE ||--o{ SOURCE_ALIAS : "recognized by"
+  PAYMENT_SOURCE ||--o{ CAPTURE : "resolved to"
+  CAPTURE |o--o| TRANSACTION : "posts"
+  CAPTURE |o--o| CAPTURE : "duplicate_of"
+  PAYMENT_SOURCE }o--o| TEAM : "routes to (null = personal)"
+  TRANSACTION }o--o| TRANSACTION : "transfer_group_id pairs legs"
+
+  PAYMENT_SOURCE {
+    int id
+    int user_id
+    string name "Nu account, BBVA credit"
+    string type "account | credit_card"
+    string bank "nu | bbva | ..."
+    int target_team_id "nullable - null = personal (ROUTING RULE)"
+    int default_category_id "nullable"
+    bool active
+  }
+  SOURCE_ALIAS {
+    int id
+    int source_id
+    string channel "google_wallet | apple_pay | nu_app | bbva_app | ..."
+    string match_kind "card_last4 | channel_default"
+    string value "last4 digits; null for channel_default"
+  }
+  CAPTURE {
+    int id
+    int user_id
+    string channel
+    string kind "purchase | transfer | unknown"
+    string direction "in | out"
+    decimal amount
+    string merchant_raw "merchant or transfer counterparty"
+    string last4 "nullable, as parsed"
+    string captured_at
+    string notification_hash "unique per (user, channel)"
+    string status "pending | posted | duplicate | discarded"
+    int source_id "nullable until resolved"
+    int duplicate_of "nullable"
+    int transaction_id "nullable - set when posted"
+  }
+```
+
+`transactions` gains three nullable fields: `source_id` (which pot), `capture_id` (non-null =
+auto-captured), `transfer_group_id` (pairs the two legs of a transfer, §8.5). The ledger semantics
+(pure ledger, no vault field, positive amounts, `type` carries the sign) are unchanged.
+
+**Example — one Nu account, three ways it shows up:**
+
+```
+source: "Nu account" (type: account, target: personal)
+├── alias: channel=google_wallet, match_kind=card_last4, value="0347"   ← debit-card tap
+├── alias: channel=nu_app,        match_kind=card_last4, value="0347"   ← Nu purchase push
+└── alias: channel=nu_app,        match_kind=channel_default            ← everything else from Nu
+```
+
+The `channel_default` alias answers the card-less notification problem: Nu's transfer push
+("Transferencia exitosa a <destinatario>, $X") carries **no card number** — it still resolves to
+the Nu account. Safety rule: `channel_default` is only allowed while a channel maps to a **single**
+source; if two sources ever share a channel, card-less captures from it go to the review inbox
+instead.
+
+### 8.3 Resolution pipeline (runs server-side on ingest)
+
+The device side (iOS Shortcut / MacroDroid / future native listener, §3) stays **dumb**: parse the
+notification text into `{ channel, kind, direction, amount, merchant_raw, last4?, captured_at,
+notification_hash }` and POST it to one ingest endpoint. All matching/dedup/routing logic lives on
+the backend — shared by every capture path, fixable without touching devices, and privacy-friendly
+(raw notification text never leaves the phone).
+
+Order on ingest:
+
+1. **Exact dedup** — `notification_hash` already seen for this (user, channel) → idempotent no-op
+   (protects against Shortcuts re-runs / notification re-delivery).
+2. **Alias match** — parsed `last4` → `(channel, card_last4, value)` alias; no last4 →
+   `(channel, channel_default)` alias. Match → `source_id` resolved.
+3. **Cross-channel dedup** — an existing non-duplicate capture with the same `source_id`, `amount`,
+   and `direction` within a ±5 min window → the new capture is marked `duplicate` and linked via
+   `duplicate_of`. When a wallet and a bank notification survive to this point, the **bank** one is
+   canonical (richer data); the wallet one folds into it.
+4. **Auto-post** — source resolved and no duplicate → create the transaction immediately:
+   `type` = `in`→`income` / `out`→`expense`, `description` = `merchant_raw`,
+   `occurred_at` = date of `captured_at`, `category_id` = the source's `default_category_id`,
+   **context = the source's `target_team_id`** (`null` = personal). Capture → `posted`.
+5. **Review inbox** — no alias matched (unknown card/app), ambiguous `channel_default`, or the
+   routed team is no longer writable by the user → capture stays `pending`. The user links it to a
+   source (or creates one) once; future captures from that alias auto-route. `discarded` is the
+   reject action.
+
+Auto-post (not review-first) is deliberate: the feature loses its "automatic" value if every
+movement waits for confirmation. The inbox is the exception path, not the default.
+
+### 8.4 Worked scenarios
+
+**Four notifications, two apps, three cards:**
+
+| # | Channel | Instrument | Resolution |
+|---|---|---|---|
+| 1 | Google Wallet | Nu debit (personal) | alias `card_last4` → Nu account → **posts personal** |
+| 2 | Nu app | same purchase | same source + amount within window → **`duplicate`** of #1 |
+| 3 | Google Wallet | BBVA credit (company) | alias → BBVA-credit source → **posts to Empresa** (`?team_id=`) |
+| 4 | Apple Pay | unknown card | no alias → **`pending`** in inbox; linked once, auto-routes after |
+
+**Incoming SPEI via CLABE:** Nu push has no card → `channel_default` → Nu account → `direction: in`
+→ **income, personal**. No wallet double exists for SPEI, so dedup rarely triggers.
+
+**Bank-app transfer out (e.g. to spouse):** not card-backed either → `channel_default` → Nu account
+→ expense, personal, `description` = the counterparty from "Transferencia exitosa a X".
+
+### 8.5 Cross-context transfers (first-class, not two hand-made rows)
+
+Moving money symbolically between contexts (e.g. withdraw as personal expense + register company
+income) becomes one atomic operation:
+
+```
+POST /transfers { amount, from_team_id?, to_team_id?, description? }   # null = personal
+```
+
+- Creates **two linked transactions** — `expense` in the `from` context, `income` in the `to`
+  context — sharing a `transfer_group_id` so the UI renders them as one transfer and delete stays
+  paired (legs are not individually editable).
+- **Permission** = the existing RBAC write check (ADR-012) must pass in **both** contexts
+  (owner/admin/member yes; guest no; personal always). No new roles.
+- Guards: `from ≠ to`, `amount > 0`, and the expense leg obeys the from-context's
+  `available`-never-negative rule.
+- North star (not MVP): retro-detection — suggest "link as transfer" for matching expense/income
+  pairs across contexts.
+
+### 8.6 Client-side surface (mobile, later phase — no work yet)
+
+- **Sources manager** (Settings or its own screen): CRUD payment sources, their aliases, and the
+  per-source routing (context picker limited to writable contexts) — RTK Query `sources.js`.
+- **Review inbox**: `pending` captures list — link-to-source / create-source / discard —
+  `captures.js`; a badge on the tab when non-empty.
+- **Transfer action**: context-to-context form gated by `usePermissions` on both ends —
+  `transfers.js`.
+- New cache tags (`Source`, `Capture`) + the usual `Balance`/`Transaction` invalidation on post.
+
+### 8.7 Ship order (aim high, ship lean)
+
+1. **Slice 1 (backend):** `payment_sources` + `source_aliases` + `captures` with the §8.3 pipeline;
+   long-lived automation token. This unlocks §3.1/§3.3 (Shortcuts + MacroDroid) with zero app change.
+2. **Slice 2 (backend + mobile):** `transfers`; sources manager + review inbox screens.
+3. **Slice 3:** native Android notification listener (§3.2, first dev-build feature).
+4. **North star:** aggregator feed (§3.5) becomes just another `channel` writing into the same
+   `captures` pipeline — the model doesn't change.
