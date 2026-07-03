@@ -144,6 +144,14 @@
     "personal": "Personal",
     "switchContext": "Cambiar contexto"
   },
+  "transfers": {
+    "title": "Nueva transferencia",
+    "from": "Desde",
+    "to": "Hacia",
+    "submit": "Transferir",
+    "sameContext": "Elige dos contextos distintos",
+    "hint": "Crea un gasto en el origen y un ingreso en el destino, enlazados como una transferencia."
+  },
   "teams": {
     "title": "Equipos",
     "manage": "Administrar equipo",

@@ -144,6 +144,14 @@
     "personal": "Personal",
     "switchContext": "Switch context"
   },
+  "transfers": {
+    "title": "New transfer",
+    "from": "From",
+    "to": "To",
+    "submit": "Transfer",
+    "sameContext": "Choose two different contexts",
+    "hint": "Creates an expense in the origin and an income in the destination, linked as one transfer."
+  },
   "teams": {
     "title": "Teams",
     "manage": "Manage team",
