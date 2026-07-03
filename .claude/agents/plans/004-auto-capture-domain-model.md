@@ -22,16 +22,16 @@ passes; commit the plan file update together with the task's commit (note: `.cla
 gitignored in the mobile repo — use `git add -f .claude/agents/plans/004-auto-capture-domain-model.md`).
 
 ### Phase A — backend Slice 1 (sources + aliases + captures + ingest token)
-- [ ] A1. Schema: 3 new tables + 3 transaction columns + sessions columns (migrate.js)
-- [ ] A2. `payment_sources` entity (CRUD + validation hooks)
-- [ ] A3. `source_aliases` entity (CRUD + invariant hooks)
-- [ ] A4. `captures` entity skeleton (fields/model/routes, no pipeline yet)
-- [ ] A5. Ingest pipeline — exact dedup + alias match (controller `ingest`)
-- [ ] A6. Ingest pipeline — cross-channel dedup + auto-post (db.transaction)
-- [ ] A7. `POST /captures/:id/confirm` + `/:id/discard` review actions
-- [ ] A8. Automation token: `POST/GET/DELETE /auth/tokens` + ingest-scope guard
-- [ ] A9. Integration tests: the 6 acceptance scenarios from the contract doc
-- [ ] A10. Backend "work done" contract doc for the mobile side
+- [x] A1. Schema: 3 new tables + 3 transaction columns + sessions columns (migrate.js)
+- [x] A2. `payment_sources` entity (CRUD + validation hooks)
+- [x] A3. `source_aliases` entity (CRUD + invariant hooks)
+- [x] A4. `captures` entity skeleton (fields/model/routes, no pipeline yet)
+- [x] A5. Ingest pipeline — exact dedup + alias match (controller `ingest`)
+- [x] A6. Ingest pipeline — cross-channel dedup + auto-post (db.transaction)
+- [x] A7. `POST /captures/:id/confirm` + `/:id/discard` review actions
+- [x] A8. Automation token: `POST/GET/DELETE /auth/tokens` + ingest-scope guard
+- [x] A9. Integration tests: the 6 acceptance scenarios from the contract doc
+- [x] A10. Backend "work done" contract doc for the mobile side (`docs/react-native-auto-capture-update.md`; Slice 2 amendment pending B4)
 ### Phase B — backend Slice 2 (transfers)
 - [ ] B1. `transfers` routes: `POST /transfers` + `DELETE /transfers/:group_id` (atomic, RBAC both ends)
 - [ ] B2. Transaction hooks: block PUT/DELETE on rows with `transfer_group_id`
