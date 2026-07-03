@@ -1,6 +1,7 @@
 # Research — Automatic movement capture from card payments (Google Wallet / Apple Pay)
 
-> **Status:** research input for a future ADR (candidate ADR-014 or later). Not a decision yet.
+> **Status:** decided — see `.claude/ADR/ADR-014-auto-capture-domain-model.md` (§8 shipped as
+> backend Slices 1+2 + the mobile surface; contract: backend `docs/react-native-auto-capture-update.md`).
 > Authored 2026-07-02. Companion to `PRD.md` §9 (Phase 4 enhancements) and backend repo
 > `/Users/jayro/Dev/Node/Projects/balance`.
 > **Amended 2026-07-02 (design session):** §8 adds the **domain model** (payment sources, aliases,

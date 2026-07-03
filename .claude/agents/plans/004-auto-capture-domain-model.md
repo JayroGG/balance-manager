@@ -44,8 +44,8 @@ gitignored in the mobile repo — use `git add -f .claude/agents/plans/004-auto-
 - [x] C4. Review inbox screen (pending captures → link/confirm/discard) + badge
 - [x] C5. Transfer action (form + `usePermissions` gating both ends)
 - [x] C6. Transaction list/detail: show source/auto-captured provenance (read-only)
-- [ ] C7. Mobile tests (endpoints wiring + permission gating + screens' behavior)
-- [ ] C8. Docs sync: ARCHITECTURE.md diagrams + CLAUDE.md key-files + ADR-014
+- [x] C7. Mobile tests (endpoints wiring + permission gating + screens' behavior)
+- [x] C8. Docs sync: ARCHITECTURE.md diagrams + CLAUDE.md key-files + ADR-014
 
 ---
 
