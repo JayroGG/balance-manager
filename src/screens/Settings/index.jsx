@@ -1,4 +1,6 @@
 import { Alert, StyleSheet, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import { useGetBalanceQuery } from '../../services/api/balance';
@@ -27,9 +29,30 @@ const Row = ({ label, value }) => {
   );
 };
 
+// A tappable navigation row for the Automation section (sources / inbox).
+const NavRow = ({ icon, label, badge, onPress }) => {
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
+  return (
+    <Card onPress={onPress}>
+      <View style={styles.navRow}>
+        <Ionicons name={icon} size={20} color={colors.primary} />
+        <Text style={styles.navLabel}>{label}</Text>
+        {badge ? (
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>{badge}</Text>
+          </View>
+        ) : null}
+        <Ionicons name="chevron-forward" size={18} color={colors.muted} />
+      </View>
+    </Card>
+  );
+};
+
 export default function Settings() {
   const { t, i18n } = useTranslation();
   const dispatch = useDispatch();
+  const router = useRouter();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
   const bypass = useSelector((s) => s.auth.bypass);
@@ -78,6 +101,13 @@ export default function Settings() {
         />
       )}
 
+      <SectionTitle>{t('settings.automation')}</SectionTitle>
+      <NavRow
+        icon="card-outline"
+        label={t('settings.paymentSources')}
+        onPress={() => router.push('/(tabs)/settings/sources')}
+      />
+
       <SectionTitle>{t('settings.appearance')}</SectionTitle>
       <View style={styles.chipRow}>
         {THEME_MODES.map((mode) => (
@@ -108,4 +138,8 @@ const makeStyles = (colors) =>
     label: { color: colors.muted, fontSize: font.md },
     value: { color: colors.text, fontSize: font.md, fontWeight: '600' },
     chipRow: { flexDirection: 'row', flexWrap: 'wrap' },
+    navRow: { flexDirection: 'row', alignItems: 'center', gap: spacing(1) },
+    navLabel: { flex: 1, color: colors.text, fontSize: font.md, fontWeight: '600' },
+    badge: { backgroundColor: colors.primary, borderRadius: 999, minWidth: 22, paddingHorizontal: spacing(0.75), paddingVertical: 2, alignItems: 'center' },
+    badgeText: { color: colors.primaryText, fontSize: font.sm, fontWeight: '700' },
   });
