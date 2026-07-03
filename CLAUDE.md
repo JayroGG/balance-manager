@@ -95,6 +95,13 @@ Point `.env.dev` `API_URL` at the running backend (`cd ../../Node/Projects/balan
 | `src/utils/jwt.js` | `decodeUser(token)` → `{ id }` from the JWT `sub` (the `myUserId` source for member gating). |
 | `src/screens/Teams/` | `ListScreen` (owned / member-of + create) and `ManageScreen` (owner: rename / members / roles / delete). |
 | `src/services/api/{balance,transactions,vaults,categories}.js` | `injectEndpoints` per entity (each threads optional `team_id`). |
+| `src/services/api/sources.js` | Payment sources + aliases CRUD (user-scoped, tag `Source`) — pots of money with a per-source routing rule `target_team_id` (ADR-014). |
+| `src/services/api/captures.js` | Review inbox reads (`?status=pending`, tag `Capture`) + `confirm`/`discard`; confirm posts a transaction (invalidates `Transaction`/`Balance`). |
+| `src/services/api/transfers.js` | `POST /transfers` / `DELETE /transfers/:group_id` — atomic two-legged cross-context moves; from/to team ids in the body (deliberate exception). |
+| `src/screens/Sources/` | `ListScreen` + `EditScreen` (routing picker limited to writable teams; inline alias management). |
+| `src/screens/Inbox/` | Review inbox: pending captures → link-to-source/confirm/discard; count badges the Settings row. |
+| `src/screens/Transfers/NewScreen.jsx` | Transfer form (Dashboard header action); pickers exclude guest teams. |
+| `src/services/api/tokens.js` + `src/screens/Tokens/` | Automation tokens (tag `Token`): mint/list/revoke ingest-scoped keys; the secret renders once at mint time (selectable text). |
 | `src/services/api/teamParam.js` | `withTeam(path, team_id)` — appends `?team_id=` (the one place it's built). |
 | `src/services/storage/{secure,prefs}.js` | Token (secure-store) / cache+prefs (AsyncStorage) seam. |
 | `src/reducers/auth/` | `auth` slice: token/bypass/user (token-injection source of truth). |
@@ -126,7 +133,12 @@ Plans go in `.claude/agents/plans/`; decisions in `.claude/ADR/`; long-term memo
   **dev-only**.
 - **Team context:** `team_id` is a **query param, never a body field** — append it via `withTeam(...)` and
   destructure it out of mutation bodies. Pass the active `team_id` (from `selectActiveTeamId`) into every
-  entity hook/mutation so personal/team caches stay isolated.
+  entity hook/mutation so personal/team caches stay isolated. **Two contract exceptions (ADR-014):**
+  capture-confirm overrides and transfer from/to ends carry team ids in the body by design.
+- **Auto-capture (ADR-014):** the app never POSTs `/captures` (devices do, via ingest-scoped tokens);
+  it manages sources/aliases + the review inbox. Routing is per-source (`target_team_id`), never the
+  active context. Transfer legs (`transfer_group_id`) are immutable — lock edit/delete in UI; the API
+  400s. Auto rows carry `capture_id`/`source_id` (read-only, never sent in bodies).
 - **RBAC (ADR-012):** gate every write affordance through `usePermissions()` (`src/permissions`) — guest is
   read-only, member edits/deletes only its own rows (`row.user_id === myUserId`), owner does all, personal
   context = full access. Role is **derived** via `useActiveRole` (never stored); `myUserId` comes from the

@@ -47,7 +47,12 @@ export default function TransactionsList() {
             <View style={styles.rowBetween}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.desc} numberOfLines={1}>{item.description || t(`transactions.${item.type}`)}</Text>
-                <Text style={styles.meta}>{formatDate(item.occurred_at)}</Text>
+                <View style={styles.metaRow}>
+                  <Text style={styles.meta}>{formatDate(item.occurred_at)}</Text>
+                  {/* Provenance (ADR-014): auto-captured rows and transfer legs are marked read-only-ish */}
+                  {item.capture_id ? <Text style={styles.badge}>{t('transactions.badge_auto')}</Text> : null}
+                  {item.transfer_group_id ? <Text style={styles.badge}>{t('transactions.badge_transfer')}</Text> : null}
+                </View>
               </View>
               <MoneyText
                 amount={item.amount}
@@ -100,7 +105,18 @@ const makeStyles = (colors) =>
   filters: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: spacing(2), paddingTop: spacing(1) },
   rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   desc: { fontSize: font.md, fontWeight: '600', color: colors.text },
-  meta: { fontSize: font.sm, color: colors.muted, marginTop: spacing(0.25) },
+  metaRow: { flexDirection: 'row', alignItems: 'center', marginTop: spacing(0.25), gap: spacing(0.75) },
+  meta: { fontSize: font.sm, color: colors.muted },
+  badge: {
+    fontSize: font.xs ?? 11,
+    color: colors.muted,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    borderRadius: 999,
+    paddingHorizontal: spacing(0.75),
+    paddingVertical: 1,
+    overflow: 'hidden',
+  },
   amount: { fontSize: font.md, fontWeight: '700', marginLeft: spacing(1) },
   fab: {
     position: 'absolute',

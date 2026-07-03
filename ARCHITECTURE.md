@@ -19,7 +19,10 @@ graph TD
   end
 
   subgraph Tabs["(tabs) — bottom tab navigator"]
-    Dash["dashboard.jsx<br/>GET /balance"]
+    subgraph Dashboard["dashboard/"]
+      Dash["index.jsx<br/>GET /balance + context switch"]
+      Transfer["transfer.jsx<br/>POST /transfers (ADR-014)"]
+    end
     subgraph Tx["transactions/"]
       TxList["index.jsx<br/>list + filter chips + FAB"]
       TxNew["new.jsx<br/>create / edit form"]
@@ -34,14 +37,34 @@ graph TD
       TList["index.jsx<br/>list grouped owned / member-of + create"]
       TManage["[id].jsx<br/>owner: rename / members / roles / delete;<br/>else read-only member list"]
     end
-    Settings["settings.jsx<br/>currency, language, logout"]
+    subgraph Sett["settings/ (ADR-014)"]
+      SIndex["index.jsx<br/>currency, language, logout, Automation rows"]
+      SSources["sources.jsx<br/>payment sources list"]
+      SSource["source.jsx<br/>create/edit + routing + aliases"]
+      SInbox["inbox.jsx<br/>review inbox (pending captures)"]
+      STokens["tokens.jsx<br/>automation tokens (mint/revoke)"]
+    end
   end
 
+  Dash --> Transfer
   TxList --> TxNew
   TxList --> TxDetail
   VList --> VDetail
   TList --> TManage
+  SIndex --> SSources
+  SSources --> SSource
+  SIndex --> SInbox
+  SIndex --> STokens
 ```
+
+**Auto-capture (ADR-014).** Devices (iOS Shortcuts / MacroDroid) post payment-notification evidence
+to `POST /captures` with an **ingest-scoped automation token**; the backend resolves it (hash dedup →
+alias match → ±5 min cross-channel dedup → auto-post into the source's routed context). The app only
+manages **payment sources** (pots of money + per-source `target_team_id` routing + recognition
+aliases) and the **review inbox** (pending captures → link-to-source/confirm/discard, badge on the
+Settings row). **Transfers** are one atomic two-legged operation (`expense` in *from*, `income` in
+*to*, shared `transfer_group_id`); legs are immutable individually — the UI locks them and the API
+400s. `team_id` travels in the *body* only in these two contracts (confirm overrides, transfer ends).
 
 **RBAC (ADR-012).** Every financial screen gates its write affordances through one seam,
 `src/permissions` (`usePermissions` → `{ canAdd, canEditRow(row), canManageTeam }`). The active role is
@@ -79,7 +102,10 @@ flowchart LR
     EpT["transactions.js (Transaction; inval Balance)"]
     EpV["vaults.js (Vault, VaultHistory; inval Balance)"]
     EpC["categories.js (Category)"]
-    Base --- EpB & EpT & EpV & EpC
+    EpS["sources.js (Source — sources + aliases)"]
+    EpCa["captures.js (Capture; confirm inval Transaction+Balance)"]
+    EpTr["transfers.js (inval Transaction+Balance)"]
+    Base --- EpB & EpT & EpV & EpC & EpS & EpCa & EpTr
   end
 
   Auth["reducers/auth<br/>{ token, bypass }"] -->|token| Base
@@ -93,9 +119,9 @@ flowchart LR
   H4 -. "invalidatesTags ['Balance','Vault','VaultHistory']" .-> H1
 ```
 
-**Cache tags:** `Balance`, `Transaction`, `Vault`, `VaultHistory`, `Category`. Per-vault balances and
-targets come from `GET /balance` (not `GET /vaults`), so any mutation that moves money invalidates
-`Balance`.
+**Cache tags:** `Balance`, `Transaction`, `Vault`, `VaultHistory`, `Category`, `Team`, `TeamMember`,
+`Source`, `Capture`. Per-vault balances and targets come from `GET /balance` (not `GET /vaults`), so
+any mutation that moves money invalidates `Balance` — including capture confirms and transfers.
 
 ## 3. Cold-start / splash state (ADR-001, ADR-006)
 
@@ -126,8 +152,9 @@ balance-manager/                 # app name: balance-mobile
 │   ├── _layout.jsx              # providers + cold-start bootstrap + splash gate (router infra)
 │   ├── index.jsx                # boot redirect (router infra)
 │   ├── (auth)/      _layout.jsx  login.jsx
-│   └── (tabs)/      _layout.jsx  dashboard.jsx  categories.jsx  settings.jsx
-│        transactions/{index,new,[id]}.jsx   vaults/{index,new,[id]}.jsx
+│   └── (tabs)/      _layout.jsx  categories.jsx
+│        dashboard/{_layout,index,transfer}.jsx   settings/{_layout,index,sources,source,inbox,tokens}.jsx
+│        transactions/{index,new,[id]}.jsx   vaults/{index,new,[id]}.jsx   teams/{index,[id]}.jsx
 │        # each (tabs) screen file is a 1-line shim: `export { default } from '../../src/screens/X'`
 ├── src/                         # ALL real code lives here
 │   ├── screens/                 # screen bodies (composition + data orchestration), mirrors team layout
@@ -135,6 +162,9 @@ balance-manager/                 # app name: balance-mobile
 │   │   ├── Transactions/{ListScreen,NewScreen,EditScreen}.jsx  TransactionForm.jsx
 │   │   ├── Vaults/{ListScreen,NewScreen,DetailScreen}.jsx
 │   │   ├── Teams/{ListScreen,ManageScreen}.jsx   # team management (ADR-012)
+│   │   ├── Sources/{ListScreen,EditScreen}.jsx   # payment sources + aliases (ADR-014)
+│   │   ├── Inbox/index.jsx        # review inbox: pending captures (ADR-014)
+│   │   ├── Transfers/NewScreen.jsx  # cross-context transfer (ADR-014)
 │   │   ├── Categories/index.jsx   Settings/index.jsx
 │   ├── components/
 │   │   ├── ui/                  # shared atoms/molecules — one file each + index.js barrel
@@ -142,7 +172,7 @@ balance-manager/                 # app name: balance-mobile
 │   │   └── theme.js             # light/dark palettes + makeColors(scheme, accent) + PRESET_TEAM_COLORS; spacing/radius/font (ADR-013)
 │   ├── store/                   # configureStore + RTKQ middleware + redux-persist + setupListeners
 │   ├── services/
-│   │   ├── api/                 # baseApi.js + balance/transactions/vaults/categories.js (injectEndpoints)
+│   │   ├── api/                 # baseApi.js + balance/transactions/vaults/categories/teams/sources/captures/transfers.js (injectEndpoints)
 │   │   └── storage/             # secure.js (token), prefs.js (cache/prefs)
 │   ├── reducers/{auth,context,prefs}/  # auth (token/user), context (activeTeamId), prefs (themeMode — ADR-013)
 │   ├── permissions/             # RBAC seam: usePermissions + pure can*() matrix (ADR-012)

@@ -1,5 +1,7 @@
 import { useCallback, useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useDispatch } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import { useGetBalanceQuery } from '../../services/api/balance';
@@ -37,6 +39,7 @@ const VaultRow = ({ vault, currency }) => {
 export default function Dashboard() {
   const { t } = useTranslation();
   const dispatch = useDispatch();
+  const router = useRouter();
   const teamId = useActiveTeamId();
   const role = useActiveRole(); // null in personal context; 'owner'|'member'|'guest' in a team
   const { colors } = useTheme();
@@ -55,10 +58,21 @@ export default function Dashboard() {
     }
   }, [refetch]);
   const currency = data?.currency;
+  // A transfer needs two distinct writable contexts — personal + at least one owner/member team.
+  const canTransfer = (teams ?? []).some((tm) => tm.role === 'owner' || tm.role === 'member');
 
   return (
     <Screen scroll refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
-      <ScreenHeader title={t('dashboard.title')} />
+      <ScreenHeader
+        title={t('dashboard.title')}
+        right={
+          canTransfer ? (
+            <Pressable hitSlop={10} onPress={() => router.push('/(tabs)/dashboard/transfer')}>
+              <Ionicons name="swap-vertical" size={24} color={colors.primary} />
+            </Pressable>
+          ) : null
+        }
+      />
 
       <ScrollView
         horizontal

@@ -43,7 +43,11 @@
     "all": "Todos",
     "deleteConfirm": "¿Eliminar este movimiento?",
     "empty": "Aún no hay movimientos",
-    "amountPositive": "El monto debe ser mayor que 0"
+    "amountPositive": "El monto debe ser mayor que 0",
+    "badge_auto": "auto",
+    "badge_transfer": "transferencia",
+    "autoCaptured": "Capturado automáticamente desde una notificación de pago.",
+    "transferLeg": "Parte de una transferencia — elimina la transferencia para quitar ambos lados."
   },
   "vaults": {
     "title": "Bóvedas",
@@ -89,7 +93,64 @@
     "environment": "Entorno",
     "auth": "Autenticación",
     "authBypassed": "Omitida (prototipo)",
-    "clearCache": "Borrar datos en caché"
+    "clearCache": "Borrar datos en caché",
+    "automation": "Automatización",
+    "paymentSources": "Fuentes de pago",
+    "reviewInbox": "Bandeja de revisión",
+    "automationTokens": "Tokens de automatización"
+  },
+  "tokens": {
+    "title": "Tokens de automatización",
+    "hint": "Claves de larga duración para tus automatizaciones (Atajos de iOS, MacroDroid). Solo pueden reportar capturas — nada más.",
+    "name": "Nombre",
+    "mint": "Crear token",
+    "shownOnce": "Cópialo ahora — no se volverá a mostrar.",
+    "done": "Listo",
+    "active": "Tokens activos",
+    "issued": "Creado",
+    "expires": "expira",
+    "revoke": "Revocar",
+    "revokeConfirm": "¿Revocar este token? Su automatización dejará de funcionar de inmediato.",
+    "empty": "Aún no hay tokens de automatización"
+  },
+  "inbox": {
+    "title": "Bandeja de revisión",
+    "hint": "Pagos reportados por tus automatizaciones que no se pudieron asociar a una fuente.",
+    "empty": "Nada por revisar",
+    "unknownMerchant": "Comercio desconocido",
+    "link": "Asociar a fuente",
+    "linkToSource": "¿Qué fuente pagó esto?",
+    "noSources": "Primero crea una fuente de pago",
+    "discard": "Descartar",
+    "discardConfirm": "¿Descartar esta captura?",
+    "result_pending": "Sigue pendiente — no se pudo registrar (revisa el saldo del contexto de la fuente).",
+    "result_duplicate": "Marcada como duplicado de una captura existente."
+  },
+  "sources": {
+    "title": "Fuentes de pago",
+    "new": "Nueva fuente",
+    "edit": "Editar fuente",
+    "name": "Nombre",
+    "type": "Tipo",
+    "type_account": "Cuenta",
+    "type_credit_card": "Tarjeta de crédito",
+    "bank": "Banco",
+    "routesTo": "Registra movimientos en",
+    "defaultCategory": "Categoría predeterminada",
+    "aliases": "Se reconoce como",
+    "aliasHint": "Cómo identifican las notificaciones a esta fuente",
+    "channel": "Canal (app)",
+    "matchKind": "Identificar por",
+    "match_card_last4": "Últimos 4 de la tarjeta",
+    "match_channel_default": "Cualquiera de esta app",
+    "last4": "Últimos 4 dígitos",
+    "invalidLast4": "Ingresa exactamente 4 dígitos",
+    "addAlias": "Agregar alias",
+    "noAliases": "Aún no hay alias",
+    "saveFirst": "Guarda la fuente para agregar alias",
+    "deleteSource": "Eliminar fuente",
+    "deleteConfirm": "¿Eliminar esta fuente?",
+    "empty": "Aún no hay fuentes de pago"
   },
   "auth": {
     "email": "Correo",
@@ -101,6 +162,14 @@
   "context": {
     "personal": "Personal",
     "switchContext": "Cambiar contexto"
+  },
+  "transfers": {
+    "title": "Nueva transferencia",
+    "from": "Desde",
+    "to": "Hacia",
+    "submit": "Transferir",
+    "sameContext": "Elige dos contextos distintos",
+    "hint": "Crea un gasto en el origen y un ingreso en el destino, enlazados como una transferencia."
   },
   "teams": {
     "title": "Equipos",

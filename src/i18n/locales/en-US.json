@@ -43,7 +43,11 @@
     "all": "All",
     "deleteConfirm": "Delete this transaction?",
     "empty": "No transactions yet",
-    "amountPositive": "Amount must be greater than 0"
+    "amountPositive": "Amount must be greater than 0",
+    "badge_auto": "auto",
+    "badge_transfer": "transfer",
+    "autoCaptured": "Captured automatically from a payment notification.",
+    "transferLeg": "Part of a transfer — delete the transfer to remove both sides."
   },
   "vaults": {
     "title": "Vaults",
@@ -89,7 +93,64 @@
     "environment": "Environment",
     "auth": "Authentication",
     "authBypassed": "Bypassed (prototype)",
-    "clearCache": "Clear cached data"
+    "clearCache": "Clear cached data",
+    "automation": "Automation",
+    "paymentSources": "Payment sources",
+    "reviewInbox": "Review inbox",
+    "automationTokens": "Automation tokens"
+  },
+  "tokens": {
+    "title": "Automation tokens",
+    "hint": "Long-lived keys for your phone automations (iOS Shortcuts, MacroDroid). They can only report captures — nothing else.",
+    "name": "Name",
+    "mint": "Create token",
+    "shownOnce": "Copy it now — it won't be shown again.",
+    "done": "Done",
+    "active": "Active tokens",
+    "issued": "Issued",
+    "expires": "expires",
+    "revoke": "Revoke",
+    "revokeConfirm": "Revoke this token? Its automation will stop working immediately.",
+    "empty": "No automation tokens yet"
+  },
+  "inbox": {
+    "title": "Review inbox",
+    "hint": "Payments your automations reported but couldn't be matched to a source.",
+    "empty": "Nothing to review",
+    "unknownMerchant": "Unknown merchant",
+    "link": "Link to source",
+    "linkToSource": "Which source paid this?",
+    "noSources": "Create a payment source first",
+    "discard": "Discard",
+    "discardConfirm": "Discard this capture?",
+    "result_pending": "Still pending — it couldn't be posted (check the source's context balance).",
+    "result_duplicate": "Marked as a duplicate of an existing capture."
+  },
+  "sources": {
+    "title": "Payment sources",
+    "new": "New source",
+    "edit": "Edit source",
+    "name": "Name",
+    "type": "Type",
+    "type_account": "Account",
+    "type_credit_card": "Credit card",
+    "bank": "Bank",
+    "routesTo": "Adds transactions to",
+    "defaultCategory": "Default category",
+    "aliases": "Recognized as",
+    "aliasHint": "How notifications identify this source",
+    "channel": "Channel (app)",
+    "matchKind": "Match by",
+    "match_card_last4": "Card last 4",
+    "match_channel_default": "Any from this app",
+    "last4": "Last 4 digits",
+    "invalidLast4": "Enter exactly 4 digits",
+    "addAlias": "Add alias",
+    "noAliases": "No aliases yet",
+    "saveFirst": "Save the source first to add aliases",
+    "deleteSource": "Delete source",
+    "deleteConfirm": "Delete this source?",
+    "empty": "No payment sources yet"
   },
   "auth": {
     "email": "Email",
@@ -101,6 +162,14 @@
   "context": {
     "personal": "Personal",
     "switchContext": "Switch context"
+  },
+  "transfers": {
+    "title": "New transfer",
+    "from": "From",
+    "to": "To",
+    "submit": "Transfer",
+    "sameContext": "Choose two different contexts",
+    "hint": "Creates an expense in the origin and an income in the destination, linked as one transfer."
   },
   "teams": {
     "title": "Teams",
