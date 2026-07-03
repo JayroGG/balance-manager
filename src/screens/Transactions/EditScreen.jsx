@@ -12,7 +12,7 @@ import { useActiveTeamId } from '../../hooks/useActiveTeamId';
 import { useDismissOnContextChange } from '../../hooks/useOnContextChange';
 import { usePermissions } from '../../permissions';
 import TransactionForm from './TransactionForm';
-import { Screen, ScreenHeader, QueryBoundary } from '../../components/ui';
+import { Screen, ScreenHeader, Muted, QueryBoundary } from '../../components/ui';
 import { useTheme } from '../../hooks/useTheme';
 import { spacing } from '../../components/theme';
 
@@ -30,7 +30,9 @@ export default function TransactionDetail() {
   const [updateTransaction, { isLoading: saving, error: saveError }] = useUpdateTransactionMutation();
   const [deleteTransaction, { isLoading: deleting }] = useDeleteTransactionMutation();
   // RBAC: owner edits any row, member only their own, guest none (ADR-012). The API 403s a violation too.
-  const canEdit = canEditRow(data);
+  // Transfer legs are immutable individually — the API 400s a PUT/DELETE on them (ADR-014).
+  const isTransferLeg = !!data?.transfer_group_id;
+  const canEdit = canEditRow(data) && !isTransferLeg;
 
   const onSubmit = async (body) => {
     try {
@@ -61,6 +63,8 @@ export default function TransactionDetail() {
     <Screen padded={false}>
       <ScreenHeader back title={t('transactions.edit')} style={styles.headerPad} />
       <QueryBoundary isLoading={isLoading && !data} error={error} onRetry={refetch}>
+        {isTransferLeg ? <Muted style={styles.provenance}>{t('transactions.transferLeg')}</Muted> : null}
+        {data?.capture_id ? <Muted style={styles.provenance}>{t('transactions.autoCaptured')}</Muted> : null}
         <TransactionForm
           initial={data}
           categories={categories}
@@ -82,4 +86,5 @@ export default function TransactionDetail() {
 const styles = StyleSheet.create({
   headerPad: { paddingHorizontal: spacing(2), marginBottom: 0 },
   deleteIcon: { alignSelf: 'center', padding: spacing(2), marginTop: spacing(1) },
+  provenance: { paddingHorizontal: spacing(2), marginTop: spacing(1) },
 });

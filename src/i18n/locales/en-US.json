@@ -43,7 +43,11 @@
     "all": "All",
     "deleteConfirm": "Delete this transaction?",
     "empty": "No transactions yet",
-    "amountPositive": "Amount must be greater than 0"
+    "amountPositive": "Amount must be greater than 0",
+    "badge_auto": "auto",
+    "badge_transfer": "transfer",
+    "autoCaptured": "Captured automatically from a payment notification.",
+    "transferLeg": "Part of a transfer — delete the transfer to remove both sides."
   },
   "vaults": {
     "title": "Vaults",

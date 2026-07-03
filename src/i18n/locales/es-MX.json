@@ -43,7 +43,11 @@
     "all": "Todos",
     "deleteConfirm": "¿Eliminar este movimiento?",
     "empty": "Aún no hay movimientos",
-    "amountPositive": "El monto debe ser mayor que 0"
+    "amountPositive": "El monto debe ser mayor que 0",
+    "badge_auto": "auto",
+    "badge_transfer": "transferencia",
+    "autoCaptured": "Capturado automáticamente desde una notificación de pago.",
+    "transferLeg": "Parte de una transferencia — elimina la transferencia para quitar ambos lados."
   },
   "vaults": {
     "title": "Bóvedas",

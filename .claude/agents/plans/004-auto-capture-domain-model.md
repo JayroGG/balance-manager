@@ -42,7 +42,7 @@ gitignored in the mobile repo — use `git add -f .claude/agents/plans/004-auto-
 - [x] C2. Settings stack conversion (`settings/{index,sources,source,inbox}.jsx` shims)
 - [x] C3. Sources manager screen (list + create/edit + routing picker + aliases)
 - [x] C4. Review inbox screen (pending captures → link/confirm/discard) + badge
-- [ ] C5. Transfer action (form + `usePermissions` gating both ends)
+- [x] C5. Transfer action (form + `usePermissions` gating both ends)
 - [ ] C6. Transaction list/detail: show source/auto-captured provenance (read-only)
 - [ ] C7. Mobile tests (endpoints wiring + permission gating + screens' behavior)
 - [ ] C8. Docs sync: ARCHITECTURE.md diagrams + CLAUDE.md key-files + ADR-014
