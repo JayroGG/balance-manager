@@ -33,10 +33,10 @@ gitignored in the mobile repo — use `git add -f .claude/agents/plans/004-auto-
 - [x] A9. Integration tests: the 6 acceptance scenarios from the contract doc
 - [x] A10. Backend "work done" contract doc for the mobile side (`docs/react-native-auto-capture-update.md`; Slice 2 amendment pending B4)
 ### Phase B — backend Slice 2 (transfers)
-- [ ] B1. `transfers` routes: `POST /transfers` + `DELETE /transfers/:group_id` (atomic, RBAC both ends)
-- [ ] B2. Transaction hooks: block PUT/DELETE on rows with `transfer_group_id`
-- [ ] B3. Integration tests: transfer create/delete/guards
-- [ ] B4. Update backend contract doc with final transfer shapes
+- [x] B1. `transfers` routes: `POST /transfers` + `DELETE /transfers/:group_id` (atomic, RBAC both ends)
+- [x] B2. Transaction hooks: block PUT/DELETE on rows with `transfer_group_id`
+- [x] B3. Integration tests: transfer create/delete/guards
+- [x] B4. Update backend contract doc with final transfer shapes
 ### Phase C — mobile (implements against A10's doc — re-verify shapes first)
 - [ ] C1. RTK Query endpoints: `sources.js`, `captures.js`, `transfers.js` + tags
 - [ ] C2. Settings stack conversion (`settings/{index,sources,source,inbox}.jsx` shims)
