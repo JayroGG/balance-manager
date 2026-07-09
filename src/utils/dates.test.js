@@ -1,5 +1,5 @@
 import { Settings } from 'luxon';
-import { todayISODate, formatDate, formatDateTime } from './dates';
+import { todayISODate, formatDate, formatDateTime, monthShortNames } from './dates';
 
 // Pin zone + locale so toLocaleString and the UTC→local conversion are deterministic across machines/CI.
 beforeAll(() => {
@@ -22,6 +22,15 @@ describe('formatDate', () => {
     expect(formatDate('')).toBe('');
     expect(formatDate(undefined)).toBe('');
     expect(formatDate(null)).toBe('');
+  });
+});
+
+describe('monthShortNames', () => {
+  it('returns 12 localized short month names, January first', () => {
+    const names = monthShortNames('en-US');
+    expect(names).toHaveLength(12);
+    expect(names[0]).toBe('Jan');
+    expect(names[11]).toBe('Dec');
   });
 });
 

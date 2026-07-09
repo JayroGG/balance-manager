@@ -6,3 +6,4 @@ export * from './categories';
 export * from './teams';
 export * from './transactions';
 export * from './vaults';
+export * from './shoppingLists';

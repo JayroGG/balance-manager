@@ -10,6 +10,8 @@ export default function TransactionsLayout() {
       <Stack.Screen name="index" />
       <Stack.Screen name="new" options={{ presentation: 'modal' }} />
       <Stack.Screen name="[id]" />
+      <Stack.Screen name="lists/index" />
+      <Stack.Screen name="lists/[id]" />
     </Stack>
   );
 }
