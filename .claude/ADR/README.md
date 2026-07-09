@@ -41,3 +41,4 @@ Statuses: `Proposed` · `Accepted` · `Deprecated` · `Superseded by ADR-NNN`.
 | [ADR-011](ADR-011-auth-jwt-and-team-context.md) | Auth via the backend's email/password JWT, and a client-side team context (supersedes ADR-001) | Accepted |
 | [ADR-012](ADR-012-team-rbac-and-management.md) | Team RBAC (role-gated UI) and the team-management screen (extends ADR-011) | Accepted |
 | [ADR-013](ADR-013-team-color-and-theming.md) | Team color as the app accent, dynamic theming (useTheme seam), and dark mode | Accepted |
+| [ADR-015](ADR-015-shopping-lists-pre-expense.md) | Shopping lists: pre-expense checklists with a server-side checkout (+ history month filter) | Accepted |
