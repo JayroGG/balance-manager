@@ -105,7 +105,15 @@ export default function TransactionsList() {
 
   return (
     <Screen padded={false}>
-      <ScreenHeader title={t('transactions.title')} style={styles.headerPad} />
+      <ScreenHeader
+        title={t('transactions.title')}
+        style={styles.headerPad}
+        right={
+          <Pressable hitSlop={10} testID="lists-link" onPress={() => router.push('/(tabs)/transactions/lists')}>
+            <Ionicons name="cart-outline" size={24} color={colors.primary} />
+          </Pressable>
+        }
+      />
 
       <View style={styles.filters}>
         {TYPE_FILTERS.map((f) => (

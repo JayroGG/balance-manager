@@ -9,6 +9,7 @@ import { balanceApi } from './balance';
 import { transactionsApi } from './transactions';
 import { vaultsApi } from './vaults';
 import { categoriesApi } from './categories';
+import { shoppingListsApi } from './shoppingLists';
 import authReducer from '../../reducers/auth';
 
 const makeStore = () =>
@@ -252,6 +253,67 @@ describe('team context — ?team_id= on queries, never in the body (ADR-011)', (
     expect(request.url).toContain('/vaults/2?team_id=5');
     expect(request.method).toBe('PUT');
     await expect(request.clone().json()).resolves.toEqual({ name: 'Trip' });
+  });
+});
+
+describe('shopping lists — URLs, bodies, invalidation (ADR-015)', () => {
+  it('serializes status + team_id onto GET /shopping-lists', async () => {
+    store = makeStore();
+    await store.dispatch(
+      shoppingListsApi.endpoints.getShoppingLists.initiate({ status: 'open', team_id: 5 }),
+    );
+    const url = global.fetch.mock.calls[0][0].url;
+    expect(url).toContain('/shopping-lists?');
+    expect(url).toContain('status=open');
+    expect(url).toContain('team_id=5');
+  });
+
+  it('lists items via ?list_id= and POSTs an item body without team_id', async () => {
+    store = makeStore();
+    await store.dispatch(shoppingListsApi.endpoints.getItems.initiate({ list_id: 7, team_id: 5 }));
+    await store.dispatch(
+      shoppingListsApi.endpoints.addItem.initiate({ list_id: 7, name: 'Milk', qty: 2, price: 25.5, team_id: 5 }),
+    );
+    const requests = global.fetch.mock.calls.map((c) => c[0]);
+    expect(requests.some((r) => /\/shopping-list-items\?list_id=7&team_id=5$/.test(r.url))).toBe(true);
+    const post = requests.find((r) => /\/shopping-list-items\?team_id=5$/.test(r.url) && r.method === 'POST');
+    expect(post).toBeDefined();
+    await expect(post.clone().json()).resolves.toEqual({ list_id: 7, name: 'Milk', qty: 2, price: 25.5 });
+  });
+
+  it('PUTs a checkbox toggle to /shopping-list-items/:id with only the changed field', async () => {
+    store = makeStore();
+    await store.dispatch(
+      shoppingListsApi.endpoints.updateItem.initiate({ id: 31, list_id: 7, team_id: 5, checked: true }),
+    );
+    const request = global.fetch.mock.calls[0][0];
+    expect(request.url).toMatch(/\/shopping-list-items\/31\?team_id=5$/);
+    expect(request.method).toBe('PUT');
+    await expect(request.clone().json()).resolves.toEqual({ checked: true });
+  });
+
+  it('POSTs checkout to /shopping-lists/:id/checkout with amount in the body, team_id only in the URL', async () => {
+    store = makeStore();
+    await store.dispatch(
+      shoppingListsApi.endpoints.checkoutList.initiate({ id: 7, team_id: 5, amount: 418.7, category_id: 3 }),
+    );
+    const request = global.fetch.mock.calls[0][0];
+    expect(request.url).toMatch(/\/shopping-lists\/7\/checkout\?team_id=5$/);
+    expect(request.method).toBe('POST');
+    await expect(request.clone().json()).resolves.toEqual({ amount: 418.7, category_id: 3 });
+  });
+
+  it('refetches /balance after a checkout (the posted expense moves available)', async () => {
+    store = makeStore();
+    const balanceSub = store.dispatch(balanceApi.endpoints.getBalance.initiate());
+    await balanceSub;
+    expect(balanceCalls()).toBe(1);
+
+    await store.dispatch(shoppingListsApi.endpoints.checkoutList.initiate({ id: 7, amount: 10 }));
+    await waitForBalanceCalls(2);
+    expect(balanceCalls()).toBeGreaterThan(1);
+
+    balanceSub.unsubscribe();
   });
 });
 
