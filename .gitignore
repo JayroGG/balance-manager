@@ -35,8 +35,12 @@ yarn-error.*
 .env.*
 !.env.example
 
-# Claude Code working dir
-/.claude*
+# Claude Code working dir — but keep decision records (ADR) and plans tracked
+/.claude/*
+!/.claude/ADR/
+!/.claude/agents/
+/.claude/agents/*
+!/.claude/agents/plans/
 .qodo/
 
 # jest coverage output
