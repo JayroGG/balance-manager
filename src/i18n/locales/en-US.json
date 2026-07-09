@@ -43,7 +43,8 @@
     "all": "All",
     "deleteConfirm": "Delete this transaction?",
     "empty": "No transactions yet",
-    "amountPositive": "Amount must be greater than 0"
+    "amountPositive": "Amount must be greater than 0",
+    "allYears": "All years"
   },
   "vaults": {
     "title": "Vaults",

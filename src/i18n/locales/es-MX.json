@@ -43,7 +43,8 @@
     "all": "Todos",
     "deleteConfirm": "¿Eliminar este movimiento?",
     "empty": "Aún no hay movimientos",
-    "amountPositive": "El monto debe ser mayor que 0"
+    "amountPositive": "El monto debe ser mayor que 0",
+    "allYears": "Todos los años"
   },
   "vaults": {
     "title": "Bóvedas",
