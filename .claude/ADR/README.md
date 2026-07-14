@@ -42,3 +42,4 @@ Statuses: `Proposed` · `Accepted` · `Deprecated` · `Superseded by ADR-NNN`.
 | [ADR-012](ADR-012-team-rbac-and-management.md) | Team RBAC (role-gated UI) and the team-management screen (extends ADR-011) | Accepted |
 | [ADR-013](ADR-013-team-color-and-theming.md) | Team color as the app accent, dynamic theming (useTheme seam), and dark mode | Accepted |
 | [ADR-015](ADR-015-shopping-lists-pre-expense.md) | Shopping lists: pre-expense checklists with a server-side checkout (+ history month filter) | Accepted |
+| [ADR-016](ADR-016-brand-identity.md) | Brand identity: Balance Ring mark, generated icon/splash assets, branded loader | Accepted |

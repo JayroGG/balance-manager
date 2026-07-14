@@ -7,5 +7,6 @@ export { Chip } from './Chip';
 export { ColorSwatchPicker } from './ColorSwatchPicker';
 export { MoneyText } from './MoneyText';
 export { SectionTitle, Muted } from './Typography';
+export { BrandSpinner } from './BrandSpinner';
 export { EmptyState } from './EmptyState';
 export { QueryBoundary } from './QueryBoundary';
