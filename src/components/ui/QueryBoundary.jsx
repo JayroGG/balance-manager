@@ -1,8 +1,9 @@
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { spacing } from '../theme';
 import { useTheme } from '../../hooks/useTheme';
 import { AppButton } from './Button';
+import { BrandSpinner } from './BrandSpinner';
 import { EmptyState } from './EmptyState';
 
 // Wraps query results: spinner while first-loading, error + retry, empty state, else children.
@@ -13,7 +14,7 @@ export const QueryBoundary = ({ isLoading, error, isEmpty, onRetry, emptyText, c
   if (isLoading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator color={colors.primary} />
+        <BrandSpinner />
       </View>
     );
   }

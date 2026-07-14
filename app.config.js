@@ -23,7 +23,8 @@ module.exports = () => ({
       package: 'com.jayro.balancemobile',
       adaptiveIcon: {
         foregroundImage: './assets/android-icon-foreground.png',
-        backgroundColor: '#E6F4FE',
+        monochromeImage: './assets/android-icon-monochrome.png',
+        backgroundColor: '#0F172A',
       },
     },
     web: { favicon: './assets/favicon.png' },
@@ -38,7 +39,11 @@ module.exports = () => ({
           image: './assets/splash-icon.png',
           imageWidth: 200,
           resizeMode: 'contain',
-          backgroundColor: '#ffffff',
+          backgroundColor: '#F7F8FA',
+          dark: {
+            image: './assets/splash-icon-dark.png',
+            backgroundColor: '#0F1115',
+          },
         },
       ],
     ],
