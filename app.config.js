@@ -27,6 +27,13 @@ module.exports = () => ({
         backgroundColor: '#0F172A',
       },
     },
+    // Expo Go only reads this top-level key; the expo-splash-screen plugin below applies to
+    // native builds (prebuild) and supports the dark variant.
+    splash: {
+      image: './assets/splash-icon-go.png',
+      resizeMode: 'contain',
+      backgroundColor: '#F7F8FA',
+    },
     web: { favicon: './assets/favicon.png' },
     plugins: [
       'expo-router',

@@ -41,6 +41,11 @@ spinners (button loading, delete icons) stay `ActivityIndicator`.
 **North star (deferred):** Lottie-based animated brand moments (Netflix-style intro, animated
 splash-to-app handoff) once a dev build exists; the static assets and `BrandSpinner` seam are the
 placeholders they'd replace.
+*Update 2026-07-14:* the splash-to-app handoff shipped **without Lottie** — `AnimatedSplash`
+(`src/components/`) stacks generated ring/glyph layer PNGs (`brand-ring.png`, `brand-glyph*.png`,
+same geometry as `splash-icon.png`) over a splash-matched background and rotates the ring with
+pure RN `Animated` (2 revs + landing pop + fade). Lottie remains the north star only for richer
+moments.
 
 ## Consequences
 

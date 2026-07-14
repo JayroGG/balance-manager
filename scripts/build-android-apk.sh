@@ -19,5 +19,12 @@ fi
 export APP_ENV="${ENV_NAME}"
 
 echo "↪ APP_ENV=${APP_ENV} — Building Android APK (assembleRelease)…"
+# Native assets (icon, splash) are baked into android/ at prebuild time. After changing them
+# (or app.config.js/plugins), regenerate manually: npx expo prebuild --platform android --clean
+# (signing survives --clean via the withAndroidReleaseSigning plugin + ~/.gradle creds).
+# NOTE: prebuild rewrites the npm android/ios scripts to `expo run:*` — revert that; dev stays Expo Go.
+if [[ ! -d android ]]; then
+  npx expo prebuild --platform android
+fi
 cd android
 ./gradlew assembleRelease

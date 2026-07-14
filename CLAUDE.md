@@ -82,6 +82,7 @@ Point `.env.dev` `API_URL` at the running backend (`cd ../../Node/Projects/balan
 | `app/(tabs)/*` | Thin route shims → render screens from `src/screens/`. |
 | `src/screens/<Name>/` | Screen bodies (Dashboard, Transactions, Vaults, Categories, Settings). |
 | `src/components/ui/` | Shared atoms/molecules, one file each + `index.js` barrel. |
+| `src/components/AnimatedSplash.jsx` | Splash→app handoff overlay: reproduces the native splash frame (ring + glyph layer PNGs), spins the ring 2 revs + toon pop, fades into the app. Pure `Animated`; mounted by `Bootstrap`. |
 | `src/services/api/baseApi.js` | RTK Query base: `fetchBaseQuery` + token seam + `401` auto-logout + `tagTypes`. |
 | `src/services/api/auth.js` | `login`/`logout` mutations. |
 | `src/services/api/teams.js` | `getTeams` (returns per-team `role` + `color`) + team/member CRUD mutations (`:id`-path scoped, **not** `?team_id=`); tags `Team` / `TeamMember` (ADR-012/013). |
