@@ -1,11 +1,12 @@
-import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
+import { KeyboardAvoidingView, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { spacing } from '../theme';
 import { useTheme } from '../../hooks/useTheme';
 
-// Keyboard: every screen avoids it through this single wrapper — iOS needs 'padding' (the window
-// never resizes); Android resizes the window itself (adjustResize), so no behavior there.
-const kavBehavior = Platform.OS === 'ios' ? 'padding' : undefined;
+// Keyboard: every screen avoids it through this single wrapper. 'padding' on BOTH platforms —
+// iOS never resizes the window, and SDK 56 Android is always edge-to-edge, where the legacy
+// adjustResize window mode no longer applies either.
+const kavBehavior = 'padding';
 
 export const Screen = ({ children, scroll = false, refreshControl, padded = true, style }) => {
   const insets = useSafeAreaInsets();
