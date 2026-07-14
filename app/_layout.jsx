@@ -11,12 +11,15 @@ import { getToken } from '../src/services/storage/secure';
 import { decodeUser } from '../src/utils/jwt';
 import { useTheme } from '../src/hooks/useTheme';
 import { initI18n } from '../src/i18n';
+import { AnimatedSplash } from '../src/components/AnimatedSplash';
 
-// Keep the splash up until the cold-start bootstrap finishes (ADR-001/006/007).
+// Keep the native splash up until the cold-start bootstrap finishes (ADR-001/006/007);
+// AnimatedSplash then hides it behind an identical frame and animates the handoff (ADR-016).
 SplashScreen.preventAutoHideAsync();
 
 function Bootstrap({ children }) {
   const [ready, setReady] = useState(false);
+  const [handoff, setHandoff] = useState(true);
 
   useEffect(() => {
     (async () => {
@@ -26,13 +29,17 @@ function Bootstrap({ children }) {
         store.dispatch(hydrateAuth({ token, user: decodeUser(token) }));
       } finally {
         setReady(true);
-        await SplashScreen.hideAsync();
       }
     })();
   }, []);
 
-  if (!ready) return null;
-  return children;
+  if (!ready) return null; // native splash still covering
+  return (
+    <>
+      {children}
+      {handoff && <AnimatedSplash onDone={() => setHandoff(false)} />}
+    </>
+  );
 }
 
 // Status-bar icons follow the active scheme (must live inside the Redux Provider — useTheme reads it).

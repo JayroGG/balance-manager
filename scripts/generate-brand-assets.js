@@ -33,18 +33,26 @@ const arc = (a1, a2, color) => {
   return `<path d="M ${pt(a1)} A ${R} ${R} 0 ${large} 1 ${pt(a2)}" stroke="${color}" stroke-width="${RING_W}" stroke-linecap="round" fill="none"/>`;
 };
 
-const logo = (glyphColor) => `
+const ring = () => `
   ${arc(323, 557, BLUE)}
   ${arc(223, 297, GREEN)}
-  <line x1="393" y1="312" x2="393" y2="695" stroke="${glyphColor}" stroke-width="${GLYPH_W}" stroke-linecap="round"/>
-  <circle cx="514" cy="574" r="121" stroke="${glyphColor}" stroke-width="${GLYPH_W}" fill="none"/>
 `;
 
-const svg = ({ bg = null, glyphColor = WHITE, scale = 1, mono = null, cornerR = 0 }) => `
+const glyph = (color) => `
+  <line x1="393" y1="312" x2="393" y2="695" stroke="${color}" stroke-width="${GLYPH_W}" stroke-linecap="round"/>
+  <circle cx="514" cy="574" r="121" stroke="${color}" stroke-width="${GLYPH_W}" fill="none"/>
+`;
+
+const logo = (glyphColor) => `
+  ${ring()}
+  ${glyph(glyphColor)}
+`;
+
+const svg = ({ bg = null, glyphColor = WHITE, scale = 1, mono = null, cornerR = 0, content = null }) => `
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
   ${bg ? `<rect width="1024" height="1024" rx="${cornerR}" fill="${bg}"/>` : ''}
   <g transform="translate(512 512) scale(${scale}) translate(-512 -512)">
-    ${mono ? logo(mono).replace(new RegExp(`${BLUE}|${GREEN}`, 'g'), mono) : logo(glyphColor)}
+    ${mono ? logo(mono).replace(new RegExp(`${BLUE}|${GREEN}`, 'g'), mono) : (content ?? logo(glyphColor))}
   </g>
 </svg>`;
 
@@ -65,6 +73,12 @@ const render = (name, svgStr, size) =>
   // Expo Go splash (top-level `splash` key): Expo Go fits the image to screen width, so the
   // logo needs heavy padding to end up ~175pt wide
   await render('splash-icon-go.png', svg({ glyphColor: DARK, scale: 0.45 }), 1024);
+  // Animated splash layers: ring and glyph split onto separate transparent canvases at the SAME
+  // geometry as splash-icon.png (scale 0.92), so stacking them reproduces the native splash frame
+  // pixel-for-pixel and the ring can rotate independently (AnimatedSplash).
+  await render('brand-ring.png', svg({ scale: 0.92, content: ring() }), 1024);
+  await render('brand-glyph.png', svg({ scale: 0.92, content: glyph(DARK) }), 1024);
+  await render('brand-glyph-dark.png', svg({ scale: 0.92, content: glyph(WHITE) }), 1024);
   await render('favicon.png', svg({ bg: DARK, scale: 0.88, cornerR: 180 }), 48);
   console.log('brand assets written to assets/');
 })();
