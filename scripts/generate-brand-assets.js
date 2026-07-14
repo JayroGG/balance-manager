@@ -62,6 +62,9 @@ const render = (name, svgStr, size) =>
   // Splash logos (transparent): navy glyph on the light splash, white on the dark one
   await render('splash-icon.png', svg({ glyphColor: DARK, scale: 0.92 }), 1024);
   await render('splash-icon-dark.png', svg({ glyphColor: WHITE, scale: 0.92 }), 1024);
+  // Expo Go splash (top-level `splash` key): Expo Go fits the image to screen width, so the
+  // logo needs heavy padding to end up ~175pt wide
+  await render('splash-icon-go.png', svg({ glyphColor: DARK, scale: 0.45 }), 1024);
   await render('favicon.png', svg({ bg: DARK, scale: 0.88, cornerR: 180 }), 48);
   console.log('brand assets written to assets/');
 })();
