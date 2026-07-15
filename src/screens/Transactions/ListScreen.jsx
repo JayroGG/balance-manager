@@ -12,7 +12,7 @@ import { Screen, ScreenHeader, Card, MoneyText, Chip, QueryBoundary } from '../.
 import { font, spacing } from '../../components/theme';
 import { formatDate, monthShortNames } from '../../utils/dates';
 
-const TYPE_FILTERS = ['all', 'income', 'expense'];
+const TYPE_FILTERS = ['all', 'income', 'expense', 'loans'];
 
 // Years present in the data (desc), always including the current year — feeds the year dropdown.
 const yearsFromData = (rows) => {
@@ -32,7 +32,7 @@ export default function TransactionsList() {
   const teamId = useActiveTeamId();
   const { canAdd } = usePermissions();
   const [typeFilter, setTypeFilter] = useState('all');
-  const filters = { team_id: teamId, ...(typeFilter === 'all' ? {} : { type: typeFilter }) };
+  const filters = { team_id: teamId, ...(typeFilter === 'all' || typeFilter === 'loans' ? {} : { type: typeFilter }) };
   const { data, isLoading, error, refetch } = useGetTransactionsQuery(filters);
   const { data: balance } = useGetBalanceQuery(teamId);
   const currency = balance?.currency;
@@ -47,20 +47,26 @@ export default function TransactionsList() {
   const years = useMemo(() => yearsFromData(data), [data]);
 
   const visible = useMemo(() => {
-    if (year == null) return data;
-    const prefix = month == null ? String(year) : `${year}-${String(month).padStart(2, '0')}`;
-    return data?.filter((tx) => (tx.occurred_at ?? '').startsWith(prefix));
-  }, [data, year, month]);
+    let rows = data;
+    if (year != null) {
+      const prefix = month == null ? String(year) : `${year}-${String(month).padStart(2, '0')}`;
+      rows = rows?.filter((tx) => (tx.occurred_at ?? '').startsWith(prefix));
+    }
+    if (typeFilter === 'loans') rows = rows?.filter((tx) => tx.loan_id != null);
+    return rows;
+  }, [data, year, month, typeFilter]);
 
-  // Totals over the currently visible rows — reflects both the type and the date filter.
+  // Totals over the currently visible rows — reflects both the type and the date filter. Loan
+  // journal rows (loan_id set) are server-written mirrors of loan movements and never count here.
   const totals = useMemo(() => {
     let income = 0;
     let expense = 0;
     visible?.forEach((tx) => {
+      if (tx.loan_id != null) return;
       if (tx.type === 'income') income += Number(tx.amount) || 0;
       else if (tx.type === 'expense') expense += Number(tx.amount) || 0;
     });
-    return { income, expense };
+    return { income, expense, net: income - expense };
   }, [visible]);
 
   const pickMonth = (m) => {
@@ -89,7 +95,14 @@ export default function TransactionsList() {
             <View style={styles.rowBetween}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.desc} numberOfLines={1}>{item.description || t(`transactions.${item.type}`)}</Text>
-                <Text style={styles.meta}>{formatDate(item.occurred_at)}</Text>
+                <View style={styles.metaRow}>
+                  <Text style={styles.meta}>{formatDate(item.occurred_at)}</Text>
+                  {item.loan_id != null ? (
+                    <View style={styles.loanBadge}>
+                      <Text style={styles.loanBadgeText}>{t('transactions.loan')}</Text>
+                    </View>
+                  ) : null}
+                </View>
               </View>
               <MoneyText
                 amount={item.amount}
@@ -135,6 +148,11 @@ export default function TransactionsList() {
       </View>
 
       <View style={styles.totals}>
+        <View style={styles.totalCell}>
+          <Text style={styles.totalLabel}>{t('transactions.net')}</Text>
+          <MoneyText amount={totals.net} currency={currency} style={[styles.totalValue, { color: colors.text }]} />
+        </View>
+        <View style={styles.totalDivider} />
         <View style={styles.totalCell}>
           <Text style={styles.totalLabel}>{t('transactions.income')}</Text>
           <MoneyText amount={totals.income} currency={currency} style={[styles.totalValue, { color: colors.success }]} />
@@ -223,7 +241,17 @@ const makeStyles = (colors) =>
   totalValue: { fontSize: font.lg, fontWeight: '800' },
   rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   desc: { fontSize: font.md, fontWeight: '600', color: colors.text },
-  meta: { fontSize: font.sm, color: colors.muted, marginTop: spacing(0.25) },
+  metaRow: { flexDirection: 'row', alignItems: 'center', marginTop: spacing(0.25) },
+  meta: { fontSize: font.sm, color: colors.muted },
+  loanBadge: {
+    marginLeft: spacing(0.75),
+    paddingHorizontal: spacing(0.75),
+    paddingVertical: 1,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+  },
+  loanBadgeText: { fontSize: 10, fontWeight: '700', color: colors.muted },
   amount: { fontSize: font.md, fontWeight: '700', marginLeft: spacing(1) },
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'center', paddingHorizontal: spacing(6) },
   menu: { backgroundColor: colors.card, borderRadius: 12, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, overflow: 'hidden' },

@@ -19,6 +19,7 @@
     "transactions": "Transactions",
     "vaults": "Vaults",
     "categories": "Categories",
+    "loans": "Loans",
     "teams": "Teams",
     "settings": "Settings"
   },
@@ -26,6 +27,7 @@
     "title": "Dashboard",
     "total": "Total",
     "available": "Available",
+    "lent": "Lent out",
     "vaults": "Vaults",
     "emptyVaults": "No vaults yet"
   },
@@ -45,7 +47,10 @@
     "empty": "No transactions yet",
     "amountPositive": "Amount must be greater than 0",
     "allYears": "All years",
-    "lists": "Shopping lists"
+    "lists": "Shopping lists",
+    "loans": "Loans",
+    "loan": "Loan",
+    "net": "Balance"
   },
   "lists": {
     "title": "Shopping lists",
@@ -94,6 +99,29 @@
     "deleteNeedsZero": "Withdraw to zero before deleting",
     "empty": "No vaults yet",
     "deleteConfirm": "Delete this vault?"
+  },
+  "loans": {
+    "title": "Loans",
+    "new": "New loan",
+    "edit": "Edit loan",
+    "name": "Name",
+    "amount": "Amount",
+    "pending": "Pending",
+    "repaid": "Repaid",
+    "totalLent": "Total lent",
+    "lend": "Lend",
+    "repay": "Repay",
+    "lendDone": "Lent",
+    "repayDone": "Repaid",
+    "lendHint": "Amount to lend from your available money",
+    "repayHint": "Payment received back on this loan",
+    "alreadyLent": "Already lent (not in your balance yet)",
+    "alreadyLentHint": "Records the wealth as an opening income and marks it all pending — your available money doesn't change.",
+    "history": "History",
+    "noHistory": "No movements yet",
+    "deleteNeedsZero": "Collect the pending amount before deleting",
+    "empty": "No loans yet",
+    "deleteConfirm": "Delete this loan?"
   },
   "categories": {
     "title": "Categories",
@@ -172,6 +200,10 @@
     "vault_deleted": "{{actor}} deleted vault {{name}}",
     "vault_allocated": "{{actor}} moved {{amount}} into {{name}}",
     "vault_withdrawn": "{{actor}} took {{amount}} out of {{name}}",
+    "loan_created": "{{actor}} created loan {{name}}",
+    "loan_deleted": "{{actor}} deleted loan {{name}}",
+    "loan_lent": "{{actor}} lent {{amount}} to {{name}}",
+    "loan_repaid": "{{actor}} got {{amount}} back from {{name}}",
     "shopping_list_created": "{{actor}} started list {{name}}",
     "shopping_list_deleted": "{{actor}} deleted list {{name}}",
     "shopping_list_checked_out": "{{actor}} checked out {{name}} — {{amount}}",

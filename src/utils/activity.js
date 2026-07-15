@@ -41,6 +41,12 @@ export const eventMessage = (event, { t, actor, currency }) => {
       });
     case 'team_member_removed':
       return t('activity.team_member_removed', { actor });
+    case 'loan_created':
+    case 'loan_deleted':
+      return t(`activity.${key}`, { actor, name: summary.name });
+    case 'loan_lent':
+    case 'loan_repaid':
+      return t(`activity.${key}`, { actor, name: summary.name, amount });
     default:
       return t('activity.generic', { actor, entity, action });
   }
@@ -57,6 +63,7 @@ export const eventHref = ({ entity, action, entity_id, summary = {} }) => {
     case 'shopping_list_item':
       return summary.list_id ? `/(tabs)/transactions/lists/${summary.list_id}` : null;
     case 'team': return `/(tabs)/teams/${entity_id}`;
+    case 'loan': return `/(tabs)/loans/${entity_id}`;
     default: return null;
   }
 };

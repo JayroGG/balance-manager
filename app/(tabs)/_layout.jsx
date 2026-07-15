@@ -44,7 +44,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="dashboard" options={{ title: t('tabs.dashboard'), tabBarIcon: icon('home-outline') }} />
       <Tabs.Screen name="transactions" options={{ title: t('tabs.transactions'), tabBarIcon: icon('swap-horizontal-outline') }} />
       <Tabs.Screen name="vaults" options={{ title: t('tabs.vaults'), tabBarIcon: icon('wallet-outline') }} />
-      <Tabs.Screen name="categories" options={{ title: t('tabs.categories'), tabBarIcon: icon('pricetags-outline') }} />
+      <Tabs.Screen name="loans" options={{ title: t('tabs.loans'), tabBarIcon: icon('cash-outline') }} />
       <Tabs.Screen name="teams" options={{ title: t('tabs.teams'), tabBarIcon: icon('people-outline') }} />
       <Tabs.Screen name="settings" options={{ title: t('tabs.settings'), tabBarIcon: icon('settings-outline') }} />
     </Tabs>

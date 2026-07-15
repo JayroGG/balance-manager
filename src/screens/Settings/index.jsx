@@ -1,4 +1,6 @@
-import { Alert, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import { useGetBalanceQuery } from '../../services/api/balance';
@@ -30,6 +32,7 @@ const Row = ({ label, value }) => {
 
 export default function Settings() {
   const { t, i18n } = useTranslation();
+  const router = useRouter();
   const dispatch = useDispatch();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
@@ -68,6 +71,16 @@ export default function Settings() {
         <Row label={t('settings.currency')} value={data?.currency ?? '—'} />
         <Row label={t('settings.environment')} value={Config.ENV} />
         {bypass ? <Row label={t('settings.auth')} value={t('settings.authBypassed')} /> : null}
+      </Card>
+
+      <Card>
+        <Pressable
+          style={styles.navRow}
+          onPress={() => router.push('/(tabs)/settings/categories')}
+        >
+          <Text style={styles.value}>{t('categories.title')}</Text>
+          <Ionicons name="chevron-forward" size={20} color={colors.muted} />
+        </Pressable>
       </Card>
 
       {bypass ? null : (
@@ -109,5 +122,6 @@ const makeStyles = (colors) =>
     row: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: spacing(0.75) },
     label: { color: colors.muted, fontSize: font.md },
     value: { color: colors.text, fontSize: font.md, fontWeight: '600' },
+    navRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: spacing(0.75) },
     chipRow: { flexDirection: 'row', flexWrap: 'wrap' },
   });

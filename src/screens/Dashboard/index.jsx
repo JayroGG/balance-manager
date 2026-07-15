@@ -114,6 +114,12 @@ export default function Dashboard() {
             <Text style={styles.heroLabel}>{t('dashboard.available')}</Text>
             <MoneyText amount={data?.available} currency={currency} style={styles.heroAvail} />
           </View>
+          {data?.lent > 0 ? (
+            <View style={styles.availRow}>
+              <Text style={styles.heroLabel}>{t('dashboard.lent')}</Text>
+              <MoneyText amount={data?.lent} currency={currency} style={styles.heroAvail} />
+            </View>
+          ) : null}
         </Card>
 
         <SectionTitle>{t('dashboard.vaults')}</SectionTitle>

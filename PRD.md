@@ -291,8 +291,12 @@ See `.claude/ADR/ADR-011-auth-jwt-and-team-context.md` and `docs/backend-auth-te
   management (add by email, change role, remove) with owner-gating and the last-owner / non-empty-delete
   guardrails. **Deferred:** transfer-ownership, RBAC richer than the three roles, offline reconciliation
   of role changes.
+- **Phase 3.5 — Real-use entities (shipped incrementally):** shopping lists (ADR-015, pre-expense
+  checklists with server-side checkout) and **loans** (ADR-018, lent-out money with vault-mirror
+  math: `available = total − Σvaults − Σloan pending`, `loan_id` journal rows excluded from balance;
+  `/balance` gains `lent` + `loans[]`). Both born from real usage hitting the pure-ledger limit.
 - **Phase 4 — Enhancements (deferred):** charts/insights, budgets, recurring transactions, offline-first
-  cache, push notifications, multi-currency.
+  cache, push notifications, multi-currency, borrowed-direction loans + loan write-off (ADR-018).
 
 ## 10. Documentation & workflow standard (adopt from commit one)
 
