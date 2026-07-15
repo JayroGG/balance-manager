@@ -10,6 +10,7 @@ import { transactionsApi } from './transactions';
 import { vaultsApi } from './vaults';
 import { categoriesApi } from './categories';
 import { shoppingListsApi } from './shoppingLists';
+import { eventsApi } from './events';
 import authReducer from '../../reducers/auth';
 
 const makeStore = () =>
@@ -69,6 +70,38 @@ describe('getTransactions — filter → query string', () => {
     await store.dispatch(transactionsApi.endpoints.getTransactions.initiate({}));
     const url = global.fetch.mock.calls[0][0].url;
     expect(url).toMatch(/\/transactions$/);
+  });
+});
+
+describe('events feed — URL building (ADR-017)', () => {
+  it('hits /events with no query string when no filters are given', async () => {
+    store = makeStore();
+    await store.dispatch(eventsApi.endpoints.getEvents.initiate({}));
+    const url = global.fetch.mock.calls[0][0].url;
+    expect(url).toMatch(/\/events$/);
+  });
+
+  it('serializes team_id, since_id, and limit', async () => {
+    store = makeStore();
+    await store.dispatch(eventsApi.endpoints.getEvents.initiate({ team_id: 5, since_id: 42, limit: 200 }));
+    const url = global.fetch.mock.calls[0][0].url;
+    expect(url).toContain('since_id=42');
+    expect(url).toContain('limit=200');
+    expect(url).toContain('team_id=5');
+  });
+
+  it('serializes entity and action equality filters', async () => {
+    store = makeStore();
+    await store.dispatch(eventsApi.endpoints.getEvents.initiate({ entity: 'transaction', action: 'created' }));
+    const url = global.fetch.mock.calls[0][0].url;
+    expect(url).toContain('entity=transaction');
+    expect(url).toContain('action=created');
+  });
+
+  it('omits team_id entirely in personal context (null)', async () => {
+    store = makeStore();
+    await store.dispatch(eventsApi.endpoints.getEvents.initiate({ team_id: null }));
+    expect(global.fetch.mock.calls[0][0].url).not.toContain('team_id');
   });
 });
 

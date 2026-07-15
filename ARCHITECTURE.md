@@ -19,7 +19,10 @@ graph TD
   end
 
   subgraph Tabs["(tabs) — bottom tab navigator"]
-    Dash["dashboard.jsx<br/>GET /balance"]
+    subgraph Dash["dashboard/"]
+      DashIndex["index.jsx<br/>GET /balance + bell/badge"]
+      DashActivity["activity.jsx<br/>GET /events feed"]
+    end
     subgraph Tx["transactions/"]
       TxList["index.jsx<br/>list + filter chips + FAB"]
       TxNew["new.jsx<br/>create / edit form"]
@@ -37,6 +40,7 @@ graph TD
     Settings["settings.jsx<br/>currency, language, logout"]
   end
 
+  DashIndex --> DashActivity
   TxList --> TxNew
   TxList --> TxDetail
   VList --> VDetail
@@ -71,6 +75,7 @@ flowchart LR
     H2["useGetTransactionsQuery"]
     H3["useAddTransactionMutation"]
     H4["useAllocateVaultMutation / useWithdrawVaultMutation"]
+    H5["useGetEventsQuery (feed + useUnreadActivity)"]
   end
 
   subgraph RTKQ["src/services/api"]
@@ -79,13 +84,14 @@ flowchart LR
     EpT["transactions.js (Transaction; inval Balance)"]
     EpV["vaults.js (Vault, VaultHistory; inval Balance)"]
     EpC["categories.js (Category)"]
-    Base --- EpB & EpT & EpV & EpC
+    EpE["events.js (Event; nothing invalidates it — ADR-017)"]
+    Base --- EpB & EpT & EpV & EpC & EpE
   end
 
   Auth["reducers/auth<br/>{ token, bypass }"] -->|token| Base
   Cfg["utils/config.js<br/>(expo-constants extra)"] -->|API_URL| Base
 
-  H1 & H2 & H3 & H4 --> Base
+  H1 & H2 & H3 & H4 & H5 --> Base
   Base -->|"fetch (decimals, no /api prefix)"| API[("balance backend<br/>req.userId = 1")]
   API -->|"{ error } on non-2xx → transformErrorResponse"| Base
 
@@ -93,9 +99,12 @@ flowchart LR
   H4 -. "invalidatesTags ['Balance','Vault','VaultHistory']" .-> H1
 ```
 
-**Cache tags:** `Balance`, `Transaction`, `Vault`, `VaultHistory`, `Category`. Per-vault balances and
-targets come from `GET /balance` (not `GET /vaults`), so any mutation that moves money invalidates
-`Balance`.
+**Cache tags:** `Balance`, `Transaction`, `Vault`, `VaultHistory`, `Category`, `Event`. Per-vault
+balances and targets come from `GET /balance` (not `GET /vaults`), so any mutation that moves money
+invalidates `Balance`. `Event` is the one tag nothing ever invalidates — `/events` is read-only,
+append-only server history that no local mutation can know about, so feed freshness comes from the
+app-wide `refetchOnMountOrArgChange` (on-focus refetch) plus pull-to-refresh, not cache invalidation
+(ADR-017).
 
 ## 3. Cold-start / splash state (ADR-001, ADR-006)
 
@@ -126,12 +135,13 @@ balance-manager/                 # app name: balance-mobile
 │   ├── _layout.jsx              # providers + cold-start bootstrap + splash gate (router infra)
 │   ├── index.jsx                # boot redirect (router infra)
 │   ├── (auth)/      _layout.jsx  login.jsx
-│   └── (tabs)/      _layout.jsx  dashboard.jsx  categories.jsx  settings.jsx
+│   └── (tabs)/      _layout.jsx  categories.jsx  settings.jsx
+│        dashboard/{_layout,index,activity}.jsx   # index = GET /balance + bell/badge; activity = GET /events feed
 │        transactions/{index,new,[id]}.jsx   vaults/{index,new,[id]}.jsx
 │        # each (tabs) screen file is a 1-line shim: `export { default } from '../../src/screens/X'`
 ├── src/                         # ALL real code lives here
 │   ├── screens/                 # screen bodies (composition + data orchestration), mirrors team layout
-│   │   ├── Dashboard/index.jsx
+│   │   ├── Dashboard/index.jsx   Activity/index.jsx   # feed screen (ADR-017)
 │   │   ├── Transactions/{ListScreen,NewScreen,EditScreen}.jsx  TransactionForm.jsx
 │   │   ├── Vaults/{ListScreen,NewScreen,DetailScreen}.jsx
 │   │   ├── Teams/{ListScreen,ManageScreen}.jsx   # team management (ADR-012)
@@ -142,12 +152,12 @@ balance-manager/                 # app name: balance-mobile
 │   │   └── theme.js             # light/dark palettes + makeColors(scheme, accent) + PRESET_TEAM_COLORS; spacing/radius/font (ADR-013)
 │   ├── store/                   # configureStore + RTKQ middleware + redux-persist + setupListeners
 │   ├── services/
-│   │   ├── api/                 # baseApi.js + balance/transactions/vaults/categories.js (injectEndpoints)
+│   │   ├── api/                 # baseApi.js + balance/transactions/vaults/categories/events.js (injectEndpoints)
 │   │   └── storage/             # secure.js (token), prefs.js (cache/prefs)
-│   ├── reducers/{auth,context,prefs}/  # auth (token/user), context (activeTeamId), prefs (themeMode — ADR-013)
+│   ├── reducers/{auth,context,prefs,activity}/  # auth (token/user), context (activeTeamId), prefs (themeMode — ADR-013), activity (per-context lastSeen — ADR-017)
 │   ├── permissions/             # RBAC seam: usePermissions + pure can*() matrix (ADR-012)
-│   ├── hooks/                   # useIdToken(), useActiveTeamId(), useActiveRole(), useTheme() (ADR-013)
-│   ├── utils/                   # config.js, money.js, dates.js, jwt.js (decodeUser), colors.js (hex + contrast)
+│   ├── hooks/                   # useIdToken(), useActiveTeamId(), useActiveRole(), useTheme() (ADR-013), useUnreadActivity() (ADR-017)
+│   ├── utils/                   # config.js, money.js, dates.js, jwt.js (decodeUser), colors.js (hex + contrast), activity.js (eventMessage/eventHref — ADR-017)
 │   └── i18n/                    # i18next init + locales/{en-US,es-MX}.json
 ├── CLAUDE.md  PRD.md  ARCHITECTURE.md  README.md
 └── .claude/ADR/   .claude/agents/plans/

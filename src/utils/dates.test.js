@@ -1,5 +1,5 @@
 import { Settings } from 'luxon';
-import { todayISODate, formatDate, formatDateTime, monthShortNames } from './dates';
+import { todayISODate, formatDate, formatDateTime, monthShortNames, timeAgo } from './dates';
 
 // Pin zone + locale so toLocaleString and the UTC→local conversion are deterministic across machines/CI.
 beforeAll(() => {
@@ -44,5 +44,18 @@ describe('formatDateTime', () => {
   it('returns empty string for falsy input', () => {
     expect(formatDateTime('')).toBe('');
     expect(formatDateTime(null)).toBe('');
+  });
+});
+
+describe('timeAgo', () => {
+  it('returns a non-empty string for a recent ISO timestamp', () => {
+    const recent = new Date(Date.now() - 60 * 1000).toISOString();
+    expect(timeAgo(recent)).toEqual(expect.any(String));
+    expect(timeAgo(recent)).not.toBe('');
+  });
+
+  it('returns empty string for falsy input', () => {
+    expect(timeAgo(null)).toBe('');
+    expect(timeAgo(undefined)).toBe('');
   });
 });

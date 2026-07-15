@@ -159,5 +159,30 @@
     "role_owner": "Owner",
     "role_member": "Member",
     "role_guest": "Guest"
+  },
+  "activity": {
+    "title": "Activity",
+    "empty": "Nothing yet — actions in this context will show up here.",
+    "you": "You",
+    "generic": "{{actor}} · {{entity}} {{action}}",
+    "transaction_created": "{{actor}} added {{what}} — {{amount}}",
+    "transaction_updated": "{{actor}} updated {{what}} — {{amount}}",
+    "transaction_deleted": "{{actor}} deleted {{what}} — {{amount}}",
+    "vault_created": "{{actor}} created vault {{name}}",
+    "vault_deleted": "{{actor}} deleted vault {{name}}",
+    "vault_allocated": "{{actor}} moved {{amount}} into {{name}}",
+    "vault_withdrawn": "{{actor}} took {{amount}} out of {{name}}",
+    "shopping_list_created": "{{actor}} started list {{name}}",
+    "shopping_list_deleted": "{{actor}} deleted list {{name}}",
+    "shopping_list_checked_out": "{{actor}} checked out {{name}} — {{amount}}",
+    "shopping_list_item_created": "{{actor}} added {{name}}",
+    "shopping_list_item_updated": "{{actor}} updated {{name}}",
+    "shopping_list_item_checked": "{{actor}} checked off {{name}}",
+    "shopping_list_item_deleted": "{{actor}} removed {{name}}",
+    "team_renamed": "{{actor}} renamed the team to {{name}}",
+    "team_updated": "{{actor}} updated the team",
+    "team_member_added": "{{actor}} added a member as {{role}}",
+    "team_role_changed": "{{actor}} changed a member's role to {{role}}",
+    "team_member_removed": "{{actor}} removed a member"
   }
 }
