@@ -81,6 +81,7 @@ Point `.env.dev` `API_URL` at the running backend (`cd ../../Node/Projects/balan
 | `app/index.jsx` | Boot redirect → `(tabs)` or `(auth)`. |
 | `app/(tabs)/*` | Thin route shims → render screens from `src/screens/`. |
 | `src/screens/<Name>/` | Screen bodies (Dashboard, Transactions, Vaults, Categories, Settings). |
+| `src/screens/Activity/` | Feed screen (newest-first list, mark-seen effect, deep links via `eventHref`) — ADR-017. |
 | `src/components/ui/` | Shared atoms/molecules, one file each + `index.js` barrel. |
 | `src/components/AnimatedSplash.jsx` | Splash→app handoff overlay: reproduces the native splash frame (ring + glyph layer PNGs), spins the ring 2 revs + toon pop, fades into the app. Pure `Animated`; mounted by `Bootstrap`. |
 | `src/services/api/baseApi.js` | RTK Query base: `fetchBaseQuery` + token seam + `401` auto-logout + `tagTypes`. |
@@ -96,10 +97,13 @@ Point `.env.dev` `API_URL` at the running backend (`cd ../../Node/Projects/balan
 | `src/utils/jwt.js` | `decodeUser(token)` → `{ id }` from the JWT `sub` (the `myUserId` source for member gating). |
 | `src/screens/Teams/` | `ListScreen` (owned / member-of + create) and `ManageScreen` (owner: rename / members / roles / delete). |
 | `src/services/api/{balance,transactions,vaults,categories}.js` | `injectEndpoints` per entity (each threads optional `team_id`). |
+| `src/services/api/events.js` | `getEvents` (`GET /events`, tag `Event`) — read-only feed; `withTeam`-scoped; nothing invalidates `Event` (ADR-017). |
 | `src/services/api/teamParam.js` | `withTeam(path, team_id)` — appends `?team_id=` (the one place it's built). |
 | `src/services/storage/{secure,prefs}.js` | Token (secure-store) / cache+prefs (AsyncStorage) seam. |
 | `src/reducers/auth/` | `auth` slice: token/bypass/user (token-injection source of truth). |
 | `src/reducers/context/` | `context` slice: `activeTeamId` (`null` = personal); persisted, reset on logout. |
+| `src/reducers/activity/` | `activity` slice: per-context `lastSeen` event id, monotonic `markSeen`; persisted, reset on logout like `context` (ADR-017). |
+| `src/hooks/useUnreadActivity.js` | Unread badge count for the active context: `GET /events?since_id=lastSeen` (ADR-017). |
 | `src/screens/Login/` | Email/password login screen (`app/(auth)/login.jsx` is its shim). |
 | `src/store/` | `configureStore` + RTK Query reducer/middleware + `setupListeners` + `redux-persist` (persists `api` only). |
 | `src/utils/config.js` | Reads `expo-constants` extra → `{ API_URL, AUTH_BYPASS, ENV }`. |
@@ -141,3 +145,8 @@ Plans go in `.claude/agents/plans/`; decisions in `.claude/ADR/`; long-term memo
   (`isValidHex`/`normalizeHex`). **Native stack headers are hidden app-wide** — every screen renders the
   shared `ScreenHeader` (large title; `back` chevron on pushed/modal screens; `right` action slot) so all
   screens share the Dashboard look.
+- **Activity feed (ADR-017):** the feed is read-only — never add `invalidatesTags: ['Event']` to a
+  mutation; freshness comes from the app-wide `refetchOnMountOrArgChange` (on-focus refetch) plus
+  pull-to-refresh, since no local mutation can know about another member's action. `since_id`/`limit`
+  must be positive integers — never send `0`, pass `undefined` instead. `lastSeen` (the `activity`
+  slice) is account data, reset on logout, unlike `prefs` which survives it.

@@ -11,3 +11,7 @@ export const formatDate = (iso) =>
 
 export const formatDateTime = (iso) =>
   iso ? DateTime.fromISO(iso, { zone: 'utc' }).toLocal().toLocaleString(DateTime.DATETIME_MED) : '';
+
+// Relative feed timestamps ("3 hours ago"), locale-aware; created_at is ISO-8601 UTC (ADR-017).
+export const timeAgo = (iso, locale) =>
+  iso ? DateTime.fromISO(iso, { zone: 'utc' }).toRelative({ locale }) : '';
