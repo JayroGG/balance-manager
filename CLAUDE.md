@@ -97,6 +97,8 @@ Point `.env.dev` `API_URL` at the running backend (`cd ../../Node/Projects/balan
 | `src/utils/jwt.js` | `decodeUser(token)` → `{ id }` from the JWT `sub` (the `myUserId` source for member gating). |
 | `src/screens/Teams/` | `ListScreen` (owned / member-of + create) and `ManageScreen` (owner: rename / members / roles / delete). |
 | `src/services/api/{balance,transactions,vaults,categories}.js` | `injectEndpoints` per entity (each threads optional `team_id`). |
+| `src/services/api/loans.js` | Loans CRUD + history + `lend`/`repay` (tags `Loan`/`LoanHistory`; money-movers also invalidate `Transaction` — journal rows) — ADR-018. |
+| `src/screens/Loans/` | `ListScreen`/`NewScreen`/`DetailScreen` — lent-out money, mirrors Vaults screens (ADR-018). Loans owns the old Categories tab; Categories now lives under the Settings stack. |
 | `src/services/api/events.js` | `getEvents` (`GET /events`, tag `Event`) — read-only feed; `withTeam`-scoped; nothing invalidates `Event` (ADR-017). |
 | `src/services/api/teamParam.js` | `withTeam(path, team_id)` — appends `?team_id=` (the one place it's built). |
 | `src/services/storage/{secure,prefs}.js` | Token (secure-store) / cache+prefs (AsyncStorage) seam. |
@@ -145,6 +147,14 @@ Plans go in `.claude/agents/plans/`; decisions in `.claude/ADR/`; long-term memo
   (`isValidHex`/`normalizeHex`). **Native stack headers are hidden app-wide** — every screen renders the
   shared `ScreenHeader` (large title; `back` chevron on pushed/modal screens; `right` action slot) so all
   screens share the Dashboard look.
+- **Loans (ADR-018):** loans are lent-out money (receivables) with vault-mirror math — `pending`
+  derives from `lend`/`repay` movements, `available = total − Σvaults − Σpending`, no movement ever
+  changes `total`. Lend is bounded by `available`, repay by `pending`; delete needs `pending == 0`.
+  Movements also write **server-owned journal transactions** (`loan_id` set): keep them visible in
+  the history list (badged) but **always exclude `loan_id` rows from client-computed totals**.
+  `pre_existing: true` creation atomically posts a counted opening income (`total +amount`,
+  `available ±0`). Loan figures (`amount`/`pending`) come from `/balance` (`loans[]`, `lent`), not
+  `GET /loans` — same split as vaults.
 - **Activity feed (ADR-017):** the feed is read-only — never add `invalidatesTags: ['Event']` to a
   mutation; freshness comes from the app-wide `refetchOnMountOrArgChange` (on-focus refetch) plus
   pull-to-refresh, since no local mutation can know about another member's action. `since_id`/`limit`

@@ -43,6 +43,36 @@ describe('eventMessage — catalog (contract §2)', () => {
     expect(msg).toContain('activity.shopping_list_item_updated');
   });
 
+  it('loan created includes the loan name', () => {
+    const event = { entity: 'loan', action: 'created', summary: { name: 'Car repair' } };
+    const msg = eventMessage(event, { t, actor, currency });
+    expect(msg).toContain('activity.loan_created');
+    expect(msg).toContain('"name":"Car repair"');
+  });
+
+  it('loan deleted includes the loan name', () => {
+    const event = { entity: 'loan', action: 'deleted', summary: { name: 'Car repair' } };
+    const msg = eventMessage(event, { t, actor, currency });
+    expect(msg).toContain('activity.loan_deleted');
+    expect(msg).toContain('"name":"Car repair"');
+  });
+
+  it('loan lent includes the formatted amount', () => {
+    const event = { entity: 'loan', action: 'lent', summary: { name: 'Car repair', amount: 100 } };
+    const msg = eventMessage(event, { t, actor, currency });
+    expect(msg).toContain('activity.loan_lent');
+    expect(msg).toContain('"amount":"$100.00"');
+    expect(msg).toContain('"name":"Car repair"');
+  });
+
+  it('loan repaid includes the formatted amount', () => {
+    const event = { entity: 'loan', action: 'repaid', summary: { name: 'Car repair', amount: 40 } };
+    const msg = eventMessage(event, { t, actor, currency });
+    expect(msg).toContain('activity.loan_repaid');
+    expect(msg).toContain('"amount":"$40.00"');
+    expect(msg).toContain('"name":"Car repair"');
+  });
+
   it('unknown entity/action falls back to activity.generic', () => {
     const event = { entity: 'widget', action: 'sprocketed', summary: {} };
     const msg = eventMessage(event, { t, actor, currency });
@@ -60,6 +90,7 @@ describe('eventHref — deep links', () => {
       '/(tabs)/transactions/lists/9',
     );
     expect(eventHref({ entity: 'team', action: 'updated', entity_id: 1 })).toBe('/(tabs)/teams/1');
+    expect(eventHref({ entity: 'loan', action: 'lent', entity_id: 5 })).toBe('/(tabs)/loans/5');
   });
 
   it('returns null for a deleted event', () => {

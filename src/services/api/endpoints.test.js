@@ -11,6 +11,7 @@ import { vaultsApi } from './vaults';
 import { categoriesApi } from './categories';
 import { shoppingListsApi } from './shoppingLists';
 import { eventsApi } from './events';
+import { loansApi } from './loans';
 import authReducer from '../../reducers/auth';
 
 const makeStore = () =>
@@ -28,11 +29,18 @@ const jsonResponse = (body, status = 200) =>
 
 const fetchedUrls = () => global.fetch.mock.calls.map((c) => c[0].url);
 const balanceCalls = () => fetchedUrls().filter((u) => u.includes('/balance')).length;
+const transactionCalls = () => fetchedUrls().filter((u) => u.includes('/transactions')).length;
 
 // Invalidation-triggered refetch is async; poll until it lands (or give up after ~1s).
 const waitForBalanceCalls = async (n) => {
   for (let i = 0; i < 50; i++) {
     if (balanceCalls() >= n) return;
+    await new Promise((r) => setTimeout(r, 20));
+  }
+};
+const waitForTransactionCalls = async (n) => {
+  for (let i = 0; i < 50; i++) {
+    if (transactionCalls() >= n) return;
     await new Promise((r) => setTimeout(r, 20));
   }
 };
@@ -118,6 +126,33 @@ describe('vault actions — amount-based allocate (ADR-009)', () => {
     expect(request.url).toContain('/vaults/3/allocate');
     expect(request.method).toBe('POST');
     await expect(request.clone().json()).resolves.toEqual({ amount: 50 });
+  });
+});
+
+describe('loan actions — amount-based lend/repay (ADR-009)', () => {
+  it('POSTs { amount } to /loans/:id/lend', async () => {
+    global.fetch.mockImplementation(() =>
+      Promise.resolve(jsonResponse({ id: 4, name: 'Friend', balance: 100 })),
+    );
+    store = makeStore();
+
+    await store.dispatch(loansApi.endpoints.lendLoan.initiate({ id: 4, amount: 100 }));
+
+    const request = global.fetch.mock.calls[0][0];
+    expect(request.url).toContain('/loans/4/lend');
+    expect(request.method).toBe('POST');
+    await expect(request.clone().json()).resolves.toEqual({ amount: 100 });
+  });
+
+  it('POSTs { amount } to /loans/:id/repay', async () => {
+    store = makeStore();
+
+    await store.dispatch(loansApi.endpoints.repayLoan.initiate({ id: 4, amount: 40 }));
+
+    const request = global.fetch.mock.calls[0][0];
+    expect(request.url).toContain('/loans/4/repay');
+    expect(request.method).toBe('POST');
+    await expect(request.clone().json()).resolves.toEqual({ amount: 40 });
   });
 });
 
@@ -240,15 +275,17 @@ describe('team management — :id-scoped URLs, no ?team_id= (ADR-012)', () => {
 });
 
 describe('team context — ?team_id= on queries, never in the body (ADR-011)', () => {
-  it('appends team_id to GET /balance, /vaults, /categories', async () => {
+  it('appends team_id to GET /balance, /vaults, /categories, /loans', async () => {
     store = makeStore();
     await store.dispatch(balanceApi.endpoints.getBalance.initiate(5));
     await store.dispatch(vaultsApi.endpoints.getVaults.initiate(5));
     await store.dispatch(categoriesApi.endpoints.getCategories.initiate(5));
+    await store.dispatch(loansApi.endpoints.getLoans.initiate(5));
     const urls = fetchedUrls();
     expect(urls.some((u) => /\/balance\?team_id=5$/.test(u))).toBe(true);
     expect(urls.some((u) => /\/vaults\?team_id=5$/.test(u))).toBe(true);
     expect(urls.some((u) => /\/categories\?team_id=5$/.test(u))).toBe(true);
+    expect(urls.some((u) => /\/loans\?team_id=5$/.test(u))).toBe(true);
   });
 
   it('merges team_id alongside existing transaction filters', async () => {
@@ -286,6 +323,41 @@ describe('team context — ?team_id= on queries, never in the body (ADR-011)', (
     expect(request.url).toContain('/vaults/2?team_id=5');
     expect(request.method).toBe('PUT');
     await expect(request.clone().json()).resolves.toEqual({ name: 'Trip' });
+  });
+
+  it('sends team_id in the URL but NOT the body on a loan create', async () => {
+    store = makeStore();
+    await store.dispatch(
+      loansApi.endpoints.addLoan.initiate({ name: 'Friend', amount: 100, team_id: 5 }),
+    );
+    const request = global.fetch.mock.calls[0][0];
+    expect(request.url).toContain('/loans?team_id=5');
+    expect(request.method).toBe('POST');
+    await expect(request.clone().json()).resolves.toEqual({ name: 'Friend', amount: 100 });
+  });
+
+  it('strips team_id from a loan PUT body, keeping it in the URL', async () => {
+    store = makeStore();
+    await store.dispatch(
+      loansApi.endpoints.updateLoan.initiate({ id: 4, name: 'Renamed', team_id: 5 }),
+    );
+    const request = global.fetch.mock.calls[0][0];
+    expect(request.url).toContain('/loans/4?team_id=5');
+    expect(request.method).toBe('PUT');
+    await expect(request.clone().json()).resolves.toEqual({ name: 'Renamed' });
+  });
+
+  it('strips team_id from lend/repay bodies, keeping it in the URL', async () => {
+    store = makeStore();
+    await store.dispatch(loansApi.endpoints.lendLoan.initiate({ id: 4, amount: 25, team_id: 5 }));
+    const lendRequest = global.fetch.mock.calls[0][0];
+    expect(lendRequest.url).toContain('/loans/4/lend?team_id=5');
+    await expect(lendRequest.clone().json()).resolves.toEqual({ amount: 25 });
+
+    await store.dispatch(loansApi.endpoints.repayLoan.initiate({ id: 4, amount: 10, team_id: 5 }));
+    const repayRequest = global.fetch.mock.calls[1][0];
+    expect(repayRequest.url).toContain('/loans/4/repay?team_id=5');
+    await expect(repayRequest.clone().json()).resolves.toEqual({ amount: 10 });
   });
 });
 
@@ -366,5 +438,70 @@ describe("cache invalidation — money mutations invalidate 'Balance' (ADR-005/0
     expect(balanceCalls()).toBeGreaterThan(1);
 
     balanceSub.unsubscribe();
+  });
+});
+
+describe("loan mutations invalidate 'Balance' + the Transaction list (lend/repay/create post journal rows)", () => {
+  it('refetches /balance and /transactions after addLoan', async () => {
+    store = makeStore();
+
+    const balanceSub = store.dispatch(balanceApi.endpoints.getBalance.initiate());
+    const transactionsSub = store.dispatch(transactionsApi.endpoints.getTransactions.initiate({}));
+    await balanceSub;
+    await transactionsSub;
+    expect(balanceCalls()).toBe(1);
+    expect(transactionCalls()).toBe(1);
+
+    await store.dispatch(loansApi.endpoints.addLoan.initiate({ name: 'Friend', amount: 50 }));
+    await waitForBalanceCalls(2);
+    await waitForTransactionCalls(2);
+
+    expect(balanceCalls()).toBeGreaterThan(1);
+    expect(transactionCalls()).toBeGreaterThan(1);
+
+    balanceSub.unsubscribe();
+    transactionsSub.unsubscribe();
+  });
+
+  it('refetches /balance and /transactions after lendLoan', async () => {
+    store = makeStore();
+
+    const balanceSub = store.dispatch(balanceApi.endpoints.getBalance.initiate());
+    const transactionsSub = store.dispatch(transactionsApi.endpoints.getTransactions.initiate({}));
+    await balanceSub;
+    await transactionsSub;
+    expect(balanceCalls()).toBe(1);
+    expect(transactionCalls()).toBe(1);
+
+    await store.dispatch(loansApi.endpoints.lendLoan.initiate({ id: 4, amount: 25 }));
+    await waitForBalanceCalls(2);
+    await waitForTransactionCalls(2);
+
+    expect(balanceCalls()).toBeGreaterThan(1);
+    expect(transactionCalls()).toBeGreaterThan(1);
+
+    balanceSub.unsubscribe();
+    transactionsSub.unsubscribe();
+  });
+
+  it('refetches /balance and /transactions after repayLoan', async () => {
+    store = makeStore();
+
+    const balanceSub = store.dispatch(balanceApi.endpoints.getBalance.initiate());
+    const transactionsSub = store.dispatch(transactionsApi.endpoints.getTransactions.initiate({}));
+    await balanceSub;
+    await transactionsSub;
+    expect(balanceCalls()).toBe(1);
+    expect(transactionCalls()).toBe(1);
+
+    await store.dispatch(loansApi.endpoints.repayLoan.initiate({ id: 4, amount: 10 }));
+    await waitForBalanceCalls(2);
+    await waitForTransactionCalls(2);
+
+    expect(balanceCalls()).toBeGreaterThan(1);
+    expect(transactionCalls()).toBeGreaterThan(1);
+
+    balanceSub.unsubscribe();
+    transactionsSub.unsubscribe();
   });
 });

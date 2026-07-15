@@ -32,19 +32,29 @@ graph TD
       VList["index.jsx<br/>list (balance/target from /balance)"]
       VDetail["[id].jsx<br/>history + allocate / withdraw"]
     end
-    Cats["categories.jsx<br/>CRUD grouped by kind"]
+    subgraph Loans["loans/ (ADR-018)"]
+      LList["index.jsx<br/>list (amount/pending from /balance)"]
+      LNew["new.jsx<br/>name + amount + pre_existing"]
+      LDetail["[id].jsx<br/>history + repay / lend"]
+    end
     subgraph Teams["teams/ (ADR-012)"]
       TList["index.jsx<br/>list grouped owned / member-of + create"]
       TManage["[id].jsx<br/>owner: rename / members / roles / delete;<br/>else read-only member list"]
     end
-    Settings["settings.jsx<br/>currency, language, logout"]
+    subgraph Settings["settings/"]
+      SetIndex["index.jsx<br/>currency, language, logout"]
+      SetCats["categories.jsx<br/>CRUD grouped by kind (moved off the tab bar, ADR-018)"]
+    end
   end
 
   DashIndex --> DashActivity
   TxList --> TxNew
   TxList --> TxDetail
   VList --> VDetail
+  LList --> LNew
+  LList --> LDetail
   TList --> TManage
+  SetIndex --> SetCats
 ```
 
 **RBAC (ADR-012).** Every financial screen gates its write affordances through one seam,
@@ -84,8 +94,9 @@ flowchart LR
     EpT["transactions.js (Transaction; inval Balance)"]
     EpV["vaults.js (Vault, VaultHistory; inval Balance)"]
     EpC["categories.js (Category)"]
+    EpL["loans.js (Loan, LoanHistory; inval Balance + Transaction — ADR-018)"]
     EpE["events.js (Event; nothing invalidates it — ADR-017)"]
-    Base --- EpB & EpT & EpV & EpC & EpE
+    Base --- EpB & EpT & EpV & EpC & EpL & EpE
   end
 
   Auth["reducers/auth<br/>{ token, bypass }"] -->|token| Base
@@ -99,9 +110,11 @@ flowchart LR
   H4 -. "invalidatesTags ['Balance','Vault','VaultHistory']" .-> H1
 ```
 
-**Cache tags:** `Balance`, `Transaction`, `Vault`, `VaultHistory`, `Category`, `Event`. Per-vault
-balances and targets come from `GET /balance` (not `GET /vaults`), so any mutation that moves money
-invalidates `Balance`. `Event` is the one tag nothing ever invalidates — `/events` is read-only,
+**Cache tags:** `Balance`, `Transaction`, `Vault`, `VaultHistory`, `Loan`, `LoanHistory`,
+`Category`, `Event`. Per-vault balances/targets and per-loan `amount`/`pending` figures come from
+`GET /balance` (not `GET /vaults` / `GET /loans`), so any mutation that moves money invalidates
+`Balance`; loan movements additionally invalidate `Transaction` because the backend writes
+`loan_id` journal rows into the ledger (excluded from balance math and client totals — ADR-018). `Event` is the one tag nothing ever invalidates — `/events` is read-only,
 append-only server history that no local mutation can know about, so feed freshness comes from the
 app-wide `refetchOnMountOrArgChange` (on-focus refetch) plus pull-to-refresh, not cache invalidation
 (ADR-017).
@@ -135,15 +148,18 @@ balance-manager/                 # app name: balance-mobile
 │   ├── _layout.jsx              # providers + cold-start bootstrap + splash gate (router infra)
 │   ├── index.jsx                # boot redirect (router infra)
 │   ├── (auth)/      _layout.jsx  login.jsx
-│   └── (tabs)/      _layout.jsx  categories.jsx  settings.jsx
+│   └── (tabs)/      _layout.jsx
 │        dashboard/{_layout,index,activity}.jsx   # index = GET /balance + bell/badge; activity = GET /events feed
 │        transactions/{index,new,[id]}.jsx   vaults/{index,new,[id]}.jsx
+│        loans/{_layout,index,new,[id]}.jsx       # lent-out money (ADR-018; took the categories tab slot)
+│        settings/{_layout,index,categories}.jsx  # categories management now nests under settings
 │        # each (tabs) screen file is a 1-line shim: `export { default } from '../../src/screens/X'`
 ├── src/                         # ALL real code lives here
 │   ├── screens/                 # screen bodies (composition + data orchestration), mirrors team layout
 │   │   ├── Dashboard/index.jsx   Activity/index.jsx   # feed screen (ADR-017)
 │   │   ├── Transactions/{ListScreen,NewScreen,EditScreen}.jsx  TransactionForm.jsx
 │   │   ├── Vaults/{ListScreen,NewScreen,DetailScreen}.jsx
+│   │   ├── Loans/{ListScreen,NewScreen,DetailScreen}.jsx   # lent-out money (ADR-018)
 │   │   ├── Teams/{ListScreen,ManageScreen}.jsx   # team management (ADR-012)
 │   │   ├── Categories/index.jsx   Settings/index.jsx
 │   ├── components/
@@ -152,7 +168,7 @@ balance-manager/                 # app name: balance-mobile
 │   │   └── theme.js             # light/dark palettes + makeColors(scheme, accent) + PRESET_TEAM_COLORS; spacing/radius/font (ADR-013)
 │   ├── store/                   # configureStore + RTKQ middleware + redux-persist + setupListeners
 │   ├── services/
-│   │   ├── api/                 # baseApi.js + balance/transactions/vaults/categories/events.js (injectEndpoints)
+│   │   ├── api/                 # baseApi.js + balance/transactions/vaults/loans/categories/events.js (injectEndpoints)
 │   │   └── storage/             # secure.js (token), prefs.js (cache/prefs)
 │   ├── reducers/{auth,context,prefs,activity}/  # auth (token/user), context (activeTeamId), prefs (themeMode — ADR-013), activity (per-context lastSeen — ADR-017)
 │   ├── permissions/             # RBAC seam: usePermissions + pure can*() matrix (ADR-012)

@@ -44,3 +44,4 @@ Statuses: `Proposed` · `Accepted` · `Deprecated` · `Superseded by ADR-NNN`.
 | [ADR-015](ADR-015-shopping-lists-pre-expense.md) | Shopping lists: pre-expense checklists with a server-side checkout (+ history month filter) | Accepted |
 | [ADR-016](ADR-016-brand-identity.md) | Brand identity: Balance Ring mark, generated icon/splash assets, branded loader | Accepted |
 | [ADR-017](ADR-017-activity-feed.md) | Activity feed (`GET /events`) as the notification surface (polling now, Expo Push north star) | Accepted |
+| [ADR-018](ADR-018-loans-lent-money.md) | Loans: lent-out money as a first-class entity (vault-mirror balance math) | Accepted |

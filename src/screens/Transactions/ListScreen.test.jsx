@@ -24,9 +24,10 @@ const jsonResponse = (body, status = 200) =>
 // Dates are relative to the current year so the default filter (this year) is clock-independent.
 const Y = new Date().getFullYear();
 const txs = [
-  { id: 1, type: 'expense', amount: 40, description: 'JulyTx', occurred_at: `${Y}-07-15` },
-  { id: 2, type: 'expense', amount: 30, description: 'MarchTx', occurred_at: `${Y}-03-10` },
-  { id: 3, type: 'income', amount: 90, description: 'LastYearTx', occurred_at: `${Y - 1}-12-20` },
+  { id: 1, type: 'expense', amount: 40, description: 'JulyTx', occurred_at: `${Y}-07-15`, loan_id: null },
+  { id: 2, type: 'expense', amount: 30, description: 'MarchTx', occurred_at: `${Y}-03-10`, loan_id: null },
+  { id: 3, type: 'income', amount: 90, description: 'LastYearTx', occurred_at: `${Y - 1}-12-20`, loan_id: null },
+  { id: 4, type: 'expense', amount: 25, description: 'LoanOut', occurred_at: `${Y}-07-05`, loan_id: 1 },
 ];
 
 beforeEach(() => {
@@ -66,4 +67,34 @@ it('shows every year when "All years" is picked from the dropdown', async () => 
   expect(screen.getByText('JulyTx')).toBeTruthy();
   expect(screen.getByText('MarchTx')).toBeTruthy();
   expect(screen.getByText('LastYearTx')).toBeTruthy();
+});
+
+it('totals bar shows net/income/expense over visible rows, excluding loan journal rows', async () => {
+  renderWithStore(<TransactionsList />);
+  await screen.findByText('JulyTx');
+
+  // Default view = current year, all months: JulyTx (-40), MarchTx (-30) count; LoanOut (loan_id
+  // set, -25) is excluded from every total even though it's rendered in the list.
+  expect(screen.getByText('LoanOut')).toBeTruthy();
+  expect(screen.getByText('$70.00')).toBeTruthy(); // expense total
+  expect(screen.getByText('$0.00')).toBeTruthy(); // income total
+  expect(screen.getByText('-$70.00')).toBeTruthy(); // net = income - expense
+});
+
+it('the loans chip filters the list down to loan_id rows only', async () => {
+  renderWithStore(<TransactionsList />);
+  await screen.findByText('JulyTx');
+
+  fireEvent.press(screen.getByText('transactions.loans'));
+
+  expect(screen.getByText('LoanOut')).toBeTruthy();
+  expect(screen.queryByText('JulyTx')).toBeNull();
+  expect(screen.queryByText('MarchTx')).toBeNull();
+});
+
+it('renders a "Loan" badge on journal rows but not on regular rows', async () => {
+  renderWithStore(<TransactionsList />);
+  await screen.findByText('JulyTx');
+
+  expect(screen.getAllByText('transactions.loan')).toHaveLength(1);
 });

@@ -85,7 +85,7 @@ export default function Categories() {
 
   return (
     <Screen scroll>
-      <ScreenHeader title={t('categories.title')} />
+      <ScreenHeader back title={t('categories.title')} />
 
       {canAdd ? (
         <Card>

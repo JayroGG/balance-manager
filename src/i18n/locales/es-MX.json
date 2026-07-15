@@ -19,6 +19,7 @@
     "transactions": "Movimientos",
     "vaults": "Bóvedas",
     "categories": "Categorías",
+    "loans": "Préstamos",
     "teams": "Equipos",
     "settings": "Ajustes"
   },
@@ -26,6 +27,7 @@
     "title": "Inicio",
     "total": "Total",
     "available": "Disponible",
+    "lent": "Prestado",
     "vaults": "Bóvedas",
     "emptyVaults": "Aún no hay bóvedas"
   },
@@ -45,7 +47,10 @@
     "empty": "Aún no hay movimientos",
     "amountPositive": "El monto debe ser mayor que 0",
     "allYears": "Todos los años",
-    "lists": "Listas de compra"
+    "lists": "Listas de compra",
+    "loans": "Préstamos",
+    "loan": "Préstamo",
+    "net": "Balance"
   },
   "lists": {
     "title": "Listas de compra",
@@ -94,6 +99,29 @@
     "deleteNeedsZero": "Retira todo antes de eliminar",
     "empty": "Aún no hay bóvedas",
     "deleteConfirm": "¿Eliminar esta bóveda?"
+  },
+  "loans": {
+    "title": "Préstamos",
+    "new": "Nuevo préstamo",
+    "edit": "Editar préstamo",
+    "name": "Nombre",
+    "amount": "Monto",
+    "pending": "Pendiente",
+    "repaid": "Pagado",
+    "totalLent": "Total prestado",
+    "lend": "Prestar",
+    "repay": "Abonar",
+    "lendDone": "Prestado",
+    "repayDone": "Abonado",
+    "lendHint": "Monto a prestar desde tu dinero disponible",
+    "repayHint": "Pago recibido de este préstamo",
+    "alreadyLent": "Ya prestado (aún no está en tu balance)",
+    "alreadyLentHint": "Registra el dinero como un ingreso de apertura y lo marca todo pendiente — tu disponible no cambia.",
+    "history": "Historial",
+    "noHistory": "Aún no hay movimientos",
+    "deleteNeedsZero": "Recupera lo pendiente antes de eliminar",
+    "empty": "Aún no hay préstamos",
+    "deleteConfirm": "¿Eliminar este préstamo?"
   },
   "categories": {
     "title": "Categorías",
@@ -172,6 +200,10 @@
     "vault_deleted": "{{actor}} eliminó la bóveda {{name}}",
     "vault_allocated": "{{actor}} movió {{amount}} a {{name}}",
     "vault_withdrawn": "{{actor}} retiró {{amount}} de {{name}}",
+    "loan_created": "{{actor}} creó el préstamo {{name}}",
+    "loan_deleted": "{{actor}} eliminó el préstamo {{name}}",
+    "loan_lent": "{{actor}} prestó {{amount}} a {{name}}",
+    "loan_repaid": "{{actor}} recibió {{amount}} de {{name}}",
     "shopping_list_created": "{{actor}} inició la lista {{name}}",
     "shopping_list_deleted": "{{actor}} eliminó la lista {{name}}",
     "shopping_list_checked_out": "{{actor}} pagó {{name}} — {{amount}}",
