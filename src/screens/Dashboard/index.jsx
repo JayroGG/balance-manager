@@ -1,5 +1,7 @@
 import { useCallback, useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useDispatch } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import { useGetBalanceQuery } from '../../services/api/balance';
@@ -7,6 +9,7 @@ import { useGetTeamsQuery } from '../../services/api/teams';
 import { setActiveTeam } from '../../reducers/context';
 import { useActiveTeamId } from '../../hooks/useActiveTeamId';
 import { useActiveRole } from '../../hooks/useActiveRole';
+import { useUnreadActivity } from '../../hooks/useUnreadActivity';
 import { useTheme } from '../../hooks/useTheme';
 import { Screen, ScreenHeader, Card, Chip, MoneyText, SectionTitle, Muted, QueryBoundary } from '../../components/ui';
 import { DEFAULT_ACCENT, font, spacing } from '../../components/theme';
@@ -37,12 +40,14 @@ const VaultRow = ({ vault, currency }) => {
 export default function Dashboard() {
   const { t } = useTranslation();
   const dispatch = useDispatch();
+  const router = useRouter();
   const teamId = useActiveTeamId();
   const role = useActiveRole(); // null in personal context; 'owner'|'member'|'guest' in a team
   const { colors } = useTheme();
   const styles = makeStyles(colors);
   const { data: teams } = useGetTeamsQuery();
   const { data, isLoading, error, refetch } = useGetBalanceQuery(teamId);
+  const unread = useUnreadActivity();
   // Drive the spinner only from a user pull — not the auto refetch-on-mount, which on iOS
   // leaves a programmatic RefreshControl spinner stuck until the user drags.
   const [refreshing, setRefreshing] = useState(false);
@@ -58,7 +63,19 @@ export default function Dashboard() {
 
   return (
     <Screen scroll refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
-      <ScreenHeader title={t('dashboard.title')} />
+      <ScreenHeader
+        title={t('dashboard.title')}
+        right={
+          <Pressable hitSlop={10} testID="activity-link" onPress={() => router.push('/(tabs)/dashboard/activity')}>
+            <Ionicons name="notifications-outline" size={24} color={colors.primary} />
+            {unread > 0 ? (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{unread > 99 ? '99+' : unread}</Text>
+              </View>
+            ) : null}
+          </Pressable>
+        }
+      />
 
       <ScrollView
         horizontal
@@ -127,4 +144,17 @@ const makeStyles = (colors) =>
     fill: { height: 6, backgroundColor: colors.success, borderRadius: 999 },
     vaultTarget: { fontSize: font.sm, color: colors.muted, marginTop: spacing(0.75) },
     empty: { color: colors.muted, paddingVertical: spacing(2) },
+    badge: {
+      position: 'absolute',
+      top: -4,
+      right: -6,
+      minWidth: 16,
+      height: 16,
+      borderRadius: 8,
+      backgroundColor: colors.danger,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 3,
+    },
+    badgeText: { color: '#fff', fontSize: 10, fontWeight: '800' },
   });

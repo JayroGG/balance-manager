@@ -6,6 +6,7 @@ import { useLogoutMutation } from '../../services/api/auth';
 import { baseApi } from '../../services/api/baseApi';
 import { clearAuth } from '../../reducers/auth';
 import { resetContext } from '../../reducers/context';
+import { resetActivity } from '../../reducers/activity';
 import { setThemeMode, selectThemeMode, THEME_MODES } from '../../reducers/prefs';
 import { useActiveTeamId } from '../../hooks/useActiveTeamId';
 import { useTheme } from '../../hooks/useTheme';
@@ -55,6 +56,7 @@ export default function Settings() {
     await clearToken();
     dispatch(clearAuth());
     dispatch(resetContext());
+    dispatch(resetActivity());
     dispatch(baseApi.util.resetApiState());
   };
 

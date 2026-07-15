@@ -16,12 +16,14 @@ import '../services/api'; // side-effect: register all entity endpoints (injectE
 import authReducer from '../reducers/auth';
 import contextReducer from '../reducers/context';
 import prefsReducer from '../reducers/prefs';
+import activityReducer from '../reducers/activity';
 
 const rootReducer = combineReducers({
   [baseApi.reducerPath]: baseApi.reducer,
   auth: authReducer,
   context: contextReducer,
   prefs: prefsReducer,
+  activity: activityReducer,
 });
 
 // Persist the RTK Query cache only → instant cold-start paint + offline reads (ADR-007).
@@ -30,7 +32,7 @@ const persistConfig = {
   key: 'root',
   version: 1,
   storage: AsyncStorage,
-  whitelist: [baseApi.reducerPath, 'context', 'prefs'],
+  whitelist: [baseApi.reducerPath, 'context', 'prefs', 'activity'],
 };
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

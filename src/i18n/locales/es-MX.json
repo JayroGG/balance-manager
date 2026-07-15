@@ -159,5 +159,30 @@
     "role_owner": "Propietario",
     "role_member": "Miembro",
     "role_guest": "Invitado"
+  },
+  "activity": {
+    "title": "Actividad",
+    "empty": "Aún no hay nada — las acciones en este contexto aparecerán aquí.",
+    "you": "Tú",
+    "generic": "{{actor}} · {{entity}} {{action}}",
+    "transaction_created": "{{actor}} agregó {{what}} — {{amount}}",
+    "transaction_updated": "{{actor}} actualizó {{what}} — {{amount}}",
+    "transaction_deleted": "{{actor}} eliminó {{what}} — {{amount}}",
+    "vault_created": "{{actor}} creó la bóveda {{name}}",
+    "vault_deleted": "{{actor}} eliminó la bóveda {{name}}",
+    "vault_allocated": "{{actor}} movió {{amount}} a {{name}}",
+    "vault_withdrawn": "{{actor}} retiró {{amount}} de {{name}}",
+    "shopping_list_created": "{{actor}} inició la lista {{name}}",
+    "shopping_list_deleted": "{{actor}} eliminó la lista {{name}}",
+    "shopping_list_checked_out": "{{actor}} pagó {{name}} — {{amount}}",
+    "shopping_list_item_created": "{{actor}} agregó {{name}}",
+    "shopping_list_item_updated": "{{actor}} actualizó {{name}}",
+    "shopping_list_item_checked": "{{actor}} marcó {{name}}",
+    "shopping_list_item_deleted": "{{actor}} quitó {{name}}",
+    "team_renamed": "{{actor}} renombró el equipo a {{name}}",
+    "team_updated": "{{actor}} actualizó el equipo",
+    "team_member_added": "{{actor}} agregó a un miembro como {{role}}",
+    "team_role_changed": "{{actor}} cambió el rol de un miembro a {{role}}",
+    "team_member_removed": "{{actor}} quitó a un miembro"
   }
 }
