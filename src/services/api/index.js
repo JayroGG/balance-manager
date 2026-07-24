@@ -8,3 +8,4 @@ export * from './transactions';
 export * from './vaults';
 export * from './shoppingLists';
 export * from './events';
+export * from './loans';
