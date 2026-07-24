@@ -52,3 +52,6 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# temp PR message (uncommitted, copy-paste scratch)
+PR_MESSAGE.md
