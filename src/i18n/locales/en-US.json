@@ -29,7 +29,10 @@
     "available": "Available",
     "lent": "Lent out",
     "vaults": "Vaults",
-    "emptyVaults": "No vaults yet"
+    "emptyVaults": "No vaults yet",
+    "shoppingLists": "Shopping lists",
+    "seeAll": "See all",
+    "emptyLists": "No open lists"
   },
   "transactions": {
     "title": "Transactions",

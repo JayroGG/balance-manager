@@ -29,7 +29,10 @@
     "available": "Disponible",
     "lent": "Prestado",
     "vaults": "Bóvedas",
-    "emptyVaults": "Aún no hay bóvedas"
+    "emptyVaults": "Aún no hay bóvedas",
+    "shoppingLists": "Listas de compra",
+    "seeAll": "Ver todas",
+    "emptyLists": "No hay listas abiertas"
   },
   "transactions": {
     "title": "Movimientos",

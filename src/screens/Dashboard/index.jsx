@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useDispatch } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import { useGetBalanceQuery } from '../../services/api/balance';
+import { useGetShoppingListsQuery } from '../../services/api/shoppingLists';
 import { useGetTeamsQuery } from '../../services/api/teams';
 import { setActiveTeam } from '../../reducers/context';
 import { useActiveTeamId } from '../../hooks/useActiveTeamId';
@@ -47,6 +48,7 @@ export default function Dashboard() {
   const styles = makeStyles(colors);
   const { data: teams } = useGetTeamsQuery();
   const { data, isLoading, error, refetch } = useGetBalanceQuery(teamId);
+  const { data: openLists } = useGetShoppingListsQuery({ status: 'open', team_id: teamId });
   const unread = useUnreadActivity();
   // Drive the spinner only from a user pull — not the auto refetch-on-mount, which on iOS
   // leaves a programmatic RefreshControl spinner stuck until the user drags.
@@ -129,6 +131,28 @@ export default function Dashboard() {
           <Text style={styles.empty}>{t('dashboard.emptyVaults')}</Text>
         )}
       </QueryBoundary>
+
+      <View style={styles.sectionHead}>
+        <SectionTitle>{t('dashboard.shoppingLists')}</SectionTitle>
+        <Pressable onPress={() => router.push('/(tabs)/transactions/lists')}>
+          <Text style={styles.seeAll}>{t('dashboard.seeAll')}</Text>
+        </Pressable>
+      </View>
+      {openLists?.length ? (
+        openLists.map((list) => (
+          <Card
+            key={list.id}
+            onPress={() => router.push({ pathname: '/(tabs)/transactions/lists/[id]', params: { id: list.id } })}
+          >
+            <View style={styles.rowBetween}>
+              <Text style={styles.listName} numberOfLines={1}>{list.name}</Text>
+              <Ionicons name="chevron-forward" size={20} color={colors.muted} />
+            </View>
+          </Card>
+        ))
+      ) : (
+        <Text style={styles.empty}>{t('dashboard.emptyLists')}</Text>
+      )}
     </Screen>
   );
 }
@@ -150,6 +174,10 @@ const makeStyles = (colors) =>
     fill: { height: 6, backgroundColor: colors.success, borderRadius: 999 },
     vaultTarget: { fontSize: font.sm, color: colors.muted, marginTop: spacing(0.75) },
     empty: { color: colors.muted, paddingVertical: spacing(2) },
+    sectionHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    seeAll: { fontSize: font.sm, fontWeight: '700', color: colors.primary },
+    rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    listName: { flex: 1, fontSize: font.md, fontWeight: '700', color: colors.text },
     badge: {
       position: 'absolute',
       top: -4,
