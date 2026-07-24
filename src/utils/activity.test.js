@@ -1,4 +1,9 @@
 import { eventMessage, eventHref } from './activity';
+import { formatMoney } from './money';
+
+// Derive the currency string the same way eventMessage does, so the assertion is ICU-independent
+// ('$12.50' with full ICU vs 'USD 12.50' in the bare Node test env). See money.test.js.
+const money = (amount) => formatMoney(amount, 'USD');
 
 const t = (key, vals) => [key, JSON.stringify(vals)].join(' ');
 const actor = 'Ana';
@@ -14,7 +19,7 @@ describe('eventMessage — catalog (contract §2)', () => {
     const msg = eventMessage(event, { t, actor, currency });
     expect(msg).toContain('activity.transaction_created');
     expect(msg).toContain('"what":"Pizza"');
-    expect(msg).toContain('"amount":"$12.50"');
+    expect(msg).toContain(`"amount":"${money(12.5)}"`);
   });
 
   it('transaction created falls back to the type label when no description', () => {
@@ -27,7 +32,7 @@ describe('eventMessage — catalog (contract §2)', () => {
     const event = { entity: 'vault', action: 'allocated', summary: { name: 'Emergency', amount: 50 } };
     const msg = eventMessage(event, { t, actor, currency });
     expect(msg).toContain('activity.vault_allocated');
-    expect(msg).toContain('"amount":"$50.00"');
+    expect(msg).toContain(`"amount":"${money(50)}"`);
     expect(msg).toContain('"name":"Emergency"');
   });
 
@@ -61,7 +66,7 @@ describe('eventMessage — catalog (contract §2)', () => {
     const event = { entity: 'loan', action: 'lent', summary: { name: 'Car repair', amount: 100 } };
     const msg = eventMessage(event, { t, actor, currency });
     expect(msg).toContain('activity.loan_lent');
-    expect(msg).toContain('"amount":"$100.00"');
+    expect(msg).toContain(`"amount":"${money(100)}"`);
     expect(msg).toContain('"name":"Car repair"');
   });
 
@@ -69,7 +74,7 @@ describe('eventMessage — catalog (contract §2)', () => {
     const event = { entity: 'loan', action: 'repaid', summary: { name: 'Car repair', amount: 40 } };
     const msg = eventMessage(event, { t, actor, currency });
     expect(msg).toContain('activity.loan_repaid');
-    expect(msg).toContain('"amount":"$40.00"');
+    expect(msg).toContain(`"amount":"${money(40)}"`);
     expect(msg).toContain('"name":"Car repair"');
   });
 
