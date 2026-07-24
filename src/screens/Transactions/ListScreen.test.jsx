@@ -3,7 +3,12 @@ jest.mock('../../utils/config', () => ({ Config: { API_URL: 'http://localhost', 
 
 import { renderWithStore, screen, fireEvent } from '../../test-utils/renderWithStore';
 import { monthShortNames } from '../../utils/dates';
+import { formatMoney } from '../../utils/money';
 import TransactionsList from './ListScreen';
+
+// The totals render via formatMoney, whose currency string is ICU-dependent ('$70.00' with full
+// ICU vs 'USD 70.00' in the bare Node test env) — derive the expected text the same way.
+const money = (amount) => formatMoney(amount, 'USD');
 
 // Derive the July label the same way the screen does, so the test is locale-independent.
 const julyLabel = monthShortNames()[6];
@@ -76,9 +81,9 @@ it('totals bar shows net/income/expense over visible rows, excluding loan journa
   // Default view = current year, all months: JulyTx (-40), MarchTx (-30) count; LoanOut (loan_id
   // set, -25) is excluded from every total even though it's rendered in the list.
   expect(screen.getByText('LoanOut')).toBeTruthy();
-  expect(screen.getByText('$70.00')).toBeTruthy(); // expense total
-  expect(screen.getByText('$0.00')).toBeTruthy(); // income total
-  expect(screen.getByText('-$70.00')).toBeTruthy(); // net = income - expense
+  expect(screen.getByText(money(70))).toBeTruthy(); // expense total
+  expect(screen.getByText(money(0))).toBeTruthy(); // income total
+  expect(screen.getByText(money(-70))).toBeTruthy(); // net = income - expense
 });
 
 it('the loans chip filters the list down to loan_id rows only', async () => {

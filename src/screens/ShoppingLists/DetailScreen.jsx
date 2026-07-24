@@ -51,6 +51,12 @@ export default function ShoppingListDetail() {
   const [price, setPrice] = useState('');
   const [qty, setQty] = useState('');
 
+  // Edit-item form
+  const [editingId, setEditingId] = useState(null);
+  const [editName, setEditName] = useState('');
+  const [editQty, setEditQty] = useState('');
+  const [editPrice, setEditPrice] = useState('');
+
   // Checkout form
   const [showCheckout, setShowCheckout] = useState(false);
   const [amount, setAmount] = useState('');
@@ -83,6 +89,32 @@ export default function ShoppingListDetail() {
 
   const toggle = (item) =>
     updateItem({ id: item.id, list_id: id, team_id: teamId, checked: !item.checked });
+
+  const startEdit = (item) => {
+    setEditingId(item.id);
+    setEditName(item.name);
+    setEditQty(item.qty != null ? String(item.qty) : '');
+    setEditPrice(item.price != null ? String(item.price) : '');
+  };
+
+  const cancelEdit = () => setEditingId(null);
+
+  const saveEdit = async (item) => {
+    if (!editName.trim()) return;
+    const body = { id: item.id, list_id: id, team_id: teamId, name: editName.trim() };
+    if (editQty !== '' && Number(editQty) > 0) body.qty = Number(editQty);
+    if (editPrice === '') {
+      body.price = null;
+    } else if (Number(editPrice) >= 0) {
+      body.price = Number(editPrice);
+    }
+    try {
+      await updateItem(body).unwrap();
+      setEditingId(null);
+    } catch (e) {
+      Alert.alert(t('common.error'), e?.message ?? '');
+    }
+  };
 
   const openCheckout = () => {
     setAmount(estTotal > 0 ? String(estTotal.toFixed(2)) : '');
@@ -149,36 +181,87 @@ export default function ShoppingListDetail() {
         {(items ?? []).length === 0 ? <Muted style={styles.hint}>{t('lists.noItems')}</Muted> : null}
         {(items ?? []).map((item) => (
           <Card key={item.id}>
-            <View style={styles.rowBetween}>
-              <Pressable
-                style={styles.itemMain}
-                disabled={!editable}
-                onPress={() => toggle(item)}
-                testID={`item-toggle-${item.id}`}
-              >
-                <Ionicons
-                  name={item.checked ? 'checkbox' : 'square-outline'}
-                  size={22}
-                  color={item.checked ? colors.primary : colors.muted}
+            {editingId === item.id ? (
+              <View>
+                <Field
+                  label={t('lists.itemName')}
+                  value={editName}
+                  onChangeText={setEditName}
+                  placeholder={t('lists.itemName')}
+                  testID={`edit-name-${item.id}`}
                 />
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.itemName, item.checked && styles.itemChecked]} numberOfLines={1}>
-                    {item.name}
-                  </Text>
-                  {item.price != null ? (
-                    <Text style={styles.itemMeta}>
-                      {(Number(item.qty) || 1) > 1 ? `${item.qty} × ` : ''}
-                      {formatMoney(item.price, currency)}
-                    </Text>
-                  ) : null}
+                <View style={styles.inlineFields}>
+                  <View style={{ flex: 1 }}>
+                    <Field
+                      label={t('lists.qty')}
+                      value={editQty}
+                      onChangeText={setEditQty}
+                      keyboardType="decimal-pad"
+                      placeholder="1"
+                      testID={`edit-qty-${item.id}`}
+                    />
+                  </View>
+                  <View style={{ flex: 2 }}>
+                    <Field
+                      label={t('lists.price')}
+                      value={editPrice}
+                      onChangeText={setEditPrice}
+                      keyboardType="decimal-pad"
+                      placeholder="0.00"
+                      testID={`edit-price-${item.id}`}
+                    />
+                  </View>
                 </View>
-              </Pressable>
-              {editable ? (
-                <Pressable hitSlop={10} onPress={() => deleteItem({ id: item.id, list_id: id, team_id: teamId })}>
-                  <Ionicons name="trash-outline" size={20} color={colors.danger} />
+                <View style={styles.inlineFields}>
+                  <View style={{ flex: 1 }}>
+                    <AppButton
+                      title={t('common.save')}
+                      onPress={() => saveEdit(item)}
+                      disabled={!editName.trim()}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <AppButton title={t('common.cancel')} variant="ghost" onPress={cancelEdit} />
+                  </View>
+                </View>
+              </View>
+            ) : (
+              <View style={styles.rowBetween}>
+                <Pressable
+                  style={styles.itemMain}
+                  disabled={!editable}
+                  onPress={() => toggle(item)}
+                  testID={`item-toggle-${item.id}`}
+                >
+                  <Ionicons
+                    name={item.checked ? 'checkbox' : 'square-outline'}
+                    size={22}
+                    color={item.checked ? colors.primary : colors.muted}
+                  />
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.itemName, item.checked && styles.itemChecked]} numberOfLines={1}>
+                      {item.name}
+                    </Text>
+                    {item.price != null ? (
+                      <Text style={styles.itemMeta}>
+                        {(Number(item.qty) || 1) > 1 ? `${item.qty} × ` : ''}
+                        {formatMoney(item.price, currency)}
+                      </Text>
+                    ) : null}
+                  </View>
                 </Pressable>
-              ) : null}
-            </View>
+                {editable ? (
+                  <View style={styles.itemActions}>
+                    <Pressable hitSlop={10} onPress={() => startEdit(item)} testID={`item-edit-${item.id}`}>
+                      <Ionicons name="create-outline" size={20} color={colors.primary} />
+                    </Pressable>
+                    <Pressable hitSlop={10} onPress={() => deleteItem({ id: item.id, list_id: id, team_id: teamId })}>
+                      <Ionicons name="trash-outline" size={20} color={colors.danger} />
+                    </Pressable>
+                  </View>
+                ) : null}
+              </View>
+            )}
           </Card>
         ))}
 
@@ -248,6 +331,7 @@ const makeStyles = (colors) =>
   StyleSheet.create({
     rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     itemMain: { flexDirection: 'row', alignItems: 'center', gap: spacing(1.25), flex: 1 },
+    itemActions: { flexDirection: 'row', alignItems: 'center', gap: spacing(1.25) },
     itemName: { fontSize: font.md, fontWeight: '600', color: colors.text },
     itemChecked: { textDecorationLine: 'line-through', color: colors.muted },
     itemMeta: { fontSize: font.sm, color: colors.muted, marginTop: spacing(0.25) },
