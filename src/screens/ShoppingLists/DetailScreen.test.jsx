@@ -61,6 +61,25 @@ it('toggles an item by PUTting { checked } to /shopping-list-items/:id', async (
   await expect(put.clone().json()).resolves.toEqual({ checked: true });
 });
 
+it('edits an item by PUTting the new name to /shopping-list-items/:id', async () => {
+  mockApi({ list: openList, items: openItems });
+  renderWithStore(<ShoppingListDetail />);
+
+  fireEvent.press(await screen.findByTestId('item-edit-32'));
+
+  const name = await screen.findByTestId('edit-name-32');
+  fireEvent.changeText(name, 'Whole Wheat Bread');
+  fireEvent.press(screen.getByText('common.save'));
+
+  await waitFor(() => {
+    const put = requests().find((r) => /\/shopping-list-items\/32$/.test(r.url) && r.method === 'PUT');
+    expect(put).toBeDefined();
+  });
+  const put = requests().find((r) => /\/shopping-list-items\/32$/.test(r.url) && r.method === 'PUT');
+  const body = await put.clone().json();
+  expect(body.name).toBe('Whole Wheat Bread');
+});
+
 it('checks out with the edited amount → POST /shopping-lists/:id/checkout, no team_id in body', async () => {
   mockApi({ list: openList, items: openItems });
   renderWithStore(<ShoppingListDetail />);
