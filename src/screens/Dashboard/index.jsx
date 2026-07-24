@@ -134,7 +134,7 @@ export default function Dashboard() {
 
       <View style={styles.sectionHead}>
         <SectionTitle>{t('dashboard.shoppingLists')}</SectionTitle>
-        <Pressable onPress={() => router.push('/(tabs)/transactions/lists')}>
+        <Pressable onPress={() => router.navigate('/(tabs)/transactions/lists')}>
           <Text style={styles.seeAll}>{t('dashboard.seeAll')}</Text>
         </Pressable>
       </View>
@@ -142,7 +142,7 @@ export default function Dashboard() {
         openLists.map((list) => (
           <Card
             key={list.id}
-            onPress={() => router.push({ pathname: '/(tabs)/transactions/lists/[id]', params: { id: list.id } })}
+            onPress={() => router.navigate({ pathname: '/(tabs)/transactions/lists/[id]', params: { id: list.id } })}
           >
             <View style={styles.rowBetween}>
               <Text style={styles.listName} numberOfLines={1}>{list.name}</Text>
