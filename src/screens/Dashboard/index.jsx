@@ -11,6 +11,7 @@ import { setActiveTeam } from '../../reducers/context';
 import { useActiveTeamId } from '../../hooks/useActiveTeamId';
 import { useActiveRole } from '../../hooks/useActiveRole';
 import { useUnreadActivity } from '../../hooks/useUnreadActivity';
+import { useContextReady } from '../../hooks/useContextReady';
 import { useTheme } from '../../hooks/useTheme';
 import {
   Screen,
@@ -22,6 +23,8 @@ import {
   SectionTitle,
   Muted,
   QueryBoundary,
+  Skeleton,
+  StaleBadge,
 } from '../../components/ui';
 import { DEFAULT_ACCENT, font, spacing } from '../../components/theme';
 
@@ -60,7 +63,9 @@ export default function Dashboard() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
   const { data: teams } = useGetTeamsQuery();
-  const { data, isLoading, error, refetch } = useGetBalanceQuery(teamId);
+  const balanceQuery = useGetBalanceQuery(teamId);
+  const { data, isLoading, error, refetch } = balanceQuery;
+  const { confirmed, stale, offline, lastUpdated } = useContextReady(balanceQuery);
   const { data: openLists } = useGetShoppingListsQuery({ status: 'open', team_id: teamId });
   const unread = useUnreadActivity();
   // Drive the spinner only from a user pull — not the auto refetch-on-mount, which on iOS
@@ -97,21 +102,27 @@ export default function Dashboard() {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.switch}
       >
-        <Chip
-          label={t('context.personal')}
-          active={teamId == null}
-          dot={DEFAULT_ACCENT}
-          onPress={() => dispatch(setActiveTeam(null))}
-        />
-        {teams?.map((team) => (
-          <Chip
-            key={team.id}
-            label={team.name}
-            active={teamId === team.id}
-            dot={team.color ?? undefined}
-            onPress={() => dispatch(setActiveTeam(team.id))}
-          />
-        ))}
+        {teams === undefined ? (
+          <Skeleton width={100} height={32} radius={999} />
+        ) : (
+          <>
+            <Chip
+              label={t('context.personal')}
+              active={teamId == null}
+              dot={DEFAULT_ACCENT}
+              onPress={() => dispatch(setActiveTeam(null))}
+            />
+            {teams.map((team) => (
+              <Chip
+                key={team.id}
+                label={team.name}
+                active={teamId === team.id}
+                dot={team.color ?? undefined}
+                onPress={() => dispatch(setActiveTeam(team.id))}
+              />
+            ))}
+          </>
+        )}
       </ScrollView>
 
       {role ? (
@@ -121,38 +132,60 @@ export default function Dashboard() {
         </Muted>
       ) : null}
 
-      <QueryBoundary isLoading={isLoading && !data} error={error} onRetry={refetch}>
-        <Card style={styles.hero}>
-          <CyclingFigure
-            testID="hero-cycle"
-            currency={currency}
-            dotColor={colors.primaryText}
-            labelStyle={styles.heroLabel}
-            valueStyle={styles.heroTotal}
-            steps={[
-              { key: 'total', label: t('dashboard.total'), amount: data?.total, color: colors.primaryText },
-              { key: 'available', label: t('dashboard.available'), amount: data?.available, color: colors.primaryText },
-              ...(data?.lent > 0
-                ? [{ key: 'lent', label: t('dashboard.lent'), amount: data.lent, color: colors.primaryText }]
-                : []),
-            ]}
-          />
-        </Card>
+      {!confirmed ? (
+        <>
+          <Card style={styles.hero}>
+            <Skeleton width={80} height={font.sm} style={styles.heroLabelSkeleton} />
+            <Skeleton width={160} height={font.hero} style={styles.heroValueSkeleton} />
+          </Card>
 
-        <SectionTitle>{t('dashboard.vaults')}</SectionTitle>
-        {data?.vaults?.length ? (
-          data.vaults.map((v) => (
-            <VaultRow
-              key={v.id}
-              vault={v}
+          <SectionTitle>{t('dashboard.vaults')}</SectionTitle>
+          {[0, 1].map((i) => (
+            <Card key={`vault-skeleton-${i}`}>
+              <View style={styles.vaultHead}>
+                <Skeleton width={120} height={font.md} />
+                <Skeleton width={60} height={font.md} />
+              </View>
+            </Card>
+          ))}
+        </>
+      ) : (
+        <QueryBoundary isLoading={isLoading && !data} error={error} onRetry={refetch}>
+          <Card style={styles.hero}>
+            <CyclingFigure
+              testID="hero-cycle"
               currency={currency}
-              onPress={() => router.navigate({ pathname: '/(tabs)/vaults/[id]', params: { id: v.id } })}
+              dotColor={colors.primaryText}
+              labelStyle={styles.heroLabel}
+              valueStyle={styles.heroTotal}
+              steps={[
+                { key: 'total', label: t('dashboard.total'), amount: data?.total, color: colors.primaryText },
+                { key: 'available', label: t('dashboard.available'), amount: data?.available, color: colors.primaryText },
+                ...(data?.lent > 0
+                  ? [{ key: 'lent', label: t('dashboard.lent'), amount: data.lent, color: colors.primaryText }]
+                  : []),
+              ]}
             />
-          ))
-        ) : (
-          <Text style={styles.empty}>{t('dashboard.emptyVaults')}</Text>
-        )}
-      </QueryBoundary>
+            {stale ? (
+              <StaleBadge lastUpdated={lastUpdated} offline={offline} color={colors.primaryText} />
+            ) : null}
+          </Card>
+
+          <SectionTitle>{t('dashboard.vaults')}</SectionTitle>
+          {data?.vaults?.length ? (
+            data.vaults.map((v) => (
+              <VaultRow
+                key={v.id}
+                vault={v}
+                currency={currency}
+                onPress={() => router.navigate({ pathname: '/(tabs)/vaults/[id]', params: { id: v.id } })}
+              />
+            ))
+          ) : (
+            <Text style={styles.empty}>{t('dashboard.emptyVaults')}</Text>
+          )}
+        </QueryBoundary>
+      )}
 
       <View style={styles.sectionHead}>
         <SectionTitle>{t('dashboard.shoppingLists')}</SectionTitle>
@@ -187,6 +220,8 @@ const makeStyles = (colors) =>
     hero: { backgroundColor: colors.primary, padding: spacing(3) },
     heroLabel: { color: colors.primaryText, opacity: 0.85, fontSize: font.sm, fontWeight: '600' },
     heroTotal: { color: colors.primaryText, fontSize: font.hero, fontWeight: '800', marginTop: spacing(0.5) },
+    heroLabelSkeleton: { opacity: 0.55 },
+    heroValueSkeleton: { marginTop: spacing(0.5), opacity: 0.55 },
     vaultHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     vaultHeadRight: { flexDirection: 'row', alignItems: 'center', gap: spacing(1) },
     vaultName: { fontSize: font.md, fontWeight: '700', color: colors.text },

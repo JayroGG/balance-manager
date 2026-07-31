@@ -15,7 +15,8 @@ import { useGetBalanceQuery } from '../../services/api/balance';
 import { useActiveTeamId } from '../../hooks/useActiveTeamId';
 import { useDismissOnContextChange } from '../../hooks/useOnContextChange';
 import { usePermissions } from '../../permissions';
-import { Screen, ScreenHeader, Card, MoneyText, AppButton, Field, SectionTitle, Muted, QueryBoundary } from '../../components/ui';
+import { useContextReady } from '../../hooks/useContextReady';
+import { Screen, ScreenHeader, Card, MoneyText, AppButton, Field, SectionTitle, Muted, QueryBoundary, Skeleton, StaleBadge } from '../../components/ui';
 import { useTheme } from '../../hooks/useTheme';
 import { font, spacing } from '../../components/theme';
 import { formatDateTime } from '../../utils/dates';
@@ -32,11 +33,15 @@ export default function LoanDetail() {
   useDismissOnContextChange();
   const { canEditRow } = usePermissions();
 
-  const { data: balance } = useGetBalanceQuery(teamId);
+  const balanceQuery = useGetBalanceQuery(teamId);
+  const { data: balance } = balanceQuery;
   const { data: loan, isLoading, error, refetch } = useGetLoanQuery({ id, team_id: teamId });
   const { data: history } = useGetLoanHistoryQuery({ id, team_id: teamId });
   const currency = balance?.currency;
   const figures = balance?.loans?.find((l) => l.id === loanId);
+  // The hero pending figure is fixed-geometry — never paints under an unconfirmed context (ADR-019).
+  // Staleness/lastUpdated describe this screen's own money data (the balance query).
+  const { confirmed, stale, offline, lastUpdated } = useContextReady(balanceQuery);
   // RBAC: owner edits any loan, member only their own, guest none — gate repay/lend/save/delete
   // (the API 403s a violation too). History + balances stay visible to all roles (ADR-012).
   const canEdit = canEditRow(loan);
@@ -129,19 +134,36 @@ export default function LoanDetail() {
       <ScreenHeader back title={t('loans.title')} />
       <QueryBoundary isLoading={isLoading && !loan} error={error} onRetry={refetch}>
         <Card style={styles.hero}>
-          <Text style={styles.name}>{figures?.name ?? loan?.name}</Text>
-          <MoneyText amount={pending} currency={currency} style={styles.pending} />
-          {pct !== null ? (
+          {confirmed ? (
             <>
-              <View style={styles.track}>
-                <View style={[styles.fill, { width: `${pct * 100}%` }]} />
-              </View>
-              <Text style={styles.subline}>
-                {t('loans.repaid')} <MoneyText amount={repaid} currency={currency} /> · {t('loans.totalLent')}{' '}
-                <MoneyText amount={totalLent} currency={currency} />
-              </Text>
+              <Text style={styles.name}>{figures?.name ?? loan?.name}</Text>
+              <MoneyText amount={pending} currency={currency} style={styles.pending} />
+              {pct !== null ? (
+                <>
+                  <View style={styles.track}>
+                    <View style={[styles.fill, { width: `${pct * 100}%` }]} />
+                  </View>
+                  <Text style={styles.subline}>
+                    {t('loans.repaid')} <MoneyText amount={repaid} currency={currency} /> · {t('loans.totalLent')}{' '}
+                    <MoneyText amount={totalLent} currency={currency} />
+                  </Text>
+                </>
+              ) : null}
+              {stale ? (
+                <View style={styles.staleBadgeWrap}>
+                  <StaleBadge lastUpdated={lastUpdated} offline={offline} color={colors.primaryText} />
+                </View>
+              ) : null}
             </>
-          ) : null}
+          ) : (
+            // Replaces the figure, never wraps it — a skeleton on the accent card must not render
+            // a 0.00 placeholder (ADR-019). Tinted with primaryText so it stays visible on any accent.
+            <>
+              <Skeleton width={110} height={font.md} style={styles.heroSkeletonTint} />
+              <Skeleton width={160} height={font.hero} style={[styles.heroSkeletonTint, styles.heroSkeletonBalance]} />
+              <Skeleton width={140} height={font.sm} style={[styles.heroSkeletonTint, styles.heroSkeletonTarget]} />
+            </>
+          )}
         </Card>
 
         {canEdit ? (
@@ -237,6 +259,10 @@ const makeStyles = (colors) =>
   track: { height: 6, backgroundColor: `${colors.primaryText}40`, borderRadius: 999, marginTop: spacing(1.5), overflow: 'hidden' },
   fill: { height: 6, backgroundColor: colors.primaryText, borderRadius: 999 },
   subline: { color: colors.primaryText, opacity: 0.85, fontSize: font.sm, marginTop: spacing(1) },
+  heroSkeletonTint: { backgroundColor: `${colors.primaryText}40` },
+  heroSkeletonBalance: { marginTop: spacing(0.5) },
+  heroSkeletonTarget: { marginTop: spacing(1) },
+  staleBadgeWrap: { marginTop: spacing(1) },
   actions: { flexDirection: 'row', marginVertical: spacing(1.5) },
   maxHint: { marginBottom: spacing(1.5) },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },

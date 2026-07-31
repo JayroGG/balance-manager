@@ -7,7 +7,8 @@ import { useGetLoansQuery } from '../../services/api/loans';
 import { useGetBalanceQuery } from '../../services/api/balance';
 import { useActiveTeamId } from '../../hooks/useActiveTeamId';
 import { usePermissions } from '../../permissions';
-import { Screen, ScreenHeader, Card, MoneyText, QueryBoundary } from '../../components/ui';
+import { useContextReady } from '../../hooks/useContextReady';
+import { Screen, ScreenHeader, Card, MoneyText, QueryBoundary, StaleBadge } from '../../components/ui';
 import { useTheme } from '../../hooks/useTheme';
 import { font, spacing } from '../../components/theme';
 
@@ -20,8 +21,13 @@ export default function LoansList() {
   const { canAdd } = usePermissions();
   const { data: loans, isLoading, error, refetch } = useGetLoansQuery(teamId);
   // Per-loan pending/repaid figures come from /balance (mirrors vaults' balance/target join).
-  const { data: balance, refetch: refetchBalance } = useGetBalanceQuery(teamId);
+  const balanceQuery = useGetBalanceQuery(teamId);
+  const { data: balance, refetch: refetchBalance } = balanceQuery;
   const currency = balance?.currency;
+  // Variable-length list — a skeleton can't honestly predict a row count (ADR-019), so the gate
+  // reuses the existing spinner: an unconfirmed context is treated as still-loading, never rendering
+  // loan rows (and their pending figures) under the wrong context.
+  const { confirmed, stale, offline, lastUpdated } = useContextReady(balanceQuery);
   // Drive the spinner only from a user pull — not the auto refetch-on-mount, which on iOS
   // leaves a programmatic RefreshControl spinner stuck until the user drags.
   const [refreshing, setRefreshing] = useState(false);
@@ -65,9 +71,17 @@ export default function LoansList() {
 
   return (
     <Screen padded={false}>
-      <ScreenHeader title={t('loans.title')} style={styles.headerPad} />
+      <ScreenHeader
+        title={t('loans.title')}
+        style={styles.headerPad}
+        right={
+          confirmed && stale ? (
+            <StaleBadge lastUpdated={lastUpdated} offline={offline} color={colors.muted} />
+          ) : null
+        }
+      />
       <QueryBoundary
-        isLoading={isLoading && !loans}
+        isLoading={(isLoading && !loans) || !confirmed}
         error={error}
         isEmpty={!!loans && loans.length === 0}
         emptyText={t('loans.empty')}
