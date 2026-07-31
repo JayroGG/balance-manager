@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
@@ -44,6 +44,10 @@ export default function ShoppingListDetail() {
   const [checkout, { isLoading: checkingOut }] = useCheckoutListMutation();
   const [deleteList, { isLoading: deleting }] = useDeleteShoppingListMutation();
 
+  // One updateItem/deleteItem hook instance serves every row — track which row is in flight so only
+  // that row shows pending, not the whole list (ADR-019).
+  const [busyId, setBusyId] = useState(null);
+
   const editable = list?.status === 'open' && canEditRow(list);
 
   // Add-item form
@@ -87,8 +91,16 @@ export default function ShoppingListDetail() {
     }
   };
 
-  const toggle = (item) =>
-    updateItem({ id: item.id, list_id: id, team_id: teamId, checked: !item.checked });
+  const toggle = async (item) => {
+    setBusyId(item.id);
+    try {
+      await updateItem({ id: item.id, list_id: id, team_id: teamId, checked: !item.checked }).unwrap();
+    } catch (e) {
+      Alert.alert(t('common.error'), e?.message ?? '');
+    } finally {
+      setBusyId(null);
+    }
+  };
 
   const startEdit = (item) => {
     setEditingId(item.id);
@@ -99,6 +111,17 @@ export default function ShoppingListDetail() {
 
   const cancelEdit = () => setEditingId(null);
 
+  const removeItem = async (item) => {
+    setBusyId(item.id);
+    try {
+      await deleteItem({ id: item.id, list_id: id, team_id: teamId }).unwrap();
+    } catch (e) {
+      Alert.alert(t('common.error'), e?.message ?? '');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   const saveEdit = async (item) => {
     if (!editName.trim()) return;
     const body = { id: item.id, list_id: id, team_id: teamId, name: editName.trim() };
@@ -108,11 +131,14 @@ export default function ShoppingListDetail() {
     } else if (Number(editPrice) >= 0) {
       body.price = Number(editPrice);
     }
+    setBusyId(item.id);
     try {
       await updateItem(body).unwrap();
       setEditingId(null);
     } catch (e) {
       Alert.alert(t('common.error'), e?.message ?? '');
+    } finally {
+      setBusyId(null);
     }
   };
 
@@ -218,6 +244,7 @@ export default function ShoppingListDetail() {
                       title={t('common.save')}
                       onPress={() => saveEdit(item)}
                       disabled={!editName.trim()}
+                      loading={busyId === item.id}
                     />
                   </View>
                   <View style={{ flex: 1 }}>
@@ -229,15 +256,19 @@ export default function ShoppingListDetail() {
               <View style={styles.rowBetween}>
                 <Pressable
                   style={styles.itemMain}
-                  disabled={!editable}
+                  disabled={!editable || busyId === item.id}
                   onPress={() => toggle(item)}
                   testID={`item-toggle-${item.id}`}
                 >
-                  <Ionicons
-                    name={item.checked ? 'checkbox' : 'square-outline'}
-                    size={22}
-                    color={item.checked ? colors.primary : colors.muted}
-                  />
+                  {busyId === item.id ? (
+                    <ActivityIndicator size="small" color={colors.muted} testID={`item-busy-${item.id}`} />
+                  ) : (
+                    <Ionicons
+                      name={item.checked ? 'checkbox' : 'square-outline'}
+                      size={22}
+                      color={item.checked ? colors.primary : colors.muted}
+                    />
+                  )}
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.itemName, item.checked && styles.itemChecked]} numberOfLines={1}>
                       {item.name}
@@ -255,7 +286,7 @@ export default function ShoppingListDetail() {
                     <Pressable hitSlop={10} onPress={() => startEdit(item)} testID={`item-edit-${item.id}`}>
                       <Ionicons name="create-outline" size={20} color={colors.primary} />
                     </Pressable>
-                    <Pressable hitSlop={10} onPress={() => deleteItem({ id: item.id, list_id: id, team_id: teamId })}>
+                    <Pressable hitSlop={10} disabled={busyId === item.id} onPress={() => removeItem(item)}>
                       <Ionicons name="trash-outline" size={20} color={colors.danger} />
                     </Pressable>
                   </View>

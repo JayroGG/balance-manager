@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
@@ -46,6 +46,9 @@ export default function ManageTeam() {
   const [addMember, { isLoading: addingMember, error: addError }] = useAddMemberMutation();
   const [updateMemberRole] = useUpdateMemberRoleMutation();
   const [removeMember] = useRemoveMemberMutation();
+  // One updateMemberRole/removeMember hook instance serves every row — track which member is in
+  // flight so only that row shows pending (ADR-019).
+  const [busyUserId, setBusyUserId] = useState(null);
 
   const [editingName, setEditingName] = useState(false);
   const [name, setName] = useState('');
@@ -108,11 +111,14 @@ export default function ManageTeam() {
 
   const onChangeRole = async (member, role) => {
     if (role === member.role) return setMenuFor(null);
+    setBusyUserId(member.user_id);
     try {
       await updateMemberRole({ id, userId: member.user_id, role }).unwrap();
       setMenuFor(null);
     } catch (e) {
       Alert.alert(t('common.error'), e?.message ?? '');
+    } finally {
+      setBusyUserId(null);
     }
   };
 
@@ -123,11 +129,14 @@ export default function ManageTeam() {
         text: t('teams.remove'),
         style: 'destructive',
         onPress: async () => {
+          setBusyUserId(member.user_id);
           try {
             await removeMember({ id, userId: member.user_id }).unwrap();
             setMenuFor(null);
           } catch (e) {
             Alert.alert(t('common.error'), e?.message ?? '');
+          } finally {
+            setBusyUserId(null);
           }
         },
       },
@@ -156,6 +165,7 @@ export default function ManageTeam() {
   const MemberRow = ({ member }) => {
     const soleOwner = member.role === 'owner' && ownerCount === 1;
     const open = menuFor === member.user_id;
+    const busy = busyUserId === member.user_id;
     return (
       <Card>
         <View style={styles.rowBetween}>
@@ -164,8 +174,8 @@ export default function ManageTeam() {
             <Muted style={styles.role}>{t(`teams.role_${member.role}`)}</Muted>
           </View>
           {isOwner ? (
-            <Pressable hitSlop={10} onPress={() => setMenuFor(open ? null : member.user_id)}>
-              <Ionicons name="ellipsis-horizontal" size={20} color={colors.muted} />
+            <Pressable hitSlop={10} disabled={busy} onPress={() => setMenuFor(open ? null : member.user_id)}>
+              {busy ? <ActivityIndicator size="small" color={colors.muted} /> : <Ionicons name="ellipsis-horizontal" size={20} color={colors.muted} />}
             </Pressable>
           ) : null}
         </View>
@@ -179,14 +189,14 @@ export default function ManageTeam() {
                   label={t(`teams.role_${r}`)}
                   active={member.role === r}
                   // Don't let the sole owner be demoted (the API 400s too).
-                  onPress={soleOwner && r !== 'owner' ? undefined : () => onChangeRole(member, r)}
+                  onPress={busy || (soleOwner && r !== 'owner') ? undefined : () => onChangeRole(member, r)}
                 />
               ))}
             </View>
             {soleOwner ? (
               <Muted>{t('teams.lastOwner')}</Muted>
             ) : (
-              <AppButton title={t('teams.remove')} variant="danger" onPress={() => onRemove(member)} />
+              <AppButton title={t('teams.remove')} variant="danger" onPress={() => onRemove(member)} loading={busy} />
             )}
           </View>
         ) : null}

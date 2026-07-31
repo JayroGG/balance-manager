@@ -1,6 +1,7 @@
 // Absolute baseUrl so `new Request(url)` is valid under Node's fetch (mirrors endpoints.test.js).
 jest.mock('../../utils/config', () => ({ Config: { API_URL: 'http://localhost', AUTH_BYPASS: true } }));
 
+import { Alert } from 'react-native';
 import { waitFor } from '@testing-library/react-native';
 import { renderWithStore, screen, fireEvent } from '../../test-utils/renderWithStore';
 import ShoppingListDetail from './DetailScreen';
@@ -106,4 +107,58 @@ it('freezes a purchased list — no checkout or add-item affordances', async () 
   expect(await screen.findByText('lists.frozenHint')).toBeTruthy();
   expect(screen.queryByText('lists.checkout')).toBeNull();
   expect(screen.queryByText('lists.addItem')).toBeNull();
+});
+
+it('a failing toggle surfaces an alert and the item stays unchanged', async () => {
+  const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+  global.fetch.mockImplementation((req) => {
+    const { url, method } = req;
+    if (url.includes('/shopping-list-items') && method === 'PUT') {
+      return Promise.resolve(jsonResponse({ message: 'nope' }, 400));
+    }
+    if (url.includes('/shopping-list-items')) return Promise.resolve(jsonResponse(openItems));
+    if (url.includes('/shopping-lists/')) return Promise.resolve(jsonResponse(openList));
+    if (url.includes('/categories')) return Promise.resolve(jsonResponse([]));
+    if (url.includes('/balance')) return Promise.resolve(jsonResponse({ currency: 'USD', total: 100, available: 100, vaults: [] }));
+    return Promise.resolve(jsonResponse([]));
+  });
+  renderWithStore(<ShoppingListDetail />);
+
+  const toggle = await screen.findByTestId('item-toggle-32');
+  fireEvent.press(toggle);
+
+  await waitFor(() => expect(alertSpy).toHaveBeenCalledWith('common.error', expect.any(String)));
+
+  // The cache was never optimistically updated, so the item's checked state is unchanged.
+  expect(screen.getByTestId('item-toggle-32')).toBeTruthy();
+  alertSpy.mockRestore();
+});
+
+it('a pending update disables only the row being saved, not its siblings', async () => {
+  let resolvePut;
+  global.fetch.mockImplementation((req) => {
+    const { url, method } = req;
+    if (url.includes('/shopping-list-items') && method === 'PUT') {
+      return new Promise((resolve) => {
+        resolvePut = () => resolve(jsonResponse({ ...openItems[1], checked: true }));
+      });
+    }
+    if (url.includes('/shopping-list-items')) return Promise.resolve(jsonResponse(openItems));
+    if (url.includes('/shopping-lists/')) return Promise.resolve(jsonResponse(openList));
+    if (url.includes('/categories')) return Promise.resolve(jsonResponse([]));
+    if (url.includes('/balance')) return Promise.resolve(jsonResponse({ currency: 'USD', total: 100, available: 100, vaults: [] }));
+    return Promise.resolve(jsonResponse([]));
+  });
+  renderWithStore(<ShoppingListDetail />);
+
+  const toggleA = await screen.findByTestId('item-toggle-31');
+  const toggleB = await screen.findByTestId('item-toggle-32');
+
+  fireEvent.press(toggleB);
+
+  await waitFor(() => expect(toggleB.props.accessibilityState?.disabled).toBe(true));
+  expect(toggleA.props.accessibilityState?.disabled).toBeFalsy();
+
+  resolvePut();
+  await waitFor(() => expect(toggleB.props.accessibilityState?.disabled).toBeFalsy());
 });
