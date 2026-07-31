@@ -27,4 +27,20 @@ describe('formatMoney', () => {
     expect(formatMoney(12, 'XX')).toBe('XX 12.00');
     expect(formatMoney(null, 'XX')).toBe('XX 0.00');
   });
+
+  it('renders a bare grouped number with showCurrency: false', () => {
+    const out = formatMoney(1234.5, 'MXN', { showCurrency: false });
+    expect(out).toContain('1,234.50');
+    // The whole point of bare mode: no currency marker at all — symbol or code.
+    expect(out).not.toMatch(/\$|MXN|MX/);
+  });
+
+  it('treats null / undefined as 0 in bare mode', () => {
+    expect(formatMoney(null, 'MXN', { showCurrency: false })).toContain('0.00');
+    expect(formatMoney(undefined, 'MXN', { showCurrency: false })).toContain('0.00');
+  });
+
+  it('falls back to a bare value (no code prefix) when the currency code is invalid and showCurrency is false', () => {
+    expect(formatMoney(12, 'XX', { showCurrency: false })).toBe('12.00');
+  });
 });
