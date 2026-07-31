@@ -13,7 +13,7 @@ export const Chip = ({ label, active, onPress, dot }) => {
       style={[styles.chip, active ? { backgroundColor: colors.primary, borderColor: colors.primary } : null]}
     >
       {dot ? <View style={[styles.dot, { backgroundColor: dot }]} /> : null}
-      <Text style={[styles.text, active && { color: colors.primaryText }]}>{label}</Text>
+      <Text style={[styles.text, active && { color: colors.primaryText }]} numberOfLines={1}>{label}</Text>
     </Pressable>
   );
 };

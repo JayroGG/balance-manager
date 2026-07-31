@@ -53,7 +53,10 @@
     "lists": "Listas de compra",
     "loans": "Préstamos",
     "loan": "Préstamo",
-    "net": "Balance"
+    "net": "Balance",
+    "sortNewest": "Más recientes primero",
+    "sortOldest": "Más antiguos primero",
+    "sort": "Ordenar"
   },
   "lists": {
     "title": "Listas de compra",

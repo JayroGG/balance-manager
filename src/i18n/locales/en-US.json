@@ -53,7 +53,10 @@
     "lists": "Shopping lists",
     "loans": "Loans",
     "loan": "Loan",
-    "net": "Balance"
+    "net": "Balance",
+    "sortNewest": "Newest first",
+    "sortOldest": "Oldest first",
+    "sort": "Sort"
   },
   "lists": {
     "title": "Shopping lists",
