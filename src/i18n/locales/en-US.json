@@ -12,7 +12,10 @@
     "loading": "Loading…",
     "error": "Something went wrong",
     "none": "None",
-    "required": "Required"
+    "required": "Required",
+    "offline": "Offline",
+    "updatedAgo": "updated {{when}}",
+    "confirmingContext": "Confirming your context…"
   },
   "tabs": {
     "dashboard": "Dashboard",

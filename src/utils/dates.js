@@ -15,3 +15,8 @@ export const formatDateTime = (iso) =>
 // Relative feed timestamps ("3 hours ago"), locale-aware; created_at is ISO-8601 UTC (ADR-017).
 export const timeAgo = (iso, locale) =>
   iso ? DateTime.fromISO(iso, { zone: 'utc' }).toRelative({ locale }) : '';
+
+// Relative time from an epoch-millis timestamp ("2h ago") — RTK Query's fulfilledTimeStamp is millis,
+// not ISO, so it needs its own conversion. Used by StaleBadge (ADR-019).
+export const timeAgoMillis = (millis, locale) =>
+  millis ? DateTime.fromMillis(millis).toRelative({ locale }) : '';
