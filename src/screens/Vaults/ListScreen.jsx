@@ -40,7 +40,7 @@ export default function VaultsList() {
           <Card>
             <View style={styles.rowBetween}>
               <Text style={styles.name}>{item.name}</Text>
-              <MoneyText amount={item.balance} currency={currency} style={styles.balance} />
+              <MoneyText amount={item.balance} currency={currency} style={styles.balance} showCurrency={false} />
             </View>
             {pct !== null ? (
               <>
@@ -48,7 +48,7 @@ export default function VaultsList() {
                   <View style={[styles.fill, { width: `${pct * 100}%` }]} />
                 </View>
                 <Text style={styles.target}>
-                  {t('vaults.target')}: <MoneyText amount={item.target} currency={currency} />
+                  {t('vaults.target')}: <MoneyText amount={item.target} currency={currency} showCurrency={false} />
                 </Text>
               </>
             ) : (

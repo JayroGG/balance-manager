@@ -46,7 +46,7 @@ export default function LoansList() {
           <Card>
             <View style={styles.rowBetween}>
               <Text style={styles.name}>{item.name}</Text>
-              <MoneyText amount={pending} currency={currency} style={styles.pending} />
+              <MoneyText amount={pending} currency={currency} style={styles.pending} showCurrency={false} />
             </View>
             {pct !== null ? (
               <View style={styles.track}>
@@ -54,8 +54,8 @@ export default function LoansList() {
               </View>
             ) : null}
             <Text style={styles.subline}>
-              {t('loans.totalLent')}: <MoneyText amount={totalLent} currency={currency} /> ·{' '}
-              {t('loans.repaid')}: <MoneyText amount={repaid} currency={currency} />
+              {t('loans.totalLent')}: <MoneyText amount={totalLent} currency={currency} showCurrency={false} /> ·{' '}
+              {t('loans.repaid')}: <MoneyText amount={repaid} currency={currency} showCurrency={false} />
             </Text>
           </Card>
         </Pressable>
