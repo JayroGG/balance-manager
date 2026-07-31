@@ -5,14 +5,10 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import { useGetBalanceQuery } from '../../services/api/balance';
 import { useLogoutMutation } from '../../services/api/auth';
-import { baseApi } from '../../services/api/baseApi';
-import { clearAuth } from '../../reducers/auth';
-import { resetContext } from '../../reducers/context';
-import { resetActivity } from '../../reducers/activity';
+import { hardLogout } from '../../services/api/hardLogout';
 import { setThemeMode, selectThemeMode, THEME_MODES } from '../../reducers/prefs';
 import { useActiveTeamId } from '../../hooks/useActiveTeamId';
 import { useTheme } from '../../hooks/useTheme';
-import { clearToken } from '../../services/storage/secure';
 import { persistor } from '../../store';
 import { Config } from '../../utils/config';
 import { LANGUAGES, changeLanguage } from '../../i18n';
@@ -47,8 +43,8 @@ export default function Settings() {
     Alert.alert(t('settings.clearCache'), '✓');
   };
 
-  // Real logout: best-effort revoke, then drop the token (slice + secure-store), reset context, and
-  // purge cached financial data. The tabs guard then redirects to login. (ADR-011)
+  // Real logout: best-effort revoke, then the shared teardown (ADR-019) — same routine the 401
+  // interceptor uses, so the two paths cannot diverge again.
   // themeMode is a device pref, not session data — deliberately NOT reset here (ADR-013).
   const onLogout = async () => {
     try {
@@ -56,11 +52,7 @@ export default function Settings() {
     } catch {
       // server-side revoke is best-effort; clear locally regardless
     }
-    await clearToken();
-    dispatch(clearAuth());
-    dispatch(resetContext());
-    dispatch(resetActivity());
-    dispatch(baseApi.util.resetApiState());
+    await hardLogout(dispatch);
   };
 
   return (
