@@ -83,6 +83,7 @@ Point `.env.dev` `API_URL` at the running backend (`cd ../../Node/Projects/balan
 | `src/screens/<Name>/` | Screen bodies (Dashboard, Transactions, Vaults, Categories, Settings). |
 | `src/screens/Activity/` | Feed screen (newest-first list, mark-seen effect, deep links via `eventHref`) — ADR-017. |
 | `src/components/ui/` | Shared atoms/molecules, one file each + `index.js` barrel. |
+| `src/components/ui/CyclingFigure.jsx` | One-at-a-time money figure: tap cycles `steps[]`, dot indicator, index clamped against a shrinking list (Dashboard hero, transactions totals). |
 | `src/components/AnimatedSplash.jsx` | Splash→app handoff overlay: reproduces the native splash frame (ring + glyph layer PNGs), spins the ring 2 revs + toon pop, fades into the app. Pure `Animated`; mounted by `Bootstrap`. |
 | `src/services/api/baseApi.js` | RTK Query base: `fetchBaseQuery` + token seam + `401` auto-logout + `tagTypes`. |
 | `src/services/api/auth.js` | `login`/`logout` mutations. |
@@ -126,7 +127,10 @@ Plans go in `.claude/agents/plans/`; decisions in `.claude/ADR/`; long-term memo
   allocate/withdraw, capped client-side at `available` / the vault balance; **`available` can never go
   negative** (overspending locked money 400s); a vault deletes only at a zero balance; amounts are
   positive (the `type` carries the sign). See ADR-009 / backend ADR-004.
-- Money is **decimal** end-to-end on the client; never send cents.
+- Money is **decimal** end-to-end on the client; never send cents. `formatMoney` uses
+  `currencyDisplay: 'narrowSymbol'` (`$1,234.50`, not `MX$1,234.50`); dense list/history rows pass
+  `showCurrency={false}` to `MoneyText` for a bare number — headline figures, hero cards and
+  amount-entry hints keep the symbol.
 - Soft-deleted resources return `404` — treat as gone.
 - **Auth:** every call carries the token via the single seam (`baseApi.prepareHeaders`) — never read or set
   the token elsewhere. A `401` (except on `/auth/login`) clears auth + cache and routes to login. Bypass is

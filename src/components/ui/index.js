@@ -6,6 +6,7 @@ export { Field } from './Field';
 export { Chip } from './Chip';
 export { ColorSwatchPicker } from './ColorSwatchPicker';
 export { MoneyText } from './MoneyText';
+export { CyclingFigure } from './CyclingFigure';
 export { SectionTitle, Muted } from './Typography';
 export { BrandSpinner } from './BrandSpinner';
 export { EmptyState } from './EmptyState';

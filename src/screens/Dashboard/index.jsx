@@ -12,26 +12,39 @@ import { useActiveTeamId } from '../../hooks/useActiveTeamId';
 import { useActiveRole } from '../../hooks/useActiveRole';
 import { useUnreadActivity } from '../../hooks/useUnreadActivity';
 import { useTheme } from '../../hooks/useTheme';
-import { Screen, ScreenHeader, Card, Chip, MoneyText, SectionTitle, Muted, QueryBoundary } from '../../components/ui';
+import {
+  Screen,
+  ScreenHeader,
+  Card,
+  Chip,
+  CyclingFigure,
+  MoneyText,
+  SectionTitle,
+  Muted,
+  QueryBoundary,
+} from '../../components/ui';
 import { DEFAULT_ACCENT, font, spacing } from '../../components/theme';
 
-const VaultRow = ({ vault, currency }) => {
+const VaultRow = ({ vault, currency, onPress }) => {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
   const pct =
     vault.target && vault.target > 0 ? Math.min(1, (vault.balance ?? 0) / vault.target) : null;
   return (
-    <Card>
+    <Card onPress={onPress}>
       <View style={styles.vaultHead}>
         <Text style={styles.vaultName}>{vault.name}</Text>
-        <MoneyText amount={vault.balance} currency={currency} style={styles.vaultBalance} />
+        <View style={styles.vaultHeadRight}>
+          <MoneyText amount={vault.balance} currency={currency} showCurrency={false} style={styles.vaultBalance} />
+          <Ionicons name="chevron-forward" size={20} color={colors.muted} />
+        </View>
       </View>
       {pct !== null ? (
         <>
           <View style={styles.track}>
             <View style={[styles.fill, { width: `${pct * 100}%` }]} />
           </View>
-          <MoneyText amount={vault.target} currency={currency} style={styles.vaultTarget} />
+          <MoneyText amount={vault.target} currency={currency} showCurrency={false} style={styles.vaultTarget} />
         </>
       ) : null}
     </Card>
@@ -110,23 +123,32 @@ export default function Dashboard() {
 
       <QueryBoundary isLoading={isLoading && !data} error={error} onRetry={refetch}>
         <Card style={styles.hero}>
-          <Text style={styles.heroLabel}>{t('dashboard.total')}</Text>
-          <MoneyText amount={data?.total} currency={currency} style={styles.heroTotal} />
-          <View style={styles.availRow}>
-            <Text style={styles.heroLabel}>{t('dashboard.available')}</Text>
-            <MoneyText amount={data?.available} currency={currency} style={styles.heroAvail} />
-          </View>
-          {data?.lent > 0 ? (
-            <View style={styles.availRow}>
-              <Text style={styles.heroLabel}>{t('dashboard.lent')}</Text>
-              <MoneyText amount={data?.lent} currency={currency} style={styles.heroAvail} />
-            </View>
-          ) : null}
+          <CyclingFigure
+            testID="hero-cycle"
+            currency={currency}
+            dotColor={colors.primaryText}
+            labelStyle={styles.heroLabel}
+            valueStyle={styles.heroTotal}
+            steps={[
+              { key: 'total', label: t('dashboard.total'), amount: data?.total, color: colors.primaryText },
+              { key: 'available', label: t('dashboard.available'), amount: data?.available, color: colors.primaryText },
+              ...(data?.lent > 0
+                ? [{ key: 'lent', label: t('dashboard.lent'), amount: data.lent, color: colors.primaryText }]
+                : []),
+            ]}
+          />
         </Card>
 
         <SectionTitle>{t('dashboard.vaults')}</SectionTitle>
         {data?.vaults?.length ? (
-          data.vaults.map((v) => <VaultRow key={v.id} vault={v} currency={currency} />)
+          data.vaults.map((v) => (
+            <VaultRow
+              key={v.id}
+              vault={v}
+              currency={currency}
+              onPress={() => router.navigate({ pathname: '/(tabs)/vaults/[id]', params: { id: v.id } })}
+            />
+          ))
         ) : (
           <Text style={styles.empty}>{t('dashboard.emptyVaults')}</Text>
         )}
@@ -165,9 +187,8 @@ const makeStyles = (colors) =>
     hero: { backgroundColor: colors.primary, padding: spacing(3) },
     heroLabel: { color: colors.primaryText, opacity: 0.85, fontSize: font.sm, fontWeight: '600' },
     heroTotal: { color: colors.primaryText, fontSize: font.hero, fontWeight: '800', marginTop: spacing(0.5) },
-    availRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: spacing(2) },
-    heroAvail: { color: colors.primaryText, fontSize: font.lg, fontWeight: '700' },
     vaultHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    vaultHeadRight: { flexDirection: 'row', alignItems: 'center', gap: spacing(1) },
     vaultName: { fontSize: font.md, fontWeight: '700', color: colors.text },
     vaultBalance: { fontSize: font.md, fontWeight: '700', color: colors.text },
     track: { height: 6, backgroundColor: colors.border, borderRadius: 999, marginTop: spacing(1.25), overflow: 'hidden' },

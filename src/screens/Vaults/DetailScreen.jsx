@@ -190,7 +190,7 @@ export default function VaultDetail() {
                 <Text style={[styles.action, { color: h.action === 'allocate' ? colors.success : colors.danger }]}>
                   {t(`vaults.${h.action}`)}
                 </Text>
-                <MoneyText amount={h.amount} currency={currency} style={styles.histAmount} />
+                <MoneyText amount={h.amount} currency={currency} style={styles.histAmount} showCurrency={false} />
               </View>
               <Text style={styles.histDate}>{formatDateTime(h.created_at)}</Text>
             </Card>

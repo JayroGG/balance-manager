@@ -13,4 +13,15 @@ describe('MoneyText', () => {
     render(<MoneyText amount={null} currency="USD" />);
     expect(screen.getByText(/0\.00/)).toBeTruthy();
   });
+
+  it('renders a currency marker by default', () => {
+    render(<MoneyText amount={1234.5} currency="MXN" />);
+    expect(screen.getByText(/\$|MXN|MX/)).toBeTruthy();
+  });
+
+  it('renders no currency marker when showCurrency is false', () => {
+    render(<MoneyText amount={1234.5} currency="MXN" showCurrency={false} />);
+    const node = screen.getByText(/1,234\.50/);
+    expect(node.props.children).not.toMatch(/\$|MXN|MX/);
+  });
 });

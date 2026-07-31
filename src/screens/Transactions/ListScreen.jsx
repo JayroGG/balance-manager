@@ -8,7 +8,7 @@ import { useGetBalanceQuery } from '../../services/api/balance';
 import { useActiveTeamId } from '../../hooks/useActiveTeamId';
 import { usePermissions } from '../../permissions';
 import { useTheme } from '../../hooks/useTheme';
-import { Screen, ScreenHeader, Card, MoneyText, Chip, QueryBoundary } from '../../components/ui';
+import { Screen, ScreenHeader, Card, MoneyText, Chip, CyclingFigure, QueryBoundary } from '../../components/ui';
 import { font, spacing } from '../../components/theme';
 import { formatDate, monthShortNames } from '../../utils/dates';
 
@@ -42,6 +42,7 @@ export default function TransactionsList() {
   const [year, setYear] = useState(new Date().getFullYear());
   const [month, setMonth] = useState(null);
   const [yearOpen, setYearOpen] = useState(false);
+  const [sortDir, setSortDir] = useState('desc');
 
   const monthNames = useMemo(() => monthShortNames(i18n.language), [i18n.language]);
   const years = useMemo(() => yearsFromData(data), [data]);
@@ -53,8 +54,13 @@ export default function TransactionsList() {
       rows = rows?.filter((tx) => (tx.occurred_at ?? '').startsWith(prefix));
     }
     if (typeFilter === 'loans') rows = rows?.filter((tx) => tx.loan_id != null);
+    const dir = sortDir === 'desc' ? -1 : 1;
+    rows = rows ? [...rows].sort((a, b) => {
+      const d = String(a.occurred_at ?? '').localeCompare(String(b.occurred_at ?? ''));
+      return d !== 0 ? d * dir : (b.id - a.id);
+    }) : rows;
     return rows;
-  }, [data, year, month, typeFilter]);
+  }, [data, year, month, typeFilter, sortDir]);
 
   // Totals over the currently visible rows — reflects both the type and the date filter. Loan
   // journal rows (loan_id set) are server-written mirrors of loan movements and never count here.
@@ -107,6 +113,7 @@ export default function TransactionsList() {
               <MoneyText
                 amount={item.amount}
                 currency={currency}
+                showCurrency={false}
                 style={[styles.amount, { color: income ? colors.success : colors.danger }]}
               />
             </View>
@@ -122,9 +129,19 @@ export default function TransactionsList() {
         title={t('transactions.title')}
         style={styles.headerPad}
         right={
-          <Pressable hitSlop={10} testID="lists-link" onPress={() => router.push('/(tabs)/transactions/lists')}>
-            <Ionicons name="cart-outline" size={24} color={colors.primary} />
-          </Pressable>
+          <View style={styles.headerActions}>
+            <Pressable
+              hitSlop={10}
+              testID="sort-toggle"
+              accessibilityLabel={t(sortDir === 'desc' ? 'transactions.sortNewest' : 'transactions.sortOldest')}
+              onPress={() => setSortDir((d) => (d === 'desc' ? 'asc' : 'desc'))}
+            >
+              <Ionicons name={sortDir === 'desc' ? 'arrow-down' : 'arrow-up'} size={24} color={colors.primary} />
+            </Pressable>
+            <Pressable hitSlop={10} testID="lists-link" onPress={() => router.push('/(tabs)/transactions/lists')}>
+              <Ionicons name="cart-outline" size={24} color={colors.primary} />
+            </Pressable>
+          </View>
         }
       />
 
@@ -135,7 +152,7 @@ export default function TransactionsList() {
       </View>
 
       <View style={styles.dateRow}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.months}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.monthsScroll} contentContainerStyle={styles.months}>
           <Chip label={t('transactions.all')} active={month == null} onPress={() => setMonth(null)} />
           {monthNames.map((name, i) => (
             <Chip key={name} label={name} active={month === i + 1} onPress={() => pickMonth(i + 1)} />
@@ -148,20 +165,18 @@ export default function TransactionsList() {
       </View>
 
       <View style={styles.totals}>
-        <View style={styles.totalCell}>
-          <Text style={styles.totalLabel}>{t('transactions.net')}</Text>
-          <MoneyText amount={totals.net} currency={currency} style={[styles.totalValue, { color: colors.text }]} />
-        </View>
-        <View style={styles.totalDivider} />
-        <View style={styles.totalCell}>
-          <Text style={styles.totalLabel}>{t('transactions.income')}</Text>
-          <MoneyText amount={totals.income} currency={currency} style={[styles.totalValue, { color: colors.success }]} />
-        </View>
-        <View style={styles.totalDivider} />
-        <View style={styles.totalCell}>
-          <Text style={styles.totalLabel}>{t('transactions.expense')}</Text>
-          <MoneyText amount={totals.expense} currency={currency} style={[styles.totalValue, { color: colors.danger }]} />
-        </View>
+        <CyclingFigure
+          testID="totals-cycle"
+          currency={currency}
+          dotColor={colors.muted}
+          labelStyle={styles.totalLabel}
+          valueStyle={styles.totalValue}
+          steps={[
+            { key: 'net', label: t('transactions.net'), amount: totals.net, color: colors.text },
+            { key: 'income', label: t('transactions.income'), amount: totals.income, color: colors.success },
+            { key: 'expense', label: t('transactions.expense'), amount: totals.expense, color: colors.danger },
+          ]}
+        />
       </View>
 
       <QueryBoundary
@@ -207,8 +222,10 @@ export default function TransactionsList() {
 const makeStyles = (colors) =>
   StyleSheet.create({
   headerPad: { paddingHorizontal: spacing(2), marginBottom: 0 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: spacing(2) },
   filters: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: spacing(2), paddingTop: spacing(1) },
   dateRow: { flexDirection: 'row', alignItems: 'center', paddingLeft: spacing(2), paddingRight: spacing(1) },
+  monthsScroll: { flex: 1 },
   months: { flexDirection: 'row', alignItems: 'center', paddingRight: spacing(1) },
   yearBtn: {
     flexDirection: 'row',
@@ -221,6 +238,7 @@ const makeStyles = (colors) =>
     borderColor: colors.border,
     backgroundColor: colors.card,
     marginBottom: spacing(1),
+    flexShrink: 0,
   },
   yearText: { fontSize: font.sm, fontWeight: '700', color: colors.text },
   totals: {
@@ -235,8 +253,6 @@ const makeStyles = (colors) =>
     borderColor: colors.border,
     backgroundColor: colors.card,
   },
-  totalCell: { flex: 1, alignItems: 'center' },
-  totalDivider: { width: StyleSheet.hairlineWidth, alignSelf: 'stretch', backgroundColor: colors.border },
   totalLabel: { fontSize: font.sm, color: colors.muted, fontWeight: '600', marginBottom: spacing(0.25) },
   totalValue: { fontSize: font.lg, fontWeight: '800' },
   rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },

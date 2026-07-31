@@ -74,16 +74,51 @@ it('shows every year when "All years" is picked from the dropdown', async () => 
   expect(screen.getByText('LastYearTx')).toBeTruthy();
 });
 
-it('totals bar shows net/income/expense over visible rows, excluding loan journal rows', async () => {
+it('defaults to newest-first order', async () => {
+  renderWithStore(<TransactionsList />);
+  await screen.findByText('JulyTx');
+
+  const order = ['JulyTx', 'LoanOut', 'MarchTx'];
+  const texts = screen.getAllByText(/Tx|LoanOut/).map((el) => el.props.children);
+  const indices = order.map((label) => texts.indexOf(label));
+  expect(indices).toEqual([0, 1, 2]);
+});
+
+it('the sort toggle flips to oldest-first order', async () => {
+  renderWithStore(<TransactionsList />);
+  await screen.findByText('JulyTx');
+
+  fireEvent.press(screen.getByTestId('sort-toggle'));
+
+  const order = ['MarchTx', 'LoanOut', 'JulyTx'];
+  const texts = screen.getAllByText(/Tx|LoanOut/).map((el) => el.props.children);
+  const indices = order.map((label) => texts.indexOf(label));
+  expect(indices).toEqual([0, 1, 2]);
+});
+
+it('the totals figure cycles net -> income -> expense and back, excluding loan journal rows', async () => {
   renderWithStore(<TransactionsList />);
   await screen.findByText('JulyTx');
 
   // Default view = current year, all months: JulyTx (-40), MarchTx (-30) count; LoanOut (loan_id
   // set, -25) is excluded from every total even though it's rendered in the list.
   expect(screen.getByText('LoanOut')).toBeTruthy();
-  expect(screen.getByText(money(70))).toBeTruthy(); // expense total
+
+  // Initially only the net figure (income - expense) is shown.
+  expect(screen.getByText(money(-70))).toBeTruthy();
+  expect(screen.queryByText(money(0))).toBeNull();
+  expect(screen.queryByText(money(70))).toBeNull();
+
+  fireEvent.press(screen.getByTestId('totals-cycle'));
   expect(screen.getByText(money(0))).toBeTruthy(); // income total
-  expect(screen.getByText(money(-70))).toBeTruthy(); // net = income - expense
+  expect(screen.queryByText(money(-70))).toBeNull();
+
+  fireEvent.press(screen.getByTestId('totals-cycle'));
+  expect(screen.getByText(money(70))).toBeTruthy(); // expense total
+  expect(screen.queryByText(money(0))).toBeNull();
+
+  fireEvent.press(screen.getByTestId('totals-cycle'));
+  expect(screen.getByText(money(-70))).toBeTruthy(); // back to net
 });
 
 it('the loans chip filters the list down to loan_id rows only', async () => {
