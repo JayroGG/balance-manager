@@ -114,6 +114,7 @@ const makeStyles = (colors) =>
     row: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: spacing(0.75) },
     label: { color: colors.muted, fontSize: font.md },
     value: { color: colors.text, fontSize: font.md, fontWeight: '600' },
-    navRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: spacing(0.75) },
+    // Full-width row, 48dp tall: the whole row is the target, not just its label.
+    navRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: spacing(1.5), minHeight: 48 },
     chipRow: { flexDirection: 'row', flexWrap: 'wrap' },
   });

@@ -61,7 +61,7 @@ export default function TeamsList() {
       <ScreenHeader
         title={t('teams.title')}
         right={
-          <Pressable hitSlop={10} onPress={() => setAdding((v) => !v)}>
+          <Pressable hitSlop={12} onPress={() => setAdding((v) => !v)}>
             <Ionicons name={adding ? 'close' : 'add'} size={26} color={colors.primary} />
           </Pressable>
         }

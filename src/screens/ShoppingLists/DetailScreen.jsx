@@ -283,10 +283,10 @@ export default function ShoppingListDetail() {
                 </Pressable>
                 {editable ? (
                   <View style={styles.itemActions}>
-                    <Pressable hitSlop={10} onPress={() => startEdit(item)} testID={`item-edit-${item.id}`}>
+                    <Pressable hitSlop={12} onPress={() => startEdit(item)} testID={`item-edit-${item.id}`}>
                       <Ionicons name="create-outline" size={20} color={colors.primary} />
                     </Pressable>
-                    <Pressable hitSlop={10} disabled={busyId === item.id} onPress={() => removeItem(item)}>
+                    <Pressable hitSlop={12} disabled={busyId === item.id} onPress={() => removeItem(item)}>
                       <Ionicons name="trash-outline" size={20} color={colors.danger} />
                     </Pressable>
                   </View>
@@ -361,7 +361,7 @@ export default function ShoppingListDetail() {
 const makeStyles = (colors) =>
   StyleSheet.create({
     rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    itemMain: { flexDirection: 'row', alignItems: 'center', gap: spacing(1.25), flex: 1 },
+    itemMain: { flexDirection: 'row', alignItems: 'center', gap: spacing(1.25), flex: 1, paddingVertical: spacing(1), minHeight: 44 },
     itemActions: { flexDirection: 'row', alignItems: 'center', gap: spacing(1.25) },
     itemName: { fontSize: font.md, fontWeight: '600', color: colors.text },
     itemChecked: { textDecorationLine: 'line-through', color: colors.muted },
@@ -374,6 +374,6 @@ const makeStyles = (colors) =>
     row: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: spacing(1) },
     err: { color: colors.danger, marginBottom: spacing(1.5) },
     hint: { marginBottom: spacing(1) },
-    txLink: { flexDirection: 'row', alignItems: 'center', gap: spacing(0.75), marginTop: spacing(1.5) },
+    txLink: { flexDirection: 'row', alignItems: 'center', gap: spacing(0.75), marginTop: spacing(1.5), paddingVertical: spacing(1), minHeight: 44 },
     txLinkText: { color: colors.primary, fontSize: font.md, fontWeight: '600' },
   });

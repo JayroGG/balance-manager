@@ -43,4 +43,26 @@ describe('formatMoney', () => {
   it('falls back to a bare value (no code prefix) when the currency code is invalid and showCurrency is false', () => {
     expect(formatMoney(12, 'XX', { showCurrency: false })).toBe('12.00');
   });
+
+  // MXN shares the '$' narrow symbol with USD, so headline figures carry the Mexican "moneda
+  // nacional" qualifier. Currencies with an unambiguous symbol get none.
+  it('appends the M.N. qualifier to MXN headline figures', () => {
+    expect(formatMoney(1234.5, 'MXN')).toMatch(/1,234\.50 M\.N\.$/);
+  });
+
+  it('does not append a qualifier to a currency that needs no disambiguation', () => {
+    expect(formatMoney(1234.5, 'USD')).not.toContain('M.N.');
+    expect(formatMoney(1234.5, 'EUR')).not.toContain('M.N.');
+  });
+
+  it('drops the qualifier but keeps the symbol in list density (showCurrency: "symbol")', () => {
+    const out = formatMoney(1234.5, 'MXN', { showCurrency: 'symbol' });
+    expect(out).toContain('1,234.50');
+    expect(out).not.toContain('M.N.');
+    expect(out).toMatch(/\$|MXN/);
+  });
+
+  it('omits the qualifier in bare mode', () => {
+    expect(formatMoney(1234.5, 'MXN', { showCurrency: false })).not.toContain('M.N.');
+  });
 });

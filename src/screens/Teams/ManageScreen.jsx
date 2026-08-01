@@ -174,7 +174,7 @@ export default function ManageTeam() {
             <Muted style={styles.role}>{t(`teams.role_${member.role}`)}</Muted>
           </View>
           {isOwner ? (
-            <Pressable hitSlop={10} disabled={busy} onPress={() => setMenuFor(open ? null : member.user_id)}>
+            <Pressable hitSlop={12} disabled={busy} onPress={() => setMenuFor(open ? null : member.user_id)}>
               {busy ? <ActivityIndicator size="small" color={colors.muted} /> : <Ionicons name="ellipsis-horizontal" size={20} color={colors.muted} />}
             </Pressable>
           ) : null}
@@ -220,7 +220,7 @@ export default function ManageTeam() {
           title={team?.name ?? ''}
           right={
             isOwner ? (
-              <Pressable hitSlop={10} onPress={() => { setName(team?.name ?? ''); setEditingName(true); }}>
+              <Pressable hitSlop={12} style={styles.renameBtn} onPress={() => { setName(team?.name ?? ''); setEditingName(true); }}>
                 <Text style={styles.rename}>{t('teams.rename')}</Text>
               </Pressable>
             ) : null
@@ -291,6 +291,7 @@ export default function ManageTeam() {
 
 const makeStyles = (colors) =>
   StyleSheet.create({
+  renameBtn: { justifyContent: 'center', paddingVertical: spacing(1), paddingLeft: spacing(2), minHeight: 44 },
   rename: { color: colors.primary, fontWeight: '700', fontSize: font.md },
   rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   row: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', marginBottom: spacing(0.5) },

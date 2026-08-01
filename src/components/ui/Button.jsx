@@ -12,6 +12,7 @@ export const AppButton = ({ title, successTitle, onPress, variant = 'primary', d
   return (
     <Pressable
       onPress={onPress}
+      accessibilityRole="button"
       disabled={disabled || loading || success}
       style={({ pressed }) => [
         styles.button,
@@ -26,7 +27,16 @@ export const AppButton = ({ title, successTitle, onPress, variant = 'primary', d
   );
 };
 
+// The whole button is the target, not the label: `alignSelf: stretch` keeps it full-width even inside
+// a centering parent, and `minHeight` holds the 48dp floor whatever the label's line height.
 const styles = StyleSheet.create({
-  button: { borderRadius: radius.md, paddingVertical: spacing(1.75), alignItems: 'center', justifyContent: 'center' },
+  button: {
+    borderRadius: radius.md,
+    paddingVertical: spacing(1.75),
+    minHeight: 48,
+    alignSelf: 'stretch',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   text: { fontWeight: '700', fontSize: font.md },
 });

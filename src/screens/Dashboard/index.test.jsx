@@ -10,7 +10,12 @@ import authReducer from '../../reducers/auth';
 import contextReducer from '../../reducers/context';
 import prefsReducer from '../../reducers/prefs';
 import activityReducer from '../../reducers/activity';
+import { formatMoney } from '../../utils/money';
 import Dashboard from './index';
+
+// Hero figures render via formatMoney, whose currency string is ICU-dependent — derive the expected
+// text the same way the screen does.
+const money = (amount) => formatMoney(amount, 'USD');
 
 jest.mock('@expo/vector-icons', () => ({ Ionicons: 'Ionicons' }));
 jest.mock('react-native-safe-area-context', () => ({
@@ -77,36 +82,27 @@ const renderWithTeamContext = (ui, activeTeamId) => {
   return { ...render(<Provider store={store}>{ui}</Provider>), store };
 };
 
-it('cycles the hero Total -> Available -> Total when there is nothing lent', async () => {
+// The hero shows every figure at once — no tap-to-cycle (that stays on the transactions totals bar).
+it('renders available and total together, with no lent row when nothing is lent', async () => {
   mockFetch(baseBalance);
   renderWithStore(<Dashboard />);
 
-  await screen.findByText('dashboard.total');
-  expect(screen.queryByText('dashboard.available')).toBeNull();
-  expect(screen.queryByText('dashboard.lent')).toBeNull();
-
-  fireEvent.press(screen.getByTestId('hero-cycle'));
+  await screen.findByTestId('hero');
   expect(screen.getByText('dashboard.available')).toBeTruthy();
-
-  fireEvent.press(screen.getByTestId('hero-cycle'));
   expect(screen.getByText('dashboard.total')).toBeTruthy();
   expect(screen.queryByText('dashboard.lent')).toBeNull();
+
+  expect(screen.getByText(money(60))).toBeTruthy();
+  expect(screen.getByText(money(100))).toBeTruthy();
 });
 
-it('cycles Total -> Available -> Lent -> Total when there is an outstanding loan', async () => {
+it('renders the lent row only when there is an outstanding loan', async () => {
   mockFetch({ ...baseBalance, lent: 25 });
   renderWithStore(<Dashboard />);
 
-  await screen.findByText('dashboard.total');
-
-  fireEvent.press(screen.getByTestId('hero-cycle'));
-  expect(screen.getByText('dashboard.available')).toBeTruthy();
-
-  fireEvent.press(screen.getByTestId('hero-cycle'));
+  await screen.findByTestId('hero');
   expect(screen.getByText('dashboard.lent')).toBeTruthy();
-
-  fireEvent.press(screen.getByTestId('hero-cycle'));
-  expect(screen.getByText('dashboard.total')).toBeTruthy();
+  expect(screen.getByText(money(25))).toBeTruthy();
 });
 
 it('navigates to the vault detail route (not push) when a vault card is pressed', async () => {
@@ -138,7 +134,7 @@ describe('cache trust gate (ADR-019)', () => {
     expect(screen.queryAllByText(/\d/)).toHaveLength(0);
     // Skeletons (accessibilityRole="progressbar") stand in for the hero + vault-row figures instead.
     expect(screen.getAllByRole('progressbar').length).toBeGreaterThan(0);
-    expect(screen.queryByTestId('hero-cycle')).toBeNull();
+    expect(screen.queryByTestId('hero')).toBeNull();
   });
 
   it('renders figures normally once the team context is confirmed', async () => {
@@ -153,7 +149,7 @@ describe('cache trust gate (ADR-019)', () => {
     });
     renderWithTeamContext(<Dashboard />, 7);
 
-    await screen.findByTestId('hero-cycle');
+    await screen.findByTestId('hero');
     expect(screen.getByText('dashboard.total')).toBeTruthy();
     expect(screen.queryAllByRole('progressbar')).toHaveLength(0);
   });
@@ -162,7 +158,7 @@ describe('cache trust gate (ADR-019)', () => {
     mockFetch({ ...baseBalance, total: 0, available: 0, vaults: [] });
     renderWithStore(<Dashboard />);
 
-    await screen.findByTestId('hero-cycle');
+    await screen.findByTestId('hero');
     expect(screen.queryAllByText(/\d/).length).toBeGreaterThan(0);
     expect(screen.queryAllByRole('progressbar')).toHaveLength(0);
   });

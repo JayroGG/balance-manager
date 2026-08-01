@@ -18,7 +18,6 @@ import {
   ScreenHeader,
   Card,
   Chip,
-  CyclingFigure,
   MoneyText,
   SectionTitle,
   Muted,
@@ -38,7 +37,7 @@ const VaultRow = ({ vault, currency, onPress }) => {
       <View style={styles.vaultHead}>
         <Text style={styles.vaultName}>{vault.name}</Text>
         <View style={styles.vaultHeadRight}>
-          <MoneyText amount={vault.balance} currency={currency} showCurrency={false} style={styles.vaultBalance} />
+          <MoneyText amount={vault.balance} currency={currency} showCurrency="symbol" style={styles.vaultBalance} />
           <Ionicons name="chevron-forward" size={20} color={colors.muted} />
         </View>
       </View>
@@ -47,7 +46,7 @@ const VaultRow = ({ vault, currency, onPress }) => {
           <View style={styles.track}>
             <View style={[styles.fill, { width: `${pct * 100}%` }]} />
           </View>
-          <MoneyText amount={vault.target} currency={currency} showCurrency={false} style={styles.vaultTarget} />
+          <MoneyText amount={vault.target} currency={currency} showCurrency="symbol" style={styles.vaultTarget} />
         </>
       ) : null}
     </Card>
@@ -86,7 +85,7 @@ export default function Dashboard() {
       <ScreenHeader
         title={t('dashboard.title')}
         right={
-          <Pressable hitSlop={10} testID="activity-link" onPress={() => router.push('/(tabs)/dashboard/activity')}>
+          <Pressable hitSlop={12} testID="activity-link" onPress={() => router.push('/(tabs)/dashboard/activity')}>
             <Ionicons name="notifications-outline" size={24} color={colors.primary} />
             {unread > 0 ? (
               <View style={styles.badge}>
@@ -137,6 +136,10 @@ export default function Dashboard() {
           <Card style={styles.hero}>
             <Skeleton width={80} height={font.sm} style={styles.heroLabelSkeleton} />
             <Skeleton width={160} height={font.hero} style={styles.heroValueSkeleton} />
+            <View style={styles.figureRow}>
+              <Skeleton width={60} height={font.sm} style={styles.heroLabelSkeleton} />
+              <Skeleton width={100} height={font.lg} style={styles.heroLabelSkeleton} />
+            </View>
           </Card>
 
           <SectionTitle>{t('dashboard.vaults')}</SectionTitle>
@@ -151,21 +154,21 @@ export default function Dashboard() {
         </>
       ) : (
         <QueryBoundary isLoading={isLoading && !data} error={error} onRetry={refetch}>
-          <Card style={styles.hero}>
-            <CyclingFigure
-              testID="hero-cycle"
-              currency={currency}
-              dotColor={colors.primaryText}
-              labelStyle={styles.heroLabel}
-              valueStyle={styles.heroTotal}
-              steps={[
-                { key: 'total', label: t('dashboard.total'), amount: data?.total, color: colors.primaryText },
-                { key: 'available', label: t('dashboard.available'), amount: data?.available, color: colors.primaryText },
-                ...(data?.lent > 0
-                  ? [{ key: 'lent', label: t('dashboard.lent'), amount: data.lent, color: colors.primaryText }]
-                  : []),
-              ]}
-            />
+          {/* All figures at once, no tap-to-cycle: the dashboard hero is glanced at, not operated.
+              Available leads (it's the number you act on); total and lent sit under it. */}
+          <Card style={styles.hero} testID="hero">
+            <Text style={styles.heroLabel}>{t('dashboard.available')}</Text>
+            <MoneyText amount={data?.available} currency={currency} style={styles.heroFigure} />
+            <View style={styles.figureRow}>
+              <Text style={styles.heroLabel}>{t('dashboard.total')}</Text>
+              <MoneyText amount={data?.total} currency={currency} style={styles.heroSecondary} />
+            </View>
+            {data?.lent > 0 ? (
+              <View style={styles.figureRow}>
+                <Text style={styles.heroLabel}>{t('dashboard.lent')}</Text>
+                <MoneyText amount={data.lent} currency={currency} style={styles.heroSecondary} />
+              </View>
+            ) : null}
             {stale ? (
               <StaleBadge lastUpdated={lastUpdated} offline={offline} color={colors.primaryText} />
             ) : null}
@@ -189,7 +192,7 @@ export default function Dashboard() {
 
       <View style={styles.sectionHead}>
         <SectionTitle>{t('dashboard.shoppingLists')}</SectionTitle>
-        <Pressable onPress={() => router.navigate('/(tabs)/transactions/lists')}>
+        <Pressable hitSlop={12} style={styles.seeAllBtn} onPress={() => router.navigate('/(tabs)/transactions/lists')}>
           <Text style={styles.seeAll}>{t('dashboard.seeAll')}</Text>
         </Pressable>
       </View>
@@ -219,7 +222,9 @@ const makeStyles = (colors) =>
     roleBadge: { marginBottom: spacing(1.5), textTransform: 'capitalize' },
     hero: { backgroundColor: colors.primary, padding: spacing(3) },
     heroLabel: { color: colors.primaryText, opacity: 0.85, fontSize: font.sm, fontWeight: '600' },
-    heroTotal: { color: colors.primaryText, fontSize: font.hero, fontWeight: '800', marginTop: spacing(0.5) },
+    heroFigure: { color: colors.primaryText, fontSize: font.hero, fontWeight: '800', marginTop: spacing(0.5) },
+    heroSecondary: { color: colors.primaryText, fontSize: font.lg, fontWeight: '700' },
+    figureRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: spacing(2) },
     heroLabelSkeleton: { opacity: 0.55 },
     heroValueSkeleton: { marginTop: spacing(0.5), opacity: 0.55 },
     vaultHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
@@ -231,6 +236,7 @@ const makeStyles = (colors) =>
     vaultTarget: { fontSize: font.sm, color: colors.muted, marginTop: spacing(0.75) },
     empty: { color: colors.muted, paddingVertical: spacing(2) },
     sectionHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    seeAllBtn: { justifyContent: 'center', paddingVertical: spacing(1), paddingLeft: spacing(2), minHeight: 44 },
     seeAll: { fontSize: font.sm, fontWeight: '700', color: colors.primary },
     rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     listName: { flex: 1, fontSize: font.md, fontWeight: '700', color: colors.text },

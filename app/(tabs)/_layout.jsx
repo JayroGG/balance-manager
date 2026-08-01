@@ -20,6 +20,23 @@ const icon =
 const isFetchError = (error) =>
   error?.status === 'FETCH_ERROR' || error?.status === 'TIMEOUT_ERROR';
 
+// A cross-tab deep link (a Dashboard vault card, an open shopping list) pushes a detail screen onto
+// ANOTHER tab's stack, and that stack outlives every tab switch — so the next tap on that tab reopens
+// the detail instead of the list, on an id scoped to whichever context the link was followed in. The
+// `unstable_settings` anchors only fix the back button; this makes the tab bar itself mean "go to this
+// tab's root". React Navigation already does this for a tab that is *already* focused; here it also
+// applies to a tab being entered.
+// The action is `StackActions.popToTop()` written as a literal: expo-router 56 vendors React
+// Navigation, so `@react-navigation/native` is not a resolvable import in this app.
+const popNestedStackToTop = ({ navigation, route }) => ({
+  tabPress: () => {
+    const nested = navigation.getState().routes.find((r) => r.key === route.key)?.state;
+    if (nested?.key && nested.index > 0) {
+      navigation.dispatch({ type: 'POP_TO_TOP', target: nested.key });
+    }
+  },
+});
+
 export default function TabsLayout() {
   const { t } = useTranslation();
   const dispatch = useDispatch();
@@ -73,12 +90,12 @@ export default function TabsLayout() {
         tabBarStyle: { backgroundColor: colors.card, borderTopColor: colors.border },
       }}
     >
-      <Tabs.Screen name="dashboard" options={{ title: t('tabs.dashboard'), tabBarIcon: icon('home-outline') }} />
-      <Tabs.Screen name="transactions" options={{ title: t('tabs.transactions'), tabBarIcon: icon('swap-horizontal-outline') }} />
-      <Tabs.Screen name="vaults" options={{ title: t('tabs.vaults'), tabBarIcon: icon('wallet-outline') }} />
-      <Tabs.Screen name="loans" options={{ title: t('tabs.loans'), tabBarIcon: icon('cash-outline') }} />
-      <Tabs.Screen name="teams" options={{ title: t('tabs.teams'), tabBarIcon: icon('people-outline') }} />
-      <Tabs.Screen name="settings" options={{ title: t('tabs.settings'), tabBarIcon: icon('settings-outline') }} />
+      <Tabs.Screen name="dashboard" listeners={popNestedStackToTop} options={{ title: t('tabs.dashboard'), tabBarIcon: icon('home-outline') }} />
+      <Tabs.Screen name="transactions" listeners={popNestedStackToTop} options={{ title: t('tabs.transactions'), tabBarIcon: icon('swap-horizontal-outline') }} />
+      <Tabs.Screen name="vaults" listeners={popNestedStackToTop} options={{ title: t('tabs.vaults'), tabBarIcon: icon('wallet-outline') }} />
+      <Tabs.Screen name="loans" listeners={popNestedStackToTop} options={{ title: t('tabs.loans'), tabBarIcon: icon('cash-outline') }} />
+      <Tabs.Screen name="teams" listeners={popNestedStackToTop} options={{ title: t('tabs.teams'), tabBarIcon: icon('people-outline') }} />
+      <Tabs.Screen name="settings" listeners={popNestedStackToTop} options={{ title: t('tabs.settings'), tabBarIcon: icon('settings-outline') }} />
     </Tabs>
   );
 }
