@@ -5,6 +5,7 @@ import { Text } from 'react-native';
 import { Provider } from 'react-redux';
 import { configureStore, combineReducers } from '@reduxjs/toolkit';
 import { baseApi } from '../services/api/baseApi';
+import { teamsApi } from '../services/api/teams';
 import authReducer from '../reducers/auth';
 import contextReducer from '../reducers/context';
 import prefsReducer from '../reducers/prefs';
@@ -29,6 +30,11 @@ const makeAuthedStore = (preloaded = {}) =>
 const Probe = () => {
   const { colors, scheme } = useTheme();
   return <Text testID="probe">{`${scheme}:${colors.primary}`}</Text>;
+};
+
+const ConfirmedProbe = () => {
+  const { accentConfirmed } = useTheme();
+  return <Text testID="confirmed">{String(accentConfirmed)}</Text>;
 };
 
 describe('useTheme (ADR-013)', () => {
@@ -65,5 +71,40 @@ describe('useTheme (ADR-013)', () => {
       </Provider>,
     );
     expect(getByTestId('probe').props.children).toBe('dark:#2563EB');
+  });
+
+  // Task 10 (ADR-019): accentConfirmed lets chrome tell "genuinely personal" apart from "team selected,
+  // roster not confirmed yet" — even though both currently render DEFAULT_ACCENT.
+  describe('accentConfirmed', () => {
+    it('is true in personal context (no roster lookup needed)', () => {
+      const { getByTestId } = render(
+        <Provider store={makeAuthedStore({ context: { activeTeamId: null } })}>
+          <ConfirmedProbe />
+        </Provider>,
+      );
+      expect(getByTestId('confirmed').props.children).toBe('true');
+    });
+
+    it('is false when a team is active but the roster cache is empty', () => {
+      const { getByTestId } = render(
+        <Provider store={makeAuthedStore({ context: { activeTeamId: 5 } })}>
+          <ConfirmedProbe />
+        </Provider>,
+      );
+      expect(getByTestId('confirmed').props.children).toBe('false');
+    });
+
+    it('is true once the active team resolves in the roster cache', async () => {
+      const store = makeAuthedStore({ context: { activeTeamId: 5 } });
+      await store.dispatch(
+        teamsApi.util.upsertQueryData('getTeams', undefined, [{ id: 5, name: 'Acme', role: 'owner' }]),
+      );
+      const { getByTestId } = render(
+        <Provider store={store}>
+          <ConfirmedProbe />
+        </Provider>,
+      );
+      expect(getByTestId('confirmed').props.children).toBe('true');
+    });
   });
 });

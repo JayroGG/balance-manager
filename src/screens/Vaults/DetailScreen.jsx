@@ -15,7 +15,8 @@ import { useGetBalanceQuery } from '../../services/api/balance';
 import { useActiveTeamId } from '../../hooks/useActiveTeamId';
 import { useDismissOnContextChange } from '../../hooks/useOnContextChange';
 import { usePermissions } from '../../permissions';
-import { Screen, ScreenHeader, Card, MoneyText, AppButton, Field, SectionTitle, Muted, QueryBoundary } from '../../components/ui';
+import { useContextReady } from '../../hooks/useContextReady';
+import { Screen, ScreenHeader, Card, MoneyText, AppButton, Field, SectionTitle, Muted, QueryBoundary, Skeleton, StaleBadge } from '../../components/ui';
 import { useTheme } from '../../hooks/useTheme';
 import { font, spacing } from '../../components/theme';
 import { formatDateTime } from '../../utils/dates';
@@ -32,11 +33,15 @@ export default function VaultDetail() {
   useDismissOnContextChange();
   const { canEditRow } = usePermissions();
 
-  const { data: balance } = useGetBalanceQuery(teamId);
+  const balanceQuery = useGetBalanceQuery(teamId);
+  const { data: balance } = balanceQuery;
   const { data: vault, isLoading, error, refetch } = useGetVaultQuery({ id, team_id: teamId });
   const { data: history } = useGetVaultHistoryQuery({ id, team_id: teamId });
   const currency = balance?.currency;
   const figures = balance?.vaults?.find((v) => v.id === vaultId);
+  // The hero balance is a fixed-geometry figure — never paints under an unconfirmed context
+  // (ADR-019). Staleness/lastUpdated describe this screen's own money data (the balance query).
+  const { confirmed, stale, offline, lastUpdated } = useContextReady(balanceQuery);
   // RBAC: owner edits any vault, member only their own, guest none — gate allocate/withdraw/save/delete
   // (the API 403s a violation too). History + balances stay visible to all roles (ADR-012).
   const canEdit = canEditRow(vault);
@@ -132,11 +137,28 @@ export default function VaultDetail() {
       <ScreenHeader back title={t('vaults.title')} />
       <QueryBoundary isLoading={isLoading && !vault} error={error} onRetry={refetch}>
         <Card style={styles.hero}>
-          <Text style={styles.name}>{figures?.name ?? vault?.name}</Text>
-          <MoneyText amount={figures?.balance ?? 0} currency={currency} style={styles.balance} />
-          <Text style={styles.target}>
-            {figures?.target != null ? <>{t('vaults.target')}: <MoneyText amount={figures.target} currency={currency} /></> : t('vaults.noTarget')}
-          </Text>
+          {confirmed ? (
+            <>
+              <Text style={styles.name}>{figures?.name ?? vault?.name}</Text>
+              <MoneyText amount={figures?.balance ?? 0} currency={currency} style={styles.balance} />
+              <Text style={styles.target}>
+                {figures?.target != null ? <>{t('vaults.target')}: <MoneyText amount={figures.target} currency={currency} /></> : t('vaults.noTarget')}
+              </Text>
+              {stale ? (
+                <View style={styles.staleBadgeWrap}>
+                  <StaleBadge lastUpdated={lastUpdated} offline={offline} color={colors.primaryText} />
+                </View>
+              ) : null}
+            </>
+          ) : (
+            // Replaces the figure, never wraps it — a skeleton on the accent card must not render
+            // a 0.00 placeholder (ADR-019). Tinted with primaryText so it stays visible on any accent.
+            <>
+              <Skeleton width={110} height={font.md} style={styles.heroSkeletonTint} />
+              <Skeleton width={160} height={font.hero} style={[styles.heroSkeletonTint, styles.heroSkeletonBalance]} />
+              <Skeleton width={120} height={font.sm} style={[styles.heroSkeletonTint, styles.heroSkeletonTarget]} />
+            </>
+          )}
         </Card>
 
         {canEdit ? (
@@ -230,6 +252,11 @@ const makeStyles = (colors) =>
   name: { color: colors.primaryText, opacity: 0.85, fontSize: font.md, fontWeight: '700' },
   balance: { color: colors.primaryText, fontSize: font.hero, fontWeight: '800', marginTop: spacing(0.5) },
   target: { color: colors.primaryText, opacity: 0.85, fontSize: font.sm, marginTop: spacing(1) },
+  // primaryText is always a 6-digit hex (contrastOn), so a hex-alpha suffix stays readable on ANY accent.
+  heroSkeletonTint: { backgroundColor: `${colors.primaryText}40` },
+  heroSkeletonBalance: { marginTop: spacing(0.5) },
+  heroSkeletonTarget: { marginTop: spacing(1) },
+  staleBadgeWrap: { marginTop: spacing(1) },
   actions: { flexDirection: 'row', marginVertical: spacing(1.5) },
   maxHint: { marginBottom: spacing(1.5) },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },

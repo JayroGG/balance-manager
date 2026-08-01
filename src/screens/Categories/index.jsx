@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import {
   useGetCategoriesQuery,
@@ -30,6 +30,8 @@ export default function Categories() {
   const [addCategory, { isLoading: adding }] = useAddCategoryMutation();
   const [updateCategory, { isLoading: updating }] = useUpdateCategoryMutation();
   const [deleteCategory] = useDeleteCategoryMutation();
+  // One deleteCategory hook instance serves every row — track which row is in flight (ADR-019).
+  const [deletingId, setDeletingId] = useState(null);
 
   const [editing, setEditing] = useState(null); // null | category
   const [name, setName] = useState('');
@@ -70,11 +72,14 @@ export default function Categories() {
         text: t('common.delete'),
         style: 'destructive',
         onPress: async () => {
+          setDeletingId(cat.id);
           try {
             await deleteCategory({ id: cat.id, team_id: teamId }).unwrap();
             if (editing?.id === cat.id) reset();
           } catch (e) {
             Alert.alert(t('common.error'), e?.message ?? '');
+          } finally {
+            setDeletingId(null);
           }
         },
       },
@@ -119,8 +124,12 @@ export default function Categories() {
                   <View style={styles.rowBetween}>
                     <Text style={styles.name}>{c.name}</Text>
                     {canEditRow(c) ? (
-                      <Pressable hitSlop={10} onPress={() => onDelete(c)}>
-                        <Ionicons name="trash-outline" size={20} color={colors.danger} />
+                      <Pressable hitSlop={10} disabled={deletingId === c.id} onPress={() => onDelete(c)}>
+                        {deletingId === c.id ? (
+                          <ActivityIndicator size="small" color={colors.danger} />
+                        ) : (
+                          <Ionicons name="trash-outline" size={20} color={colors.danger} />
+                        )}
                       </Pressable>
                     ) : null}
                   </View>

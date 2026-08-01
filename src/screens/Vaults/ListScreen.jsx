@@ -6,7 +6,8 @@ import { useTranslation } from 'react-i18next';
 import { useGetBalanceQuery } from '../../services/api/balance';
 import { useActiveTeamId } from '../../hooks/useActiveTeamId';
 import { usePermissions } from '../../permissions';
-import { Screen, ScreenHeader, Card, MoneyText, QueryBoundary } from '../../components/ui';
+import { useContextReady } from '../../hooks/useContextReady';
+import { Screen, ScreenHeader, Card, MoneyText, QueryBoundary, StaleBadge } from '../../components/ui';
 import { useTheme } from '../../hooks/useTheme';
 import { font, spacing } from '../../components/theme';
 
@@ -18,8 +19,13 @@ export default function VaultsList() {
   const teamId = useActiveTeamId();
   const { canAdd } = usePermissions();
   // Per-vault balances/targets come from /balance (PRD note).
-  const { data, isLoading, error, refetch } = useGetBalanceQuery(teamId);
+  const balanceQuery = useGetBalanceQuery(teamId);
+  const { data, isLoading, error, refetch } = balanceQuery;
   const currency = data?.currency;
+  // Variable-length list — a skeleton can't honestly predict a row count (ADR-019), so the gate
+  // reuses the existing spinner: an unconfirmed context is treated as still-loading, never rendering
+  // vault rows (and their balances) under the wrong context.
+  const { confirmed, stale, offline, lastUpdated } = useContextReady(balanceQuery);
   // Drive the spinner only from a user pull — not the auto refetch-on-mount, which on iOS
   // leaves a programmatic RefreshControl spinner stuck until the user drags.
   const [refreshing, setRefreshing] = useState(false);
@@ -62,9 +68,17 @@ export default function VaultsList() {
 
   return (
     <Screen padded={false}>
-      <ScreenHeader title={t('vaults.title')} style={styles.headerPad} />
+      <ScreenHeader
+        title={t('vaults.title')}
+        style={styles.headerPad}
+        right={
+          confirmed && stale ? (
+            <StaleBadge lastUpdated={lastUpdated} offline={offline} color={colors.muted} />
+          ) : null
+        }
+      />
       <QueryBoundary
-        isLoading={isLoading && !data}
+        isLoading={(isLoading && !data) || !confirmed}
         error={error}
         isEmpty={!!data && (data.vaults?.length ?? 0) === 0}
         emptyText={t('vaults.empty')}

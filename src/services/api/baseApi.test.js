@@ -15,12 +15,22 @@ import { balanceApi } from './balance';
 import { transactionsApi } from './transactions';
 import { authApi } from './auth';
 import authReducer from '../../reducers/auth';
+import contextReducer from '../../reducers/context';
+import activityReducer from '../../reducers/activity';
 
 // Build a fresh store per test, mirroring src/store/index.js (minus redux-persist). (ADR-005)
-const makeStore = (auth) =>
+const makeStore = (auth, context) =>
   configureStore({
-    reducer: combineReducers({ [baseApi.reducerPath]: baseApi.reducer, auth: authReducer }),
-    preloadedState: { auth: { user: null, bootstrapped: true, ...auth } },
+    reducer: combineReducers({
+      [baseApi.reducerPath]: baseApi.reducer,
+      auth: authReducer,
+      context: contextReducer,
+      activity: activityReducer,
+    }),
+    preloadedState: {
+      auth: { user: null, bootstrapped: true, ...auth },
+      context: { activeTeamId: null, ...context },
+    },
     middleware: (gdm) => gdm().concat(baseApi.middleware),
     // Disable RTK's autoBatch enhancer: its default 'raf' flush schedules a requestAnimationFrame that
     // the RN preset defers and fires after teardown ("...environment after it has been torn down").
@@ -111,6 +121,19 @@ describe('401 auto-logout — session over (ADR-011)', () => {
     expect(SecureStore.deleteItemAsync).toHaveBeenCalled();
     expect(store.getState().api.queries).toEqual({}); // resetApiState dropped the cache
     sub.unsubscribe();
+  });
+
+  it('resets the active team context (ADR-019 regression guard) on a 401 from a non-login call', async () => {
+    global.fetch.mockImplementation(() => Promise.resolve(jsonResponse({ error: 'Unauthorized' }, 401)));
+    store = makeStore({ token: 'realtoken', bypass: false }, { activeTeamId: 5 });
+
+    expect(store.getState().context.activeTeamId).toBe(5);
+
+    await store.dispatch(transactionsApi.endpoints.getTransactions.initiate({}));
+
+    // The bug this guards against: the 401 path forgot resetContext, so a stale activeTeamId (which
+    // is redux-persist'd) survived a cold start and money rendered under the wrong team's chrome.
+    expect(store.getState().context.activeTeamId).toBeNull();
   });
 
   it('does NOT clear the session on a 401 from /auth/login (bad password stays inline)', async () => {

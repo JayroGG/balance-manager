@@ -1,12 +1,15 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import { REHYDRATE } from 'redux-persist';
 import { Config } from '../../utils/config';
-import { selectToken, clearAuth } from '../../reducers/auth';
-import { clearToken } from '../storage/secure';
+import { selectToken } from '../../reducers/auth';
 
 // THE auth seam: the only place a token is attached to a request (ADR-001).
+// `timeout` is load-bearing for the ADR-019 boot gate, not just hygiene: that gate releases on data OR
+// on a FETCH_ERROR/TIMEOUT_ERROR, so a socket that connects and then never answers (captive portal,
+// half-open connection) would otherwise leave it spinning forever with no error to react to.
 const rawBaseQuery = fetchBaseQuery({
   baseUrl: Config.API_URL,
+  timeout: 20000,
   prepareHeaders: (headers, { getState }) => {
     const token = selectToken(getState());
     if (token) headers.set('Authorization', `Bearer ${token}`);
@@ -15,8 +18,8 @@ const rawBaseQuery = fetchBaseQuery({
 });
 
 // Normalize the backend's `{ error }` body (PRD §4) into error.message for the UI, and treat a 401 on
-// any call but `login` as "session over": clear the token (slice + secure-store) and drop the cached
-// financial data so the tabs guard kicks the user back to login. (ADR-011)
+// any call but `login` as "session over" — the teardown itself lives in hardLogout so this path and the
+// manual logout cannot drift apart again (they did once: this one forgot resetContext). (ADR-011/019)
 const baseQueryWithErrorShape = async (args, api, extraOptions) => {
   const result = await rawBaseQuery(args, api, extraOptions);
   if (result.error) {
@@ -25,11 +28,10 @@ const baseQueryWithErrorShape = async (args, api, extraOptions) => {
       (data && (data.error || data.message)) || `Request failed (${result.error.status})`;
 
     if (result.error.status === 401 && api.endpoint !== 'login') {
-      api.dispatch(clearAuth());
-      await clearToken();
-      // baseApi is referenced at call-time, so the self-reference resolves; using util (not persistor)
-      // avoids a circular import.
-      api.dispatch(baseApi.util.resetApiState());
+      // Required lazily, not imported: hardLogout reaches back for baseApi.util.resetApiState(), and a
+      // top-level import on either side leaves one of them undefined at module-init time.
+      const { hardLogout } = require('./hardLogout');
+      await hardLogout(api.dispatch);
     }
   }
   return result;

@@ -1,7 +1,15 @@
 // Absolute baseUrl so `new Request(url)` is valid under Node's fetch (mirrors endpoints.test.js).
 jest.mock('../../utils/config', () => ({ Config: { API_URL: 'http://localhost', AUTH_BYPASS: true } }));
 
+import { render } from '@testing-library/react-native';
+import { Provider } from 'react-redux';
+import { configureStore, combineReducers } from '@reduxjs/toolkit';
 import { renderWithStore, screen, fireEvent } from '../../test-utils/renderWithStore';
+import { baseApi } from '../../services/api/baseApi';
+import authReducer from '../../reducers/auth';
+import contextReducer from '../../reducers/context';
+import prefsReducer from '../../reducers/prefs';
+import activityReducer from '../../reducers/activity';
 import { monthShortNames } from '../../utils/dates';
 import { formatMoney } from '../../utils/money';
 import TransactionsList from './ListScreen';
@@ -137,4 +145,36 @@ it('renders a "Loan" badge on journal rows but not on regular rows', async () =>
   await screen.findByText('JulyTx');
 
   expect(screen.getAllByText('transactions.loan')).toHaveLength(1);
+});
+
+// ADR-019: a team context is only "confirmed" once it resolves in the getTeams cache. With an
+// active team and an empty roster cache, the totals bar must render a skeleton — never a figure,
+// never a 0.00 placeholder — even though the transactions/balance fetches succeed.
+it('renders no totals figure — only a skeleton — under an unconfirmed team context', async () => {
+  const store = configureStore({
+    reducer: combineReducers({
+      [baseApi.reducerPath]: baseApi.reducer,
+      auth: authReducer,
+      context: contextReducer,
+      prefs: prefsReducer,
+      activity: activityReducer,
+    }),
+    preloadedState: {
+      auth: { token: null, user: null, bypass: false, bootstrapped: true },
+      context: { activeTeamId: 5 }, // active team, roster cache never fetched — the P2 case
+    },
+    middleware: (gdm) => gdm().concat(baseApi.middleware),
+    enhancers: (gde) => gde({ autoBatch: false }),
+  });
+
+  render(
+    <Provider store={store}>
+      <TransactionsList />
+    </Provider>,
+  );
+  await screen.findByText('JulyTx');
+
+  expect(screen.queryByTestId('totals-cycle')).toBeNull();
+  expect(screen.getByTestId('totals-skeleton')).toBeTruthy();
+  expect(screen.queryByText(money(-70))).toBeNull();
 });

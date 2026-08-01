@@ -51,7 +51,9 @@ export default function TransactionDetail() {
           try {
             await deleteTransaction({ id, team_id: teamId }).unwrap();
             router.back();
-          } catch {}
+          } catch (e) {
+            Alert.alert(t('common.error'), e?.message ?? '');
+          }
         },
       },
     ]);

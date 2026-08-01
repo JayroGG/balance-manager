@@ -8,7 +8,8 @@ import { useGetBalanceQuery } from '../../services/api/balance';
 import { useActiveTeamId } from '../../hooks/useActiveTeamId';
 import { usePermissions } from '../../permissions';
 import { useTheme } from '../../hooks/useTheme';
-import { Screen, ScreenHeader, Card, MoneyText, Chip, CyclingFigure, QueryBoundary } from '../../components/ui';
+import { useContextReady } from '../../hooks/useContextReady';
+import { Screen, ScreenHeader, Card, MoneyText, Chip, CyclingFigure, QueryBoundary, Skeleton, StaleBadge } from '../../components/ui';
 import { font, spacing } from '../../components/theme';
 import { formatDate, monthShortNames } from '../../utils/dates';
 
@@ -33,9 +34,13 @@ export default function TransactionsList() {
   const { canAdd } = usePermissions();
   const [typeFilter, setTypeFilter] = useState('all');
   const filters = { team_id: teamId, ...(typeFilter === 'all' || typeFilter === 'loans' ? {} : { type: typeFilter }) };
-  const { data, isLoading, error, refetch } = useGetTransactionsQuery(filters);
+  const txQuery = useGetTransactionsQuery(filters);
+  const { data, isLoading, error, refetch } = txQuery;
   const { data: balance } = useGetBalanceQuery(teamId);
   const currency = balance?.currency;
+  // The totals bar is a fixed-geometry figure — it must never paint under an unconfirmed context
+  // (ADR-019). Staleness/lastUpdated describe this screen's own money data (the transactions query).
+  const { confirmed, stale, offline, lastUpdated } = useContextReady(txQuery);
 
   // Client-side date filter (ADR-015): `year` null = all years; `month` (1-12) null = whole year.
   // occurred_at is a plain YYYY-MM-DD string, so a prefix match is exact and needs no parsing.
@@ -165,18 +170,34 @@ export default function TransactionsList() {
       </View>
 
       <View style={styles.totals}>
-        <CyclingFigure
-          testID="totals-cycle"
-          currency={currency}
-          dotColor={colors.muted}
-          labelStyle={styles.totalLabel}
-          valueStyle={styles.totalValue}
-          steps={[
-            { key: 'net', label: t('transactions.net'), amount: totals.net, color: colors.text },
-            { key: 'income', label: t('transactions.income'), amount: totals.income, color: colors.success },
-            { key: 'expense', label: t('transactions.expense'), amount: totals.expense, color: colors.danger },
-          ]}
-        />
+        {confirmed ? (
+          <>
+            <CyclingFigure
+              testID="totals-cycle"
+              currency={currency}
+              dotColor={colors.muted}
+              labelStyle={styles.totalLabel}
+              valueStyle={styles.totalValue}
+              steps={[
+                { key: 'net', label: t('transactions.net'), amount: totals.net, color: colors.text },
+                { key: 'income', label: t('transactions.income'), amount: totals.income, color: colors.success },
+                { key: 'expense', label: t('transactions.expense'), amount: totals.expense, color: colors.danger },
+              ]}
+            />
+            {stale ? (
+              <View style={styles.staleBadgeWrap}>
+                <StaleBadge lastUpdated={lastUpdated} offline={offline} color={colors.muted} />
+              </View>
+            ) : null}
+          </>
+        ) : (
+          // Fixed-geometry placeholder — never wraps the figure, replaces it, so an unconfirmed
+          // context can never paint a plausible-looking 0.00 (ADR-019).
+          <View testID="totals-skeleton">
+            <Skeleton width={70} height={font.sm + 2} style={styles.totalSkeletonLabel} />
+            <Skeleton width={110} height={font.lg + 6} />
+          </View>
+        )}
       </View>
 
       <QueryBoundary
@@ -255,6 +276,8 @@ const makeStyles = (colors) =>
   },
   totalLabel: { fontSize: font.sm, color: colors.muted, fontWeight: '600', marginBottom: spacing(0.25) },
   totalValue: { fontSize: font.lg, fontWeight: '800' },
+  staleBadgeWrap: { marginLeft: spacing(1.5) },
+  totalSkeletonLabel: { marginBottom: spacing(0.5) },
   rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   desc: { fontSize: font.md, fontWeight: '600', color: colors.text },
   metaRow: { flexDirection: 'row', alignItems: 'center', marginTop: spacing(0.25) },

@@ -12,7 +12,10 @@
     "loading": "Cargando…",
     "error": "Algo salió mal",
     "none": "Ninguno",
-    "required": "Requerido"
+    "required": "Requerido",
+    "offline": "Sin conexión",
+    "updatedAgo": "actualizado {{when}}",
+    "confirmingContext": "Confirmando tu contexto…"
   },
   "tabs": {
     "dashboard": "Inicio",

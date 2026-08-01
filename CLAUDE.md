@@ -84,8 +84,11 @@ Point `.env.dev` `API_URL` at the running backend (`cd ../../Node/Projects/balan
 | `src/screens/Activity/` | Feed screen (newest-first list, mark-seen effect, deep links via `eventHref`) — ADR-017. |
 | `src/components/ui/` | Shared atoms/molecules, one file each + `index.js` barrel. |
 | `src/components/ui/CyclingFigure.jsx` | One-at-a-time money figure: tap cycles `steps[]`, dot indicator, index clamped against a shrinking list (Dashboard hero, transactions totals). |
+| `src/components/ui/{Skeleton,StaleBadge}.jsx` | ADR-019 loading surfaces: shimmer placeholder for fixed geometry (lists keep `BrandSpinner`), and the `offline · updated <time>` marker. |
 | `src/components/AnimatedSplash.jsx` | Splash→app handoff overlay: reproduces the native splash frame (ring + glyph layer PNGs), spins the ring 2 revs + toon pop, fades into the app. Pure `Animated`; mounted by `Bootstrap`. |
-| `src/services/api/baseApi.js` | RTK Query base: `fetchBaseQuery` + token seam + `401` auto-logout + `tagTypes`. |
+| `src/services/api/baseApi.js` | RTK Query base: `fetchBaseQuery` (+ 20s `timeout`, load-bearing for the ADR-019 gate) + token seam + `401` → `hardLogout` + `tagTypes`. |
+| `src/services/api/hardLogout.js` | THE teardown (ADR-019): auth + context + activity + token + cache. Both logout paths go through it — they diverged once and the 401 path stranded a persisted `activeTeamId`. |
+| `src/hooks/useContextReady.js` | THE ADR-019 gate: `{ confirmed, stale, offline, lastUpdated }`. A money figure never renders unless the context that owns it is confirmed. Read-only cache access (`useQueryState`), like `useTheme`. |
 | `src/services/api/auth.js` | `login`/`logout` mutations. |
 | `src/services/api/teams.js` | `getTeams` (returns per-team `role` + `color`) + team/member CRUD mutations (`:id`-path scoped, **not** `?team_id=`); tags `Team` / `TeamMember` (ADR-012/013). |
 | `src/permissions/index.js` | RBAC seam: `usePermissions` + pure `canAdd`/`canEditRow(row)`/`canManageTeam` matrix (ADR-012). |
@@ -164,3 +167,8 @@ Plans go in `.claude/agents/plans/`; decisions in `.claude/ADR/`; long-term memo
   pull-to-refresh, since no local mutation can know about another member's action. `since_id`/`limit`
   must be positive integers — never send `0`, pass `undefined` instead. `lastSeen` (the `activity`
   slice) is account data, reset on logout, unlike `prefs` which survives it.
+- **Mutation feedback (ADR-019):** every mutation-triggering control reflects its own pending state —
+  `AppButton loading` or an inline indicator for icon/row controls — and every mutation call uses
+  `.unwrap()` inside `try/catch`, surfacing the failure (`Alert.alert` or an inline error). Where one
+  mutation hook serves many rows, track pending state **per row id** — a shared `isLoading` spins every
+  row at once.

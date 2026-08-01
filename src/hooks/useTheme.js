@@ -24,6 +24,10 @@ export const useTheme = () => {
   const scheme = themeMode === 'system' ? (system ?? 'light') : themeMode;
   const team = teamId == null ? null : teams?.find((tm) => tm.id === teamId);
   const accent = (team?.color && normalizeHex(team.color)) || DEFAULT_ACCENT;
+  // ADR-019 (Task 10): a team context whose roster hasn't confirmed it yet still gets DEFAULT_ACCENT
+  // above (colors must always be a valid palette) — but that reads as personal. accentConfirmed lets
+  // chrome consumers tell the two apart without this hook doing any extra fetch/subscription work.
+  const accentConfirmed = teamId == null || !!team;
 
-  return { colors: makeColors(scheme, accent), scheme, accent };
+  return { colors: makeColors(scheme, accent), scheme, accent, accentConfirmed };
 };
