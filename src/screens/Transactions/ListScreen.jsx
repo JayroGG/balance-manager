@@ -118,7 +118,7 @@ export default function TransactionsList() {
               <MoneyText
                 amount={item.amount}
                 currency={currency}
-                showCurrency={false}
+                showCurrency="symbol"
                 style={[styles.amount, { color: income ? colors.success : colors.danger }]}
               />
             </View>
@@ -136,14 +136,14 @@ export default function TransactionsList() {
         right={
           <View style={styles.headerActions}>
             <Pressable
-              hitSlop={10}
+              hitSlop={12}
               testID="sort-toggle"
               accessibilityLabel={t(sortDir === 'desc' ? 'transactions.sortNewest' : 'transactions.sortOldest')}
               onPress={() => setSortDir((d) => (d === 'desc' ? 'asc' : 'desc'))}
             >
               <Ionicons name={sortDir === 'desc' ? 'arrow-down' : 'arrow-up'} size={24} color={colors.primary} />
             </Pressable>
-            <Pressable hitSlop={10} testID="lists-link" onPress={() => router.push('/(tabs)/transactions/lists')}>
+            <Pressable hitSlop={12} testID="lists-link" onPress={() => router.push('/(tabs)/transactions/lists')}>
               <Ionicons name="cart-outline" size={24} color={colors.primary} />
             </Pressable>
           </View>
@@ -253,7 +253,8 @@ const makeStyles = (colors) =>
     alignItems: 'center',
     gap: spacing(0.5),
     paddingHorizontal: spacing(1.25),
-    paddingVertical: spacing(0.75),
+    paddingVertical: spacing(1),
+    minHeight: 40,
     borderRadius: 999,
     borderWidth: 1,
     borderColor: colors.border,
@@ -265,9 +266,13 @@ const makeStyles = (colors) =>
   totals: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     marginHorizontal: spacing(2),
     marginTop: spacing(0.5),
     marginBottom: spacing(1),
+    // The three-cell layout this replaced supplied its own inset via `totalCell`; without it the
+    // figure sat flush against the card border.
+    paddingHorizontal: spacing(2),
     paddingVertical: spacing(1.25),
     borderRadius: 12,
     borderWidth: StyleSheet.hairlineWidth,

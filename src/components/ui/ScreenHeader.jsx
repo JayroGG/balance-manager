@@ -14,7 +14,7 @@ export const ScreenHeader = ({ title, back = false, right = null, style }) => {
   return (
     <View style={[styles.row, style]}>
       {back ? (
-        <Pressable hitSlop={10} testID="header-back" onPress={() => router.back()} style={styles.back}>
+        <Pressable hitSlop={16} testID="header-back" onPress={() => router.back()} style={styles.back}>
           <Ionicons name="chevron-back" size={26} color={colors.primary} />
         </Pressable>
       ) : null}

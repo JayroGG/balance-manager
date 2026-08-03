@@ -124,7 +124,7 @@ export default function Categories() {
                   <View style={styles.rowBetween}>
                     <Text style={styles.name}>{c.name}</Text>
                     {canEditRow(c) ? (
-                      <Pressable hitSlop={10} disabled={deletingId === c.id} onPress={() => onDelete(c)}>
+                      <Pressable hitSlop={12} disabled={deletingId === c.id} onPress={() => onDelete(c)}>
                         {deletingId === c.id ? (
                           <ActivityIndicator size="small" color={colors.danger} />
                         ) : (

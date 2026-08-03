@@ -217,7 +217,7 @@ export default function LoanDetail() {
                 <Text style={[styles.action, { color: h.action === 'repay' ? colors.success : colors.danger }]}>
                   {t(`loans.${h.action}`)}
                 </Text>
-                <MoneyText amount={h.amount} currency={currency} style={styles.histAmount} showCurrency={false} />
+                <MoneyText amount={h.amount} currency={currency} style={styles.histAmount} showCurrency="symbol" />
               </View>
               <Text style={styles.histDate}>{formatDateTime(h.created_at)}</Text>
             </Card>

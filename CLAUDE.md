@@ -83,7 +83,7 @@ Point `.env.dev` `API_URL` at the running backend (`cd ../../Node/Projects/balan
 | `src/screens/<Name>/` | Screen bodies (Dashboard, Transactions, Vaults, Categories, Settings). |
 | `src/screens/Activity/` | Feed screen (newest-first list, mark-seen effect, deep links via `eventHref`) — ADR-017. |
 | `src/components/ui/` | Shared atoms/molecules, one file each + `index.js` barrel. |
-| `src/components/ui/CyclingFigure.jsx` | One-at-a-time money figure: tap cycles `steps[]`, dot indicator, index clamped against a shrinking list (Dashboard hero, transactions totals). |
+| `src/components/ui/CyclingFigure.jsx` | One-at-a-time money figure: tap cycles `steps[]`, dot indicator, index clamped against a shrinking list. Transactions totals bar only — the Dashboard hero shows every figure at once (it's glanced at, not operated). |
 | `src/components/ui/{Skeleton,StaleBadge}.jsx` | ADR-019 loading surfaces: shimmer placeholder for fixed geometry (lists keep `BrandSpinner`), and the `offline · updated <time>` marker. |
 | `src/components/AnimatedSplash.jsx` | Splash→app handoff overlay: reproduces the native splash frame (ring + glyph layer PNGs), spins the ring 2 revs + toon pop, fades into the app. Pure `Animated`; mounted by `Bootstrap`. |
 | `src/services/api/baseApi.js` | RTK Query base: `fetchBaseQuery` (+ 20s `timeout`, load-bearing for the ADR-019 gate) + token seam + `401` → `hardLogout` + `tagTypes`. |
@@ -131,9 +131,11 @@ Plans go in `.claude/agents/plans/`; decisions in `.claude/ADR/`; long-term memo
   negative** (overspending locked money 400s); a vault deletes only at a zero balance; amounts are
   positive (the `type` carries the sign). See ADR-009 / backend ADR-004.
 - Money is **decimal** end-to-end on the client; never send cents. `formatMoney` uses
-  `currencyDisplay: 'narrowSymbol'` (`$1,234.50`, not `MX$1,234.50`); dense list/history rows pass
-  `showCurrency={false}` to `MoneyText` for a bare number — headline figures, hero cards and
-  amount-entry hints keep the symbol.
+  `currencyDisplay: 'narrowSymbol'` (`$1,234.50`, not `MX$1,234.50`) and has three densities via
+  `showCurrency`: `true` = symbol + national qualifier (`$1,234.50 M.N.` for MXN — pesos and dollars
+  share `$`) for headline figures, hero cards and amount-entry hints; `"symbol"` = symbol only, for
+  every list/history row (the qualifier repeated per row is what ate the row width); `false` = bare
+  number. Add a currency to `QUALIFIERS` in `src/utils/money.js` only if its symbol is ambiguous.
 - Soft-deleted resources return `404` — treat as gone.
 - **Auth:** every call carries the token via the single seam (`baseApi.prepareHeaders`) — never read or set
   the token elsewhere. A `401` (except on `/auth/login`) clears auth + cache and routes to login. Bypass is
@@ -154,6 +156,14 @@ Plans go in `.claude/agents/plans/`; decisions in `.claude/ADR/`; long-term memo
   (`isValidHex`/`normalizeHex`). **Native stack headers are hidden app-wide** — every screen renders the
   shared `ScreenHeader` (large title; `back` chevron on pushed/modal screens; `right` action slot) so all
   screens share the Dashboard look.
+- **Tap targets:** the whole control is the target, never just its label. A `Pressable` must either carry
+  its own padding (48dp for buttons/nav rows, 40–44dp for chips/inline links) or a `hitSlop` of 12+ for
+  icon-only controls. A `Pressable` wrapping a bare `Text` with neither is a bug.
+- **Cross-tab deep links:** a Dashboard shortcut that opens a screen in another tab pushes onto *that*
+  tab's stack. Two guards are required together: the target stack exports
+  `unstable_settings = { initialRouteName: 'index' }` (so back returns to the list instead of dead-ending),
+  and `app/(tabs)/_layout.jsx`'s `popNestedStackToTop` tab listener resets a tab to its root on press
+  (so the tab bar never reopens a stale, context-scoped detail). Use `router.navigate`, not `push`.
 - **Loans (ADR-018):** loans are lent-out money (receivables) with vault-mirror math — `pending`
   derives from `lend`/`repay` movements, `available = total − Σvaults − Σpending`, no movement ever
   changes `total`. Lend is bounded by `available`, repay by `pending`; delete needs `pending == 0`.

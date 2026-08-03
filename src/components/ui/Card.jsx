@@ -2,17 +2,21 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { radius, spacing } from '../theme';
 import { useTheme } from '../../hooks/useTheme';
 
-export const Card = ({ children, style, onPress }) => {
+export const Card = ({ children, style, onPress, testID }) => {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
   if (onPress) {
     return (
-      <Pressable onPress={onPress} style={({ pressed }) => [styles.card, pressed && { opacity: 0.85 }, style]}>
+      <Pressable
+        onPress={onPress}
+        testID={testID}
+        style={({ pressed }) => [styles.card, pressed && { opacity: 0.85 }, style]}
+      >
         {children}
       </Pressable>
     );
   }
-  return <View style={[styles.card, style]}>{children}</View>;
+  return <View style={[styles.card, style]} testID={testID}>{children}</View>;
 };
 
 const makeStyles = (colors) =>
