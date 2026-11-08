@@ -32,9 +32,9 @@ Claude Code is replaced outright by OpenCode:
    pointing into `.agents/`; `CLAUDE.md` is reduced to just `@AGENTS.md`.
 2. **Docs relocated:** ADRs `.claude/ADR/` → `.agents/adr/`; plan docs `.claude/agents/plans/` →
    `.agents/plans/` — history preserved via `git mv`.
-3. **Config:** new project `opencode.json` (permission allowlist translated from
+3. **Config:** new project `opencode.jsonc` (permission allowlist translated from
    `.claude/settings.local.json`); `default_agent: "orchestrator"` is set in the global config,
-   `~/.config/opencode/opencode.json`.
+   `~/.config/opencode/opencode.jsonc`.
 4. **Model selection by tier:** Tier 1 (orchestrator/reasoner), Tier 2 (implementation + review),
    Tier 3 (cheap/fast exploration and mechanical edits) — provider-agnostic, replacing the hardcoded
    Claude model names. Concrete model IDs live only in the tier table and agent `model` frontmatter —
@@ -44,7 +44,7 @@ Claude Code is replaced outright by OpenCode:
 6. **Commands:** `/prime`, `/plan-feature`, `/implement` (renamed from `/execute`), `/review`,
    `/write-adr`, `/commit`, `/create-prd`, `/create-rules`, `/session-log`.
 7. **Global vs project split:** `~/.config/opencode/` holds the reusable engine (agents, commands,
-   skills, tier pools, workflow/swarm docs); the project keeps `AGENTS.md`, `opencode.json`, and its
+   skills, tier pools, workflow/swarm docs); the project keeps `AGENTS.md`, `opencode.jsonc`, and its
    own `.agents/` docs.
 
 ## Consequences
@@ -52,7 +52,7 @@ Claude Code is replaced outright by OpenCode:
 - **Positive:** model changes are a single edit in the tier table + agent frontmatter, not prose
   edits across every project — and any vendor's models can fill a tier.
 - **Positive:** the workflow engine is written once, globally — bootstrapping a new project needs
-  only `AGENTS.md` + `opencode.json` + its own `.agents/` docs.
+  only `AGENTS.md` + `opencode.jsonc` + its own `.agents/` docs.
 - **Positive:** ADR and plan history survive the move (`git mv` preserves it; the append-only rule is
   what makes this a supersede rather than a rewrite).
 - **Negative / trade-offs:** the global engine becomes a single point of drift — changes there hit

@@ -310,8 +310,8 @@ This project follows the same agent-driven standard as the rest of the stack —
 - **`README.md`** — setup, env config, run/build.
 - **`.agents/adr/`** — decision log (start by copying ADR-001 auth + ADR-002 doc standard).
 - **`.agents/plans/`** — `/plan-feature` output; no medium/high-complexity code without a plan.
-- **Per-project memory** in `.agents/` — indexed markdown docs (ADR index, plans, `project-context.md`,
-  `SUMMARY.md`). No auto-memory store.
+- **Per-project memory** in `.agents/` — indexed markdown docs (ADR index, plans, `project-context.md`).
+  No auto-memory store.
 
 **Workflow loop:** `/prime → /plan-feature → /implement → /review → /commit`. Use conventional commits
 (`feat:`, `fix:`, `refactor:`, `docs:`, …), one logical change each.
