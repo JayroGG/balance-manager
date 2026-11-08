@@ -1,6 +1,6 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  // The default agent (orchestrator) is set globally in ~/.config/opencode/opencode.json.
+  // The default agent (orchestrator) is set globally in ~/.config/opencode/opencode.jsonc.
 
   // Tier pools are global (see ~/.config/opencode/AGENTS.md "Model tiers") and
   // loaded every session — no per-project instructions glob is needed here.
