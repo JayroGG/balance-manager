@@ -24,7 +24,7 @@ is Y), say so explicitly:
 
 - **Positive:** what this buys us.
 - **Negative / trade-offs:** what we accept or defer.
-- **Follow-ups:** concrete future work this implies (link a plan in `.claude/agents/plans/` when one exists).
+- **Follow-ups:** concrete future work this implies (link a plan in `.agents/plans/` when one exists).
 
 ## Alternatives considered
 

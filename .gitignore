@@ -51,3 +51,5 @@ yarn-error.*
 
 # temp PR message (uncommitted, copy-paste scratch)
 PR_MESSAGE.md
+# personal session summary (local, feed-back scratch)
+SUMMARY.md

@@ -10,7 +10,7 @@
 >
 > Mobile-side design (for context only, no action needed): preset-swatch + custom-hex picker on team
 > create/edit; accent derived client-side from `GET /teams`; dark mode is entirely client-side.
-> See `/Users/jayro/Dev/ReactNative/Projects/balance-manager/.claude/agents/plans/003-team-color-and-theming.md`.
+> See `/Users/jayro/Dev/ReactNative/Projects/balance-manager/.agents/plans/003-team-color-and-theming.md`.
 
 ## Requested contract
 

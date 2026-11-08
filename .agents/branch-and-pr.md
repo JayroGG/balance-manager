@@ -25,4 +25,4 @@ When finishing a feature, hand Jayro TWO messages when relevant: the PR body for
 
 ## Gitignored artifacts
 
-`.gitignore` ignores `PR_MESSAGE.md` and the `.claude/` working dir. The `.agents/adr/` and `.agents/plans/` directories are tracked — new ADRs/plans are force-added if needed.
+`.gitignore` ignores `PR_MESSAGE.md` and the legacy `.claude/` working dir. `.agents/adr/` and `.agents/plans/` are tracked normally — no force-add needed.

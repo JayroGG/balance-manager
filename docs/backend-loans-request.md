@@ -10,7 +10,7 @@
 > income + vaults and the semantics come out inverted.
 >
 > Client design record: `balance-mobile` ADR-018
-> (`.claude/ADR/ADR-018-loans-lent-money.md`). This doc is the actionable contract.
+> (`.agents/adr/ADR-018-loans-lent-money.md`). This doc is the actionable contract.
 
 ## Concepts (30 seconds)
 

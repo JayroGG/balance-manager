@@ -11,8 +11,8 @@
 > invariants (`available` can never go negative) have exactly one owner — same philosophy as the
 > in-flight transfers/captures work.
 >
-> Client design record: `balance-mobile` ADR-015 (`.claude/ADR/ADR-015-shopping-lists-pre-expense.md`)
-> and plan `.claude/agents/plans/005-shopping-lists-and-month-filter.md`. This doc is the actionable
+> Client design record: `balance-mobile` ADR-015 (`.agents/adr/ADR-015-shopping-lists-pre-expense.md`)
+> and plan `.agents/plans/005-shopping-lists-and-month-filter.md`. This doc is the actionable
 > contract. Suggested delivery: **Slice 1** (lists + items + checkout) is what the client needs;
 > **Slice 2** (transactions date filter) is an optional nice-to-have.
 
