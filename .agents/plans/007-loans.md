@@ -40,5 +40,5 @@ loan → avail−; repay frees avail; bounds 400; delete needs zero; RBAC/contex
 
 ## Status
 
-- 2026-07-15: plan approved; docs + i18n done; implementation dispatched (Sonnet agents), pending
+- 2026-07-15: plan approved; docs + i18n done; implementation dispatched (Tier 2 agents), pending
   backend delivery for E2E.

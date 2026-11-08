@@ -1,6 +1,6 @@
 # ADR-002 — Documentation & agent-workflow standard
 
-- **Status:** Accepted
+- **Status:** Superseded by ADR-020
 - **Date:** 2026-06-25
 - **Deciders:** Jayro Gómez
 - **Supersedes / Related:** Adopts the standard codified in `balance` ADR-002; same across `balance`,

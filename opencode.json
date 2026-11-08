@@ -1,0 +1,40 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  // The default agent (orchestrator) is set globally in ~/.config/opencode/opencode.json.
+
+  // Tier pools are global (see ~/.config/opencode/AGENTS.md "Model tiers") and
+  // loaded every session — no per-project instructions glob is needed here.
+
+  // Translated from .claude/settings.local.json. OpenCode's base policy already
+  // allows most actions, so these primarily record which commands are trusted
+  // (and stay meaningful if you later add deny rules).
+  "permissions": [
+    { "action": "shell", "resource": "node *", "effect": "allow" },
+    { "action": "shell", "resource": "git check-ignore *", "effect": "allow" },
+    { "action": "shell", "resource": "git add *", "effect": "allow" },
+    { "action": "shell", "resource": "git commit -m ' *", "effect": "allow" },
+    { "action": "shell", "resource": "npm view *", "effect": "allow" },
+    { "action": "shell", "resource": "npm i *", "effect": "allow" },
+    { "action": "shell", "resource": "npx jest *", "effect": "allow" },
+    { "action": "shell", "resource": "echo \"exit: $?\"", "effect": "allow" },
+    { "action": "shell", "resource": "npx expo-doctor *", "effect": "allow" },
+    { "action": "read", "resource": "~/Dev/ReactNative/Projects/employee-mobile-app/**", "effect": "allow" },
+    { "action": "shell", "resource": "find . -maxdepth 3 -name \"*.sh\" -not -path \"*/node_modules/*\"", "effect": "allow" },
+    { "action": "shell", "resource": "node -e \"console.log(JSON.stringify(require('./package.json').scripts,null,2))\"", "effect": "allow" },
+    { "action": "shell", "resource": "chmod +x scripts/build-android.sh scripts/build-android-apk.sh", "effect": "allow" },
+    { "action": "read", "resource": "~/Library/Android/sdk/ndk/27.1.12297006/**", "effect": "allow" },
+    { "action": "read", "resource": "~/Library/Android/sdk/ndk/27.1.12297006/toolchains/llvm/prebuilt/**", "effect": "allow" },
+    { "action": "shell", "resource": "npm run *", "effect": "allow" },
+    { "action": "shell", "resource": "npm test *", "effect": "allow" },
+    { "action": "shell", "resource": "git push *", "effect": "allow" },
+    { "action": "websearch", "resource": "*", "effect": "allow" },
+    { "action": "shell", "resource": "npm cache *", "effect": "allow" },
+    { "action": "shell", "resource": "npx expo *", "effect": "allow" },
+    { "action": "read", "resource": "~/Library/Caches/**", "effect": "allow" },
+    { "action": "shell", "resource": "rm -rf -- *", "effect": "allow" },
+    { "action": "shell", "resource": "git -C /Users/jayro/Dev/ReactNative/Projects/balance-manager branch -a --sort=-committerdate", "effect": "allow" },
+    { "action": "shell", "resource": "git -C /Users/jayro/Dev/ReactNative/Projects/balance-manager log --oneline -15", "effect": "allow" },
+    { "action": "shell", "resource": "sed -n '/\"lists\"/,/}/p' src/i18n/locales/en-US.json", "effect": "allow" },
+    { "action": "shell", "resource": "sed -n '/\"dashboard\"/,/}/p' src/i18n/locales/en-US.json", "effect": "allow" }
+  ]
+}
