@@ -4,8 +4,8 @@ Expo (React Native) client for the [`balance`](../../Node/Projects/balance) pers
 Record incomings/expenses, organize savings into **vaults**, and see your **total / available /
 per-vault** balance. Thin client — the backend owns all business logic and the money boundary.
 
-> Stack & decisions: see `CLAUDE.md`, `ARCHITECTURE.md` (diagrams), `PRD.md` (contract), and
-> `.claude/ADR/`. TL;DR: Expo SDK 54 (managed), expo-router, Redux Toolkit + RTK Query, JS/JSX.
+> Stack & decisions: see `AGENTS.md`, `ARCHITECTURE.md` (diagrams), `PRD.md` (contract), and
+> `.agents/adr/`. TL;DR: Expo SDK 56 (managed), expo-router, Redux Toolkit + RTK Query, JS/JSX.
 
 ## Prerequisites
 

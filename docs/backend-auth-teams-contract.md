@@ -1,7 +1,7 @@
 # Backend contract — Auth & Team context
 
 > **Repo-local reference for `balance-mobile`.** Reconstructed from the decisions in
-> `.claude/agents/plans/002-auth-and-team-context.md` and ADR-011, **not copied** from the backend brief
+> `.agents/plans/002-auth-and-team-context.md` and ADR-011, **not copied** from the backend brief
 > (which lives on the backend repo at `…/balance/docs/react-native-teams-and-auth-update.md`). Reconcile
 > against that brief when wiring against a live backend; if anything here disagrees with the running API,
 > the API wins — update this doc.

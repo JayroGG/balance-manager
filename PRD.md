@@ -208,10 +208,10 @@ balance-mobile/
 ├── hooks/                  # useAuth(), useIdToken(), data hooks
 ├── locales/                # i18next resources
 ├── utils/                  # formatMoney, date helpers, config
-├── .claude/
-│   ├── ADR/                # decision log (start with ADR-001 auth, ADR-002 doc standard — copy from balance)
-│   └── agents/plans/       # /plan-feature output
-├── CLAUDE.md
+├── .agents/
+│   ├── adr/                # decision log (start with ADR-001 auth, ADR-002 doc standard — copy from balance)
+│   └── plans/              # /plan-feature output
+├── AGENTS.md
 ├── PRD.md                  # (this document, adapted)
 ├── ARCHITECTURE.md         # mermaid: navigation graph, state shape, data-flow
 └── README.md
@@ -263,7 +263,7 @@ backend's **email/password JWT** (not Auth0), and it ships in **Expo Go** with n
   `src/utils/config.js`); stage + prod always require real login.
 - **Deferred:** full team-management CRUD and per-context RBAC (only read-only `GET /teams` is wired now).
 
-See `.claude/ADR/ADR-011-auth-jwt-and-team-context.md` and `docs/backend-auth-teams-contract.md`.
+See `.agents/adr/ADR-011-auth-jwt-and-team-context.md` and `docs/backend-auth-teams-contract.md`.
 
 ## 8. Screens & flows (prototype scope)
 
@@ -303,15 +303,15 @@ See `.claude/ADR/ADR-011-auth-jwt-and-team-context.md` and `docs/backend-auth-te
 This project follows the same agent-driven standard as the rest of the stack — see backend
 **ADR-002**. The new repo must ship:
 
-- **`CLAUDE.md`** — stack, commands, architecture, key files, conventions (pairs with global `~/.claude/CLAUDE.md`).
+- **`AGENTS.md`** — stack, commands, architecture, key files, conventions (pairs with global `~/.config/opencode/AGENTS.md`).
 - **`PRD.md`** — this document, adapted as it evolves (requirements, locked decisions, phases).
 - **`ARCHITECTURE.md`** — **Mermaid graphs** (navigation graph, Redux state shape, request/data flow)
   plus a directory/file map. Diagrams are required — they load a mental model cheaply.
 - **`README.md`** — setup, env config, run/build.
-- **`.claude/ADR/`** — decision log (start by copying ADR-001 auth + ADR-002 doc standard).
-- **`.claude/agents/plans/`** — `/plan-feature` output; no medium/high-complexity code without a plan.
-- **Per-project memory** at `~/.claude/projects/<path>/memory/` — the linked memory graph
-  (`MEMORY.md` index + one fact per file).
+- **`.agents/adr/`** — decision log (start by copying ADR-001 auth + ADR-002 doc standard).
+- **`.agents/plans/`** — `/plan-feature` output; no medium/high-complexity code without a plan.
+- **Per-project memory** in `.agents/` — indexed markdown docs (ADR index, plans, `project-context.md`).
+  No auto-memory store.
 
-**Workflow loop:** `/prime → /plan-feature → /execute → /commit`. Use conventional commits
+**Workflow loop:** `/prime → /plan-feature → /implement → /review → /commit`. Use conventional commits
 (`feat:`, `fix:`, `refactor:`, `docs:`, …), one logical change each.

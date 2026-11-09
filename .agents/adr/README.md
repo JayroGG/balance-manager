@@ -29,7 +29,7 @@ Statuses: `Proposed` · `Accepted` · `Deprecated` · `Superseded by ADR-NNN`.
 | ADR | Title | Status |
 |-----|-------|--------|
 | [ADR-001](ADR-001-auth-strategy.md) | Authentication as a modular client seam (bypass now, Auth0 + RBAC north star) | Superseded by ADR-011 |
-| [ADR-002](ADR-002-documentation-and-workflow-standard.md) | Documentation & agent-workflow standard | Accepted |
+| [ADR-002](ADR-002-documentation-and-workflow-standard.md) | Documentation & agent-workflow standard | Superseded by ADR-020 |
 | [ADR-003](ADR-003-expo-managed-first-prebuild-on-demand.md) | Expo managed-first, prebuild-on-demand (RN template baseline) | Accepted |
 | [ADR-004](ADR-004-navigation-expo-router.md) | Navigation via expo-router (supersedes PRD `stacks/`) | Accepted |
 | [ADR-005](ADR-005-data-layer-rtk-query.md) | Data layer via RTK Query (supersedes PRD thunks) | Accepted |
@@ -46,3 +46,8 @@ Statuses: `Proposed` · `Accepted` · `Deprecated` · `Superseded by ADR-NNN`.
 | [ADR-017](ADR-017-activity-feed.md) | Activity feed (`GET /events`) as the notification surface (polling now, Expo Push north star) | Accepted |
 | [ADR-018](ADR-018-loans-lent-money.md) | Loans: lent-out money as a first-class entity (vault-mirror balance math) | Accepted |
 | [ADR-019](ADR-019-cache-trust-and-loading-contract.md) | Cache trust: never render money under an unconfirmed context (+ the loading contract) | Accepted |
+| [ADR-020](ADR-020-opencode-migration.md) | Migration from Claude Code to OpenCode (supersedes ADR-002) | Accepted |
+
+> **Note:** ADR-001..019 predate the OpenCode migration (ADR-020) and reference the old `.claude/ADR/` /
+> `.claude/agents/plans/` paths. Those references are historical; current paths are `.agents/adr/` and
+> `.agents/plans/`.
