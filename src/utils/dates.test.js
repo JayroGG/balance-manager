@@ -2,7 +2,8 @@ import { Settings } from 'luxon';
 import { DateTime } from 'luxon';
 import {
   todayISODate, formatDate, formatDateTime, monthShortNames, timeAgo,
-  presetRange, monthRange, normalizeRange, isISODate, filterRange, formatRange, formatMonthYear, monthPickerYears,
+  presetRange, monthRange, filterRange, formatRange, formatMonthYear,
+  monthGrid, weekdayLabels, shiftMonth, formatMonthTitle, pickRangeDay, isBetween,
 } from './dates';
 
 // Pin zone + locale so toLocaleString and the UTC→local conversion are deterministic across machines/CI.
@@ -119,28 +120,6 @@ describe('monthRange', () => {
   });
 });
 
-describe('isISODate / normalizeRange', () => {
-  it('validates real calendar dates only', () => {
-    expect(isISODate('2026-03-10')).toBe(true);
-    expect(isISODate('2026-02-30')).toBe(false);
-    expect(isISODate('2026-3-1')).toBe(false);
-    expect(isISODate('')).toBe(false);
-    expect(isISODate(undefined)).toBe(false);
-  });
-
-  it('keeps an ordered range, swaps a reversed one', () => {
-    expect(normalizeRange('2026-03-01', '2026-03-20')).toEqual({ from: '2026-03-01', to: '2026-03-20' });
-    expect(normalizeRange('2026-03-20', '2026-03-01')).toEqual({ from: '2026-03-01', to: '2026-03-20' });
-    expect(normalizeRange('2026-03-05', '2026-03-05')).toEqual({ from: '2026-03-05', to: '2026-03-05' });
-  });
-
-  it('allows one open end and rejects two invalid bounds', () => {
-    expect(normalizeRange('2026-03-01', '')).toEqual({ from: '2026-03-01', to: undefined });
-    expect(normalizeRange('bad', '2026-03-09')).toEqual({ from: undefined, to: '2026-03-09' });
-    expect(normalizeRange('bad', '')).toBeNull();
-  });
-});
-
 describe('filterRange', () => {
   const now = at(2026, 3, 11);
   it('resolves each filter kind', () => {
@@ -154,16 +133,106 @@ describe('filterRange', () => {
 describe('labels', () => {
   it('formatRange compacts within a month, spans months, and spells out years', () => {
     expect(formatRange({ from: '2026-11-01', to: '2026-11-14' }, 'en-US')).toBe('Nov 1–14');
+    expect(formatRange({ from: '2026-11-01', to: '2026-11-14' }, 'es-MX')).toMatch(/^1–14 nov/);
     expect(formatRange({ from: '2026-10-28', to: '2026-11-03' }, 'en-US')).toBe('Oct 28 – Nov 3');
     expect(formatRange({ from: '2025-11-03', to: '2026-01-08' }, 'en-US')).toBe('Nov 3, 2025 – Jan 8, 2026');
-    expect(formatRange({ from: '2026-11-01', to: '2026-11-14' }, 'es-MX')).toMatch(/^1–14 nov/);
     expect(formatRange({ from: '2026-11-03', to: '2026-11-03' }, 'en-US')).toBe('Nov 3, 2026');
-    expect(formatRange({ from: '2026-11-03' }, 'en-US', { fromLabel: 'From' })).toBe('From Nov 3, 2026');
-    expect(formatRange({ to: '2026-11-03' }, 'en-US', { untilLabel: 'Until' })).toBe('Until Nov 3, 2026');
   });
 
-  it('formatMonthYear and monthPickerYears', () => {
+  it('formatMonthYear / formatMonthTitle', () => {
     expect(formatMonthYear(2026, 3, 'en-US')).toBe('Mar 2026');
-    expect(monthPickerYears(at(2026, 6, 1), 2)).toEqual([2026, 2025, 2024]);
+    expect(formatMonthTitle({ year: 2026, month: 3 }, 'en-US')).toBe('March 2026');
+  });
+});
+
+describe('monthGrid', () => {
+  const flat = (g) => g.flat().filter(Boolean);
+
+  it('is Monday-first: Nov 2026 starts on a Sunday → 6 leading blanks', () => {
+    const g = monthGrid(2026, 11);
+    expect(g[0].slice(0, 6)).toEqual(Array(6).fill(null));
+    expect(g[0][6]).toBe('2026-11-01');
+    expect(flat(g)).toHaveLength(30);
+  });
+
+  it('a month starting on Monday has no leading blanks (Jun 2026)', () => {
+    expect(monthGrid(2026, 6)[0][0]).toBe('2026-06-01');
+  });
+
+  it('rows are always 7 wide; trailing cells pad to the week', () => {
+    monthGrid(2026, 11).forEach((w) => expect(w).toHaveLength(7));
+    const g = monthGrid(2026, 11);
+    expect(g.at(-1).at(-1)).toBeNull(); // Nov 30 is a Monday
+    expect(g.at(-1)[0]).toBe('2026-11-30');
+  });
+
+  it('February: 28 / 29 days, and 4 rows when it fits exactly (Feb 2027 starts Monday)', () => {
+    expect(flat(monthGrid(2026, 2))).toHaveLength(28);
+    expect(flat(monthGrid(2024, 2))).toHaveLength(29);
+    expect(monthGrid(2027, 2)).toHaveLength(4);
+  });
+
+  it('a 31-day month starting Saturday/Sunday needs 6 rows (Aug 2026 starts Saturday)', () => {
+    expect(monthGrid(2026, 8)).toHaveLength(6);
+  });
+
+  it('every cell is a real, ordered ISO date', () => {
+    const days = flat(monthGrid(2026, 3));
+    expect(days).toEqual([...days].sort());
+    expect(days[0]).toBe('2026-03-01');
+    expect(days.at(-1)).toBe('2026-03-31');
+  });
+});
+
+describe('weekdayLabels / shiftMonth', () => {
+  it('weekday labels start on Monday', () => {
+    expect(weekdayLabels('en-US')[0]).toBe('Mon');
+    expect(weekdayLabels('en-US')).toHaveLength(7);
+    expect(weekdayLabels('es-MX')[0].toLowerCase()).toMatch(/^lun/);
+  });
+
+  it('shiftMonth rolls over year boundaries both ways', () => {
+    expect(shiftMonth({ year: 2026, month: 12 }, 1)).toEqual({ year: 2027, month: 1 });
+    expect(shiftMonth({ year: 2026, month: 1 }, -1)).toEqual({ year: 2025, month: 12 });
+    expect(shiftMonth({ year: 2026, month: 3 }, 0)).toEqual({ year: 2026, month: 3 });
+  });
+});
+
+describe('pickRangeDay — first tap start, second tap end', () => {
+  const none = { start: null, end: null };
+
+  it('first tap sets only the start', () => {
+    expect(pickRangeDay(none, '2026-11-10')).toEqual({ start: '2026-11-10', end: null });
+  });
+
+  it('second tap after the start completes the range', () => {
+    expect(pickRangeDay({ start: '2026-11-10', end: null }, '2026-11-20')).toEqual({ start: '2026-11-10', end: '2026-11-20' });
+  });
+
+  it('second tap before the start swaps (tap 20 then 10 → 10..20)', () => {
+    expect(pickRangeDay({ start: '2026-11-20', end: null }, '2026-11-10')).toEqual({ start: '2026-11-10', end: '2026-11-20' });
+  });
+
+  it('the same day twice is a single-day range', () => {
+    expect(pickRangeDay({ start: '2026-11-10', end: null }, '2026-11-10')).toEqual({ start: '2026-11-10', end: '2026-11-10' });
+  });
+
+  it('a third tap starts a new range (also across months/years)', () => {
+    expect(pickRangeDay({ start: '2026-11-10', end: '2026-11-20' }, '2027-01-02')).toEqual({ start: '2027-01-02', end: null });
+  });
+
+  it('works across a month boundary in either order', () => {
+    expect(pickRangeDay({ start: '2026-12-05', end: null }, '2026-11-25')).toEqual({ start: '2026-11-25', end: '2026-12-05' });
+  });
+});
+
+describe('isBetween', () => {
+  const r = { start: '2026-11-10', end: '2026-11-20' };
+  it('is exclusive of both ends and needs a complete range', () => {
+    expect(isBetween(r, '2026-11-15')).toBe(true);
+    expect(isBetween(r, '2026-11-10')).toBe(false);
+    expect(isBetween(r, '2026-11-20')).toBe(false);
+    expect(isBetween(r, '2026-11-21')).toBe(false);
+    expect(isBetween({ start: '2026-11-10', end: null }, '2026-11-15')).toBe(false);
   });
 });

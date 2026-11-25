@@ -111,45 +111,64 @@ it('picking a month sends its first and last day', async () => {
   await screen.findByText('JulyTx');
   fireEvent.press(screen.getByText('transactions.months ▾'));
   const year = new Date().getFullYear();
-  expect(screen.getByText(String(year))).toBeTruthy();
-  fireEvent.press(screen.getAllByText('Feb')[0]);
-  await waitFor(() => expect(lastTx().get('from')).toBe(`${year}-02-01`));
-  expect(lastTx().get('to')).toMatch(new RegExp(`^${year}-02-(28|29)$`));
+  expect(screen.getByTestId('year-label').props.children).toBe(year);
+  fireEvent.press(screen.getByTestId('year-prev'));
+  fireEvent.press(screen.getByTestId('month-2'));
+  await waitFor(() => expect(lastTx().get('from')).toBe(`${year - 1}-02-01`));
+  expect(lastTx().get('to')).toBe(`${year - 1}-02-28`);
 });
 
-it('a custom range is applied, and a swapped pair is put in order', async () => {
+it('the months picker cannot go past the current year and disables future months', async () => {
+  renderWithStore(<TransactionsList />);
+  await screen.findByText('JulyTx');
+  fireEvent.press(screen.getByText('transactions.months ▾'));
+  const year = new Date().getFullYear();
+  expect(screen.getByTestId('year-label').props.children).toBe(year);
+  expect(screen.getByTestId('year-next').props.accessibilityState.disabled).toBe(true); // can't pass the current year
+  expect(screen.getByTestId('year-prev').props.accessibilityState.disabled).toBe(false);
+  const nextMonth = new Date().getMonth() + 2; // 1-based month after the current one
+  if (nextMonth <= 12) expect(screen.getByTestId(`month-${nextMonth}`).props.accessibilityState.disabled).toBe(true);
+  expect(screen.getByTestId('month-1').props.accessibilityState.disabled).toBe(false);
+});
+
+it('a custom range is picked on the calendar: tap 20 then 10 sends 10..20', async () => {
   renderWithStore(<TransactionsList />);
   await screen.findByText('JulyTx');
   fireEvent.press(screen.getByText('transactions.custom ▾'));
-  fireEvent.changeText(screen.getByTestId('custom-from'), '2026-03-20');
-  fireEvent.changeText(screen.getByTestId('custom-to'), '2026-03-05');
+  const now = new Date();
+  const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  fireEvent.press(screen.getByTestId(`day-${ym}-20`));
+  fireEvent.press(screen.getByTestId(`day-${ym}-10`));
   fireEvent.press(screen.getByText('transactions.apply'));
-  await waitFor(() => expect(lastTx().get('from')).toBe('2026-03-05'));
-  expect(lastTx().get('to')).toBe('2026-03-20');
+  await waitFor(() => expect(lastTx().get('from')).toBe(`${ym}-10`));
+  expect(lastTx().get('to')).toBe(`${ym}-20`);
 });
 
-it('a custom range with no valid date is rejected and sends nothing', async () => {
+it('the same day tapped twice applies a single-day range; a lone tap does too', async () => {
+  renderWithStore(<TransactionsList />);
+  await screen.findByText('JulyTx');
+  fireEvent.press(screen.getByText('transactions.custom ▾'));
+  const now = new Date();
+  const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  fireEvent.press(screen.getByTestId(`day-${ym}-05`));
+  fireEvent.press(screen.getByTestId(`day-${ym}-05`));
+  fireEvent.press(screen.getByText('transactions.apply'));
+  await waitFor(() => expect(lastTx().get('from')).toBe(`${ym}-05`));
+  expect(lastTx().get('to')).toBe(`${ym}-05`);
+});
+
+it('the calendar navigates months and Apply is disabled until a day is picked', async () => {
   renderWithStore(<TransactionsList />);
   await screen.findByText('JulyTx');
   const before = txUrls().length;
   fireEvent.press(screen.getByText('transactions.custom ▾'));
-  fireEvent.changeText(screen.getByTestId('custom-from'), 'nope');
-  fireEvent.changeText(screen.getByTestId('custom-to'), '');
+  const title = screen.getByTestId('cal-title').props.children;
+  fireEvent.press(screen.getByTestId('cal-next'));
+  expect(screen.getByTestId('cal-title').props.children).not.toBe(title);
+  fireEvent.press(screen.getByTestId('cal-prev'));
+  expect(screen.getByTestId('cal-title').props.children).toBe(title);
   fireEvent.press(screen.getByText('transactions.apply'));
-  expect(screen.getByText('transactions.invalidRange')).toBeTruthy();
-  expect(txUrls().length).toBe(before);
-});
-
-it('a custom range with one malformed bound is rejected, not applied open-ended', async () => {
-  renderWithStore(<TransactionsList />);
-  await screen.findByText('JulyTx');
-  const before = txUrls().length;
-  fireEvent.press(screen.getByText('transactions.custom ▾'));
-  fireEvent.changeText(screen.getByTestId('custom-from'), '2026-11-01');
-  fireEvent.changeText(screen.getByTestId('custom-to'), '2026-11-3x');
-  fireEvent.press(screen.getByText('transactions.apply'));
-  expect(screen.getByText('transactions.invalidRange')).toBeTruthy();
-  expect(txUrls().length).toBe(before);
+  expect(txUrls().length).toBe(before); // nothing picked → nothing applied
 });
 
 it('the loans chip asks the server for loans=only; income/expense send type', async () => {

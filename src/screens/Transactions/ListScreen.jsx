@@ -202,7 +202,7 @@ export default function TransactionsList() {
           data={items}
           keyExtractor={(item) => String(item.id)}
           renderItem={renderItem}
-          contentContainerStyle={{ paddingHorizontal: spacing(2), paddingBottom: spacing(10), flexGrow: 1 }}
+          contentContainerStyle={{ paddingHorizontal: spacing(2), paddingBottom: spacing(10) }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           onEndReached={onEndReached}
           onEndReachedThreshold={0.5}
@@ -266,7 +266,7 @@ const makeStyles = (colors) =>
   totalValue: { fontSize: font.lg, fontWeight: '800' },
   totalsMeta: { flexDirection: 'row', alignItems: 'center' },
   count: { fontSize: font.sm, color: colors.muted, fontWeight: '600' },
-  empty: { flex: 1, justifyContent: 'center' },
+  empty: { paddingTop: spacing(4) },
   footer: { paddingVertical: spacing(2) },
   staleBadgeWrap: { marginLeft: spacing(1.5) },
   totalSkeletonLabel: { marginBottom: spacing(0.5) },
