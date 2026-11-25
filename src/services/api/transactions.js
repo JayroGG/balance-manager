@@ -1,27 +1,29 @@
 import { baseApi } from './baseApi';
 import { withTeam } from './teamParam';
+import { withQuery } from './queryString';
 
-// /transactions — a pure ledger: CRUD with optional filters (type, category_id). Soft-delete → 204/404.
+// /transactions — a pure ledger: CRUD plus a server-side search/date/type list (paged). Soft-delete → 204/404.
 // Money is decimal & positive; `type` carries the sign. Transactions no longer tag vaults, but income/
 // expense move total & available, so mutations invalidate Balance. Every arg carries an optional team_id
 // → URL `?team_id=` (never the body) and part of the cache key. (PRD §4.1, ADR-009 / ADR-011)
+export const PAGE_SIZE = 30;
 const LIST_TAG = { type: 'Transaction', id: 'LIST' };
 
 export const transactionsApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
-    getTransactions: build.query({
-      // arg: { type?, category_id?, team_id? }
-      query: ({ team_id, ...filters } = {}) => {
-        const params = new URLSearchParams();
-        Object.entries(filters).forEach(([k, v]) => {
-          if (v !== undefined && v !== null && v !== '') params.append(k, v);
-        });
-        const qs = params.toString();
-        return withTeam(`/transactions${qs ? `?${qs}` : ''}`, team_id);
+    // Server-filtered, keyset-paged list (BE ADR-011 / FE ADR-021). Each page is
+    // { items, next_cursor, totals } — `totals` cover the whole filtered set, so read them from page 1.
+    // arg: { team_id?, q?, from?, to?, type?, loans?: 'only'|'exclude', sort?: 'asc'|'desc' }
+    getTransactions: build.infiniteQuery({
+      infiniteQueryOptions: {
+        initialPageParam: null,
+        getNextPageParam: (lastPage) => lastPage.next_cursor ?? undefined,
       },
+      query: ({ queryArg: { team_id, ...filters } = {}, pageParam }) =>
+        withTeam(withQuery('/transactions', { ...filters, limit: PAGE_SIZE, cursor: pageParam }), team_id),
       providesTags: (result) =>
         result
-          ? [...result.map((t) => ({ type: 'Transaction', id: t.id })), LIST_TAG]
+          ? [...result.pages.flatMap((p) => p.items.map((t) => ({ type: 'Transaction', id: t.id }))), LIST_TAG]
           : [LIST_TAG],
     }),
     getTransaction: build.query({
@@ -45,7 +47,7 @@ export const transactionsApi = baseApi.injectEndpoints({
 });
 
 export const {
-  useGetTransactionsQuery,
+  useGetTransactionsInfiniteQuery,
   useGetTransactionQuery,
   useAddTransactionMutation,
   useUpdateTransactionMutation,

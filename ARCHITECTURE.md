@@ -82,7 +82,7 @@ tags so the dashboard re-fetches automatically.
 flowchart LR
   subgraph UI["Screens (app/)"]
     H1["useGetBalanceQuery"]
-    H2["useGetTransactionsQuery"]
+    H2["useGetTransactionsInfiniteQuery"]
     H3["useAddTransactionMutation"]
     H4["useAllocateVaultMutation / useWithdrawVaultMutation"]
     H5["useGetEventsQuery (feed + useUnreadActivity)"]
@@ -91,7 +91,7 @@ flowchart LR
   subgraph RTKQ["src/services/api"]
     Base["baseApi.js<br/>fetchBaseQuery(baseUrl)<br/>prepareHeaders → Bearer token (AUTH SEAM)"]
     EpB["balance.js (tag: Balance)"]
-    EpT["transactions.js (Transaction; inval Balance)"]
+    EpT["transactions.js (Transaction; infinite list; inval Balance — ADR-021)"]
     EpV["vaults.js (Vault, VaultHistory; inval Balance)"]
     EpC["categories.js (Category)"]
     EpL["loans.js (Loan, LoanHistory; inval Balance + Transaction — ADR-018)"]
@@ -157,7 +157,7 @@ balance-manager/                 # app name: balance-mobile
 ├── src/                         # ALL real code lives here
 │   ├── screens/                 # screen bodies (composition + data orchestration), mirrors team layout
 │   │   ├── Dashboard/index.jsx   Activity/index.jsx   # feed screen (ADR-017)
-│   │   ├── Transactions/{ListScreen,NewScreen,EditScreen}.jsx  TransactionForm.jsx
+│   │   ├── Transactions/{ListScreen,DateFilter,NewScreen,EditScreen}.jsx  TransactionForm.jsx
 │   │   ├── Vaults/{ListScreen,NewScreen,DetailScreen}.jsx
 │   │   ├── Loans/{ListScreen,NewScreen,DetailScreen}.jsx   # lent-out money (ADR-018)
 │   │   ├── Teams/{ListScreen,ManageScreen}.jsx   # team management (ADR-012)
@@ -168,7 +168,7 @@ balance-manager/                 # app name: balance-mobile
 │   │   └── theme.js             # light/dark palettes + makeColors(scheme, accent) + PRESET_TEAM_COLORS; spacing/radius/font (ADR-013)
 │   ├── store/                   # configureStore + RTKQ middleware + redux-persist + setupListeners
 │   ├── services/
-│   │   ├── api/                 # baseApi.js + balance/transactions/vaults/loans/categories/events.js (injectEndpoints)
+│   │   ├── api/                 # baseApi.js + balance/transactions/vaults/loans/categories/events.js (injectEndpoints) + queryString.js (shared `withQuery`)
 │   │   └── storage/             # secure.js (token), prefs.js (cache/prefs)
 │   ├── reducers/{auth,context,prefs,activity}/  # auth (token/user), context (activeTeamId), prefs (themeMode — ADR-013), activity (per-context lastSeen — ADR-017)
 │   ├── permissions/             # RBAC seam: usePermissions + pure can*() matrix (ADR-012)

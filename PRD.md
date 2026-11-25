@@ -107,7 +107,7 @@ Returns the computed figures. **This is the dashboard's primary call.**
 #### Transactions — `/transactions`
 | Method | Path | Body / Query | Returns |
 |---|---|---|---|
-| GET | `/transactions` | `?type=&category_id=` (all optional filters) | `200` array |
+| GET | `/transactions` | `?q=&from=&to=&type=&category_id=&loans=&sort=&limit=&cursor=` (all optional; ADR-021) | `200` `{ items, next_cursor, totals }` |
 | POST | `/transactions` | `{ type, amount, category_id?, description?, occurred_at? }` | `201` record |
 | GET | `/transactions/:id` | — | `200` record / `404` |
 | PUT | `/transactions/:id` | any subset of the create fields | `200` record / `404` |
@@ -220,7 +220,7 @@ balance-mobile/
 ### 6.1 Redux slices (state shape)
 
 - `balance` — `{ total, available, vaults: [{id,name,balance,target}], currency, status }` from `GET /balance`.
-- `transactions` — list + filters (`type`, `category_id`) + CRUD thunks.
+- `transactions` — server-filtered paged list (search, date range, `type`, `loans`, sort) + CRUD thunks.
 - `vaults` — list + selected vault history + allocate/withdraw thunks taking `(vaultId, amount)`.
 - `categories` — list + CRUD thunks.
 - `auth` — identity/token state (bypassed in prototype; see §7).
@@ -269,7 +269,8 @@ See `.agents/adr/ADR-011-auth-jwt-and-team-context.md` and `docs/backend-auth-te
 
 1. **Dashboard** — `GET /balance`. Hero shows `total` and `available`; a list of vault cards
    (name, balance, target progress). Pull-to-refresh re-fetches.
-2. **Transactions** — list with filter chips (`type`, `category`); FAB to create.
+2. **Transactions** — search bar (description + category), type chips, date chips (All · Today · Yesterday ·
+   This week · Months · Custom), server totals + result count, infinite scroll (ADR-021); FAB to create.
    Create/edit form: type toggle, amount, category picker, description, date (`occurred_at`).
    Swipe/menu to soft-delete. No vault field — transactions are a pure ledger.
 3. **Vaults** — list (name + balance/target from `/balance`); detail shows `history` and actions to
