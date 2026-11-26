@@ -174,3 +174,54 @@ describe('cache trust gate (ADR-019)', () => {
     expect(screen.queryAllByRole('progressbar')).toHaveLength(0);
   });
 });
+
+// ADR-023 cards block — BE worked example: charges 1,200 + 800, statement 1,200 (due in the future → not overdue).
+const cardsBalance = {
+  ...baseBalance,
+  cards_owed: 2000,
+  cards: [
+    { id: 1, name: 'Visa', owed: 800, statement_balance: 0, due_date: '2099-01-10' },
+    { id: 2, name: 'Amex', owed: 1200, statement_balance: 1200, due_date: '2099-11-25' },
+    { id: 3, name: 'Late', owed: 0, statement_balance: 300, due_date: '2099-12-30' },
+  ],
+};
+
+it('hides the cards block when /balance has no cards', async () => {
+  mockFetch(baseBalance);
+  renderWithStore(<Dashboard />);
+  await screen.findByTestId('hero');
+  expect(screen.queryByTestId('cards-block')).toBeNull();
+  mockFetch({ ...baseBalance, cards: [], cards_owed: 0 });
+});
+
+it('shows total owed and the earliest due card, and navigates to the cards list', async () => {
+  mockFetch(cardsBalance);
+  renderWithStore(<Dashboard />);
+  await screen.findByTestId('cards-block');
+  expect(screen.getByText(money(2000))).toBeTruthy();
+  expect(screen.getByTestId('cards-next-due').props.children).toBe('cards.payBy');
+  fireEvent.press(screen.getByTestId('cards-block'));
+  expect(mockNavigateSpy).toHaveBeenCalledWith('/(tabs)/settings/cards');
+});
+
+it('flags an overdue next payment in the danger color', async () => {
+  mockFetch({ ...cardsBalance, cards: [{ id: 2, name: 'Amex', owed: 1200, statement_balance: 1200, due_date: '2020-01-25' }] });
+  renderWithStore(<Dashboard />);
+  const node = await screen.findByTestId('cards-next-due');
+  expect(StyleSheet.flatten(node.props.style).color).toBe(makeColors('light').danger);
+});
+
+it('shows "nothing due" when every statement is paid (owed 800, statement 0)', async () => {
+  mockFetch({ ...cardsBalance, cards_owed: 800, cards: [cardsBalance.cards[0]] });
+  renderWithStore(<Dashboard />);
+  await screen.findByTestId('cards-block');
+  expect(screen.getByText(money(800))).toBeTruthy();
+  expect(screen.getByTestId('cards-next-due').props.children).toBe('cards.noneDue');
+});
+
+it('does not paint the cards block under an unconfirmed team context (ADR-019)', async () => {
+  mockFetch(cardsBalance);
+  renderWithTeamContext(<Dashboard />, 99);
+  await new Promise((r) => setTimeout(r, 20));
+  expect(screen.queryByTestId('cards-block')).toBeNull();
+});

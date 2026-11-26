@@ -319,3 +319,57 @@ it('renders no totals figure — only a skeleton — under an unconfirmed team c
   expect(screen.getByTestId('totals-skeleton')).toBeTruthy();
   expect(screen.queryByText(money(-70))).toBeNull();
 });
+
+// ADR-023 — BE worked example: charges 1,200 + 800 (expense 2,000), payment 500 (separate, not a spend).
+describe('cards (ADR-023)', () => {
+  const cardPage = {
+    items: [
+      row(10, 'Pay Visa', { type: 'card_payment', amount: 500, card_id: 7 }),
+      row(11, 'Laptop', { amount: 1200, card_id: 7 }),
+      row(12, 'Fridge', { amount: 800, card_id: 7 }),
+    ],
+    next_cursor: null,
+    totals: { income: 0, expense: 2000, card_payments: 500, net: -2000, count: 3 },
+  };
+  beforeEach(() => {
+    respond = () => cardPage;
+    const base = global.fetch.getMockImplementation();
+    global.fetch.mockImplementation((req) =>
+      new URL(req.url).pathname === '/cards'
+        ? Promise.resolve(jsonResponse([{ id: 7, name: 'Visa' }, { id: 8, name: 'Amex' }]))
+        : base(req),
+    );
+  });
+
+  it('badges charges with the card name and renders payments as a neutral transfer', async () => {
+    renderWithStore(<TransactionsList />);
+    await screen.findByText('Laptop');
+    await waitFor(() => expect(screen.getByTestId('card-badge-11')).toBeTruthy());
+    expect(screen.getByTestId('card-badge-11')).toHaveTextContent('Visa');
+    expect(screen.getByTestId('card-badge-10')).toHaveTextContent('Visa');
+    const { colors } = { colors: require('../../components/theme').makeColors('light') };
+    const flat = require('react-native').StyleSheet.flatten;
+    expect(flat(screen.getByText(money(500)).props.style).color).toBe(colors.muted);
+    expect(flat(screen.getByText(money(1200)).props.style).color).toBe(colors.danger);
+  });
+
+  it('totals: expense (charges 1,200 + 800) = 2,000, payments shown separately and never added', async () => {
+    renderWithStore(<TransactionsList />);
+    await screen.findByText('Laptop');
+    const cycle = screen.getByTestId('totals-cycle');
+    fireEvent.press(cycle); // income
+    fireEvent.press(cycle); // expense
+    expect(screen.getAllByText(money(2000)).length).toBeGreaterThan(0);
+    fireEvent.press(cycle); // card payments
+    expect(screen.getAllByText(money(500)).length).toBeGreaterThan(0);
+  });
+
+  it('the card filter sends card_id and "All cards" clears it', async () => {
+    renderWithStore(<TransactionsList />);
+    await screen.findByText('Laptop');
+    fireEvent.press(await screen.findByText('Amex'));
+    await waitFor(() => expect(lastTx().get('card_id')).toBe('8'));
+    fireEvent.press(screen.getByText('cards.allCards'));
+    await waitFor(() => expect(lastTx().has('card_id')).toBe(false));
+  });
+});

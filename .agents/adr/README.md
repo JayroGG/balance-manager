@@ -49,6 +49,7 @@ Statuses: `Proposed` · `Accepted` · `Deprecated` · `Superseded by ADR-NNN`.
 | [ADR-020](ADR-020-opencode-migration.md) | Migration from Claude Code to OpenCode (supersedes ADR-002) | Accepted |
 | [ADR-021](ADR-021-transactions-search-and-date-presets.md) | Transactions search, date presets and infinite scroll (supersedes ADR-015's client-side month filter) | Accepted |
 | [ADR-022](ADR-022-negative-balance-and-multi-category-ui.md) | Negative balance display and multi-category transactions (supersedes ADR-009 in part) | Accepted |
+| [ADR-023](ADR-023-credit-cards-ui.md) | Credit cards UI: cards screens, pay flow, card charges and dashboard summary | Accepted |
 
 > **Note:** ADR-001..019 predate the OpenCode migration (ADR-020) and reference the old `.claude/ADR/` /
 > `.claude/agents/plans/` paths. Those references are historical; current paths are `.agents/adr/` and

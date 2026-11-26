@@ -14,7 +14,10 @@ export const transactionsApi = baseApi.injectEndpoints({
     // Server-filtered, keyset-paged list (BE ADR-011 / FE ADR-021). Each page is
     // { items, next_cursor, totals } — `totals` cover the whole filtered set, so read them from page 1.
     // Rows carry `categories: [{ id, name }]`; writes take `category_ids: int[]` (ADR-022 / BE ADR-013).
-    // arg: { team_id?, q?, from?, to?, type?, loans?: 'only'|'exclude', sort?: 'asc'|'desc' }
+    // Charges are expenses with `card_id` (cash untouched); payments are `type: 'card_payment'` (cash out, not a
+    // spend). Totals gain `card_payments`; `expense` includes charges (ADR-023 / BE ADR-014). Writes accept
+    // `card_id` on expenses (`null` on PUT moves a charge back to cash); card_payment rows can only be deleted.
+    // arg: { team_id?, q?, from?, to?, type?, card_id?, loans?: 'only'|'exclude', sort?: 'asc'|'desc' }
     getTransactions: build.infiniteQuery({
       infiniteQueryOptions: {
         initialPageParam: null,
@@ -34,15 +37,15 @@ export const transactionsApi = baseApi.injectEndpoints({
     }),
     addTransaction: build.mutation({
       query: ({ team_id, ...body }) => ({ url: withTeam('/transactions', team_id), method: 'POST', body }),
-      invalidatesTags: [LIST_TAG, 'Balance'],
+      invalidatesTags: [LIST_TAG, 'Balance', 'Card'],
     }),
     updateTransaction: build.mutation({
       query: ({ id, team_id, ...body }) => ({ url: withTeam(`/transactions/${id}`, team_id), method: 'PUT', body }),
-      invalidatesTags: (r, e, { id }) => [{ type: 'Transaction', id }, LIST_TAG, 'Balance'],
+      invalidatesTags: (r, e, { id }) => [{ type: 'Transaction', id }, LIST_TAG, 'Balance', 'Card'],
     }),
     deleteTransaction: build.mutation({
       query: ({ id, team_id }) => ({ url: withTeam(`/transactions/${id}`, team_id), method: 'DELETE' }),
-      invalidatesTags: (r, e, { id }) => [{ type: 'Transaction', id }, LIST_TAG, 'Balance'],
+      invalidatesTags: (r, e, { id }) => [{ type: 'Transaction', id }, LIST_TAG, 'Balance', 'Card'],
     }),
   }),
 });

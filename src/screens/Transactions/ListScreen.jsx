@@ -4,6 +4,7 @@ import { Link, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useGetTransactionsInfiniteQuery } from '../../services/api/transactions';
+import { useGetCardsQuery } from '../../services/api/cards';
 import { useGetBalanceQuery } from '../../services/api/balance';
 import { useActiveTeamId } from '../../hooks/useActiveTeamId';
 import { usePermissions } from '../../permissions';
@@ -26,6 +27,7 @@ export default function TransactionsList() {
   const teamId = useActiveTeamId();
   const { canAdd } = usePermissions();
   const [typeFilter, setTypeFilter] = useState('all');
+  const [cardFilter, setCardFilter] = useState(null);
   const [sortDir, setSortDir] = useState('desc');
   const [dateFilter, setDateFilter] = useState(ALL_TIME);
   const [search, setSearch] = useState('');
@@ -43,10 +45,12 @@ export default function TransactionsList() {
     from,
     to,
     sort: sortDir,
+    ...(cardFilter != null ? { card_id: cardFilter } : {}),
     ...(typeFilter === 'loans' ? { loans: 'only' } : typeFilter === 'all' ? {} : { type: typeFilter }),
   };
   const txQuery = useGetTransactionsInfiniteQuery(filters);
   const { currentData, isFetching, error, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = txQuery;
+  const { data: cards } = useGetCardsQuery(teamId);
   const { data: balance } = useGetBalanceQuery(teamId);
   const currency = balance?.currency;
   // The totals bar is a fixed-geometry figure — it must never paint under an unconfirmed context
@@ -58,12 +62,13 @@ export default function TransactionsList() {
   // `currentData` (not `data`): while a new filter loads, `data` still holds the previous filter's
   // result — its totals must not pass for the new set. Same fixed-geometry skeleton as ADR-019.
   const totals = currentData?.pages[0]?.totals;
-  const hasFilters = q !== '' || dateFilter.kind !== 'all' || typeFilter !== 'all';
+  const hasFilters = q !== '' || dateFilter.kind !== 'all' || typeFilter !== 'all' || cardFilter != null;
   const resetFilters = () => {
     setSearch('');
     setQ('');
     setDateFilter(ALL_TIME);
     setTypeFilter('all');
+    setCardFilter(null);
   };
 
   // Drive the spinner only from a user pull — not the auto refetch-on-mount, which on iOS
@@ -84,18 +89,25 @@ export default function TransactionsList() {
 
   const renderItem = ({ item }) => {
     const income = item.type === 'income';
+    const payment = item.type === 'card_payment';
+    const cardName = item.card_id != null ? cards?.find((c) => c.id === item.card_id)?.name ?? t('cards.card') : null;
     return (
       <Link href={`/(tabs)/transactions/${item.id}`} asChild>
         <Pressable>
           <Card>
             <View style={styles.rowBetween}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.desc} numberOfLines={1}>{item.description || t(`transactions.${item.type}`)}</Text>
+                <Text style={styles.desc} numberOfLines={1}>{item.description || (payment ? t('cards.payment') : t(`transactions.${item.type}`))}</Text>
                 <View style={styles.metaRow}>
                   <Text style={styles.meta}>{formatDate(item.occurred_at)}</Text>
                   {item.loan_id != null ? (
                     <View style={styles.loanBadge}>
                       <Text style={styles.loanBadgeText}>{t('transactions.loan')}</Text>
+                    </View>
+                  ) : null}
+                  {cardName ? (
+                    <View style={styles.loanBadge} testID={`card-badge-${item.id}`}>
+                      <Text style={styles.loanBadgeText}>{cardName}</Text>
                     </View>
                   ) : null}
                 </View>
@@ -109,7 +121,7 @@ export default function TransactionsList() {
                 amount={item.amount}
                 currency={currency}
                 showCurrency="symbol"
-                style={[styles.amount, { color: income ? colors.success : colors.danger }]}
+                style={[styles.amount, { color: payment ? colors.muted : income ? colors.success : colors.danger }]}
               />
             </View>
           </Card>
@@ -166,6 +178,15 @@ export default function TransactionsList() {
         ))}
       </View>
 
+      {cards?.length ? (
+        <View style={styles.filters} testID="card-filters">
+          <Chip label={t('cards.allCards')} active={cardFilter == null} onPress={() => setCardFilter(null)} />
+          {cards.map((c) => (
+            <Chip key={c.id} label={c.name} active={cardFilter === c.id} onPress={() => setCardFilter(c.id)} />
+          ))}
+        </View>
+      ) : null}
+
       <DateFilter value={dateFilter} onChange={setDateFilter} />
 
       <View style={styles.totals}>
@@ -181,6 +202,11 @@ export default function TransactionsList() {
                 { key: 'net', label: t('transactions.net'), amount: totals.net, color: colors.text, signed: true },
                 { key: 'income', label: t('transactions.income'), amount: totals.income, color: colors.success },
                 { key: 'expense', label: t('transactions.expense'), amount: totals.expense, color: colors.danger },
+                // Charges are already inside `expense`; payments are cash out but not a spend, so they are
+                // a separate step (never added into expense/net) — keeps the rows adding up (ADR-023).
+                ...(totals.card_payments > 0
+                  ? [{ key: 'card_payments', label: t('cards.payment'), amount: totals.card_payments, color: colors.muted }]
+                  : []),
               ]}
             />
             <View style={styles.totalsMeta}>

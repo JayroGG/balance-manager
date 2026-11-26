@@ -107,13 +107,16 @@ Returns the computed figures. **This is the dashboard's primary call.**
 #### Transactions — `/transactions`
 | Method | Path | Body / Query | Returns |
 |---|---|---|---|
-| GET | `/transactions` | `?q=&from=&to=&type=&category_id=&loans=&sort=&limit=&cursor=` (all optional; ADR-021) | `200` `{ items, next_cursor, totals }` |
-| POST | `/transactions` | `{ type, amount, category_ids?, description?, occurred_at? }` | `201` record |
+| GET/POST | `/cards` | POST `{ name, cut_day, due_day, credit_limit? }`; rows carry `owed`, `statement_balance`, `current_period`, `last_cut`, `due_date` (ADR-023) | `200`/`201` card |
+| GET/PUT/DELETE | `/cards/:id` | DELETE `400` while `owed > 0` | `200` card / `204` |
+| POST | `/cards/:id/pay` | `{ amount, occurred_at? }` — `amount <= owed` | `201` card |
+| GET | `/transactions` | `?q=&from=&to=&type=&category_id=&card_id=&loans=&sort=&limit=&cursor=` (all optional; ADR-021) | `200` `{ items, next_cursor, totals }` |
+| POST | `/transactions` | `{ type, amount, category_ids?, card_id?, description?, occurred_at? }` (`card_id` only on expenses; `null` on PUT = back to cash) | `201` record |
 | GET | `/transactions/:id` | — | `200` record / `404` |
 | PUT | `/transactions/:id` | any subset of the create fields | `200` record / `404` |
 | DELETE | `/transactions/:id` | — | `204` / `404` (soft delete) |
 
-Record shape: `{ id, user_id, type, amount, categories: [{ id, name }], description, occurred_at, created_at, updated_at, deleted_at }`.
+Record shape: `{ id, user_id, type (income | expense | card_payment), card_id, amount, categories: [{ id, name }], description, occurred_at, created_at, updated_at, deleted_at }`.
 Transactions are a **pure ledger** — money in / money out, no `vault_id`. Vault funding is an
 amount-based action on the vault (see Vaults below).
 
@@ -221,6 +224,7 @@ balance-mobile/
 ### 6.1 Redux slices (state shape)
 
 - `balance` — `{ total, available, vaults: [{id,name,balance,target}], currency, status }` from `GET /balance`.
+- `cards` — credit cards (ADR-023 / BE ADR-014): `/cards` CRUD + `POST /cards/:id/pay`; computed `owed`, `statement_balance`, `due_date`, `current_period`. Charges = expenses with `card_id` (cash untouched); payments = `card_payment` (cash out, not a spend); `/balance` adds `cards_owed` + `cards[]`.
 - `transactions` — server-filtered paged list (search, date range, `type`, `loans`, sort) + CRUD thunks.
 - `vaults` — list + selected vault history + allocate/withdraw thunks taking `(vaultId, amount)`.
 - `categories` — list + CRUD thunks.

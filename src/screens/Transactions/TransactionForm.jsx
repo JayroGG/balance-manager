@@ -10,13 +10,14 @@ import { todayISODate } from '../../utils/dates';
 // amount-based action on the vault detail screen (ADR-009). Categories are tags: 0..N (ADR-022). Enforces amount > 0. (PRD §4.1)
 const sameIds = (a, b) => a.length === b.length && a.every((id) => b.includes(id));
 
-export default function TransactionForm({ initial, categories = [], onSubmit, submitting, error, readOnly }) {
+export default function TransactionForm({ initial, categories = [], cards = [], onSubmit, submitting, error, readOnly }) {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
   const [type, setType] = useState(initial?.type ?? 'expense');
   const [amount, setAmount] = useState(initial?.amount != null ? String(initial.amount) : '');
   const [categoryIds, setCategoryIds] = useState(() => (initial?.categories ?? []).map((c) => c.id));
+  const [cardId, setCardId] = useState(initial?.card_id ?? null);
   const [description, setDescription] = useState(initial?.description ?? '');
   const [occurredAt, setOccurredAt] = useState(initial?.occurred_at ?? todayISODate());
   const [touched, setTouched] = useState(false);
@@ -32,7 +33,7 @@ export default function TransactionForm({ initial, categories = [], onSubmit, su
       return;
     }
     setSaved(false);
-  }, [type, amount, categoryIds, description, occurredAt]);
+  }, [type, amount, categoryIds, description, occurredAt, cardId]);
 
   const eligibleCategories = useMemo(
     () => categories.filter((c) => c.kind === type || c.kind === 'both'),
@@ -49,7 +50,8 @@ export default function TransactionForm({ initial, categories = [], onSubmit, su
     amountNum !== Number(initial.amount) ||
     !sameIds(categoryIds, (initial.categories ?? []).map((c) => c.id)) ||
     description.trim() !== (initial.description ?? '') ||
-    occurredAt !== initial.occurred_at;
+    occurredAt !== initial.occurred_at ||
+    (type === 'expense' && cardId !== (initial.card_id ?? null));
   const locked = isEdit && (saved || !dirty);
 
   const setTypeSafe = (next) => {
@@ -65,6 +67,9 @@ export default function TransactionForm({ initial, categories = [], onSubmit, su
     if (!amountValid) return;
     const body = { type, amount: amountNum, occurred_at: occurredAt };
     if (categoryIds.length || isEdit) body.category_ids = categoryIds;
+    // Cards only apply to expenses; on edit, Cash or retyping away from expense explicitly clears the card (card_id: null).
+    if (type === 'expense' && cardId != null) body.card_id = cardId;
+    else if (isEdit && initial.card_id != null) body.card_id = null;
     if (description.trim()) body.description = description.trim();
     const ok = await onSubmit(body);
     if (ok && isEdit) setSaved(true);
@@ -95,6 +100,18 @@ export default function TransactionForm({ initial, categories = [], onSubmit, su
           <Chip key={c.id} label={c.name} active={categoryIds.includes(c.id)} onPress={() => toggleCategory(c.id)} />
         ))}
       </View>
+
+      {type === 'expense' && cards.length > 0 ? (
+        <>
+          <Text style={styles.label}>{t('cards.paidWith')}</Text>
+          <View style={styles.row}>
+            <Chip label={t('cards.cash')} active={cardId == null} onPress={() => setCardId(null)} />
+            {cards.map((c) => (
+              <Chip key={c.id} label={c.name} active={cardId === c.id} onPress={() => setCardId(c.id)} />
+            ))}
+          </View>
+        </>
+      ) : null}
 
       <Field label={t('transactions.description')} value={description} onChangeText={setDescription} placeholder="—" />
       <Field label={t('transactions.date')} value={occurredAt} onChangeText={setOccurredAt} placeholder="YYYY-MM-DD" autoCapitalize="none" />

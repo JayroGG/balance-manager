@@ -1,6 +1,7 @@
 import { Redirect, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useGetCategoriesQuery } from '../../services/api/categories';
+import { useGetCardsQuery } from '../../services/api/cards';
 import { useAddTransactionMutation } from '../../services/api/transactions';
 import { useActiveTeamId } from '../../hooks/useActiveTeamId';
 import { useDismissOnContextChange } from '../../hooks/useOnContextChange';
@@ -15,6 +16,7 @@ export default function NewTransaction() {
   const teamId = useActiveTeamId();
   const { canAdd } = usePermissions();
   const { data: categories } = useGetCategoriesQuery(teamId);
+  const { data: cards } = useGetCardsQuery(teamId);
   const [addTransaction, { isLoading, error }] = useAddTransactionMutation();
   // Drop the half-filled form if the context switches — it would create in the wrong context.
   useDismissOnContextChange();
@@ -36,6 +38,7 @@ export default function NewTransaction() {
       <ScreenHeader back title={t('transactions.new')} style={{ paddingHorizontal: spacing(2), marginBottom: 0 }} />
       <TransactionForm
         categories={categories}
+        cards={cards}
         onSubmit={onSubmit}
         submitting={isLoading}
         error={error}

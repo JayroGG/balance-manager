@@ -64,3 +64,49 @@ it('edit mode: re-ordering the same set is not a change', () => {
   fireEvent.press(screen.getByText('Home'));
   expect(screen.queryByText('common.save')).toBeNull();
 });
+
+const cards = [{ id: 7, name: 'Visa' }, { id: 8, name: 'Amex' }];
+
+it('Paid with: hidden without cards and for income', () => {
+  const first = renderWithStore(<TransactionForm categories={categories} onSubmit={jest.fn()} />);
+  expect(screen.queryByText('cards.paidWith')).toBeNull();
+  first.unmount();
+  renderWithStore(<TransactionForm categories={categories} cards={cards} onSubmit={jest.fn()} />);
+  expect(screen.getByText('cards.paidWith')).toBeTruthy();
+  fireEvent.press(screen.getByText('transactions.income'));
+  expect(screen.queryByText('cards.paidWith')).toBeNull();
+});
+
+it('Paid with: picking a card sends card_id as a number; Cash default sends none', async () => {
+  const onSubmit = jest.fn().mockResolvedValue(true);
+  renderWithStore(<TransactionForm categories={categories} cards={cards} onSubmit={onSubmit} />);
+  fireEvent.changeText(screen.getByPlaceholderText('0.00'), '1200');
+  fireEvent.press(screen.getByText('common.save'));
+  await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+  expect(onSubmit.mock.calls[0][0]).not.toHaveProperty('card_id');
+  fireEvent.press(screen.getByText('Visa'));
+  fireEvent.press(screen.getByText('common.save'));
+  await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(2));
+  expect(onSubmit.mock.calls[1][0].card_id).toBe(7);
+});
+
+it('edit: switching a charge to Cash is dirty and sends card_id: null', async () => {
+  const onSubmit = jest.fn().mockResolvedValue(true);
+  const initial = { type: 'expense', amount: 800, description: '', occurred_at: '2026-11-10', card_id: 7, categories: [] };
+  renderWithStore(<TransactionForm initial={initial} categories={categories} cards={cards} onSubmit={onSubmit} />);
+  expect(screen.queryByText('common.save')).toBeNull();
+  fireEvent.press(screen.getByText('cards.cash'));
+  fireEvent.press(screen.getByText('common.save'));
+  await waitFor(() => expect(onSubmit).toHaveBeenCalled());
+  expect(onSubmit.mock.calls[0][0].card_id).toBeNull();
+});
+
+it('edit: retyping a card charge to income sends card_id: null', async () => {
+  const onSubmit = jest.fn().mockResolvedValue(true);
+  const initial = { type: 'expense', amount: 800, description: '', occurred_at: '2026-11-10', card_id: 7, categories: [] };
+  renderWithStore(<TransactionForm initial={initial} categories={categories} cards={cards} onSubmit={onSubmit} />);
+  fireEvent.press(screen.getByText('transactions.income'));
+  fireEvent.press(screen.getByText('common.save'));
+  await waitFor(() => expect(onSubmit).toHaveBeenCalled());
+  expect(onSubmit.mock.calls[0][0]).toMatchObject({ type: 'income', card_id: null });
+});

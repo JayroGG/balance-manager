@@ -171,6 +171,7 @@ Global loop for non-trivial work: `/prime → /plan-feature → /implement → /
   `pre_existing: true` creation atomically posts a counted opening income (`total +amount`,
   `available ±0`). Loan figures (`amount`/`pending`) come from `/balance` (`loans[]`, `lent`), not
   `GET /loans` — same split as vaults.
+- **Credit cards (ADR-023):** a charge is an expense with `card_id` — it never moves `total`/`available`; a payment (`type: 'card_payment'`) is cash out but not a spend and is read-only in the form (delete only). `owed`/`statement_balance`/`due_date` are server-computed — never derive them client-side; a past `due_date` with `statement_balance > 0` is overdue. `cards_owed` is shown beside, never subtracted from, `available`. Cards live under the Settings stack (`settings/cards`) with a Dashboard cards-block shortcut.
 - **Activity feed (ADR-017):** the feed is read-only — never add `invalidatesTags: ['Event']` to a
   mutation; freshness comes from the app-wide `refetchOnMountOrArgChange` (on-focus refetch) plus
   pull-to-refresh, since no local mutation can know about another member's action. `since_id`/`limit`
