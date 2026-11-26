@@ -71,7 +71,11 @@
     "results_one": "{{count}} resultado",
     "results_other": "{{count}} resultados",
     "noResults": "Ninguna transacción coincide con los filtros",
-    "resetFilters": "Restablecer filtros"
+    "resetFilters": "Restablecer filtros",
+    "prevYear": "Año anterior",
+    "nextYear": "Año siguiente",
+    "prevMonth": "Mes anterior",
+    "nextMonth": "Mes siguiente"
   },
   "lists": {
     "title": "Listas de compra",

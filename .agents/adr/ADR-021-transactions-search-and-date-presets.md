@@ -25,7 +25,8 @@ visible rows. No search. The BE now serves filtered, paged results with server t
 - **Custom range:** a small in-repo month calendar (`RangeCalendar`, Monday-first, localized) built on
   the `src/utils/dates.js` maths (`monthGrid`, `pickRangeDay`) — no date-picker dependency and no native
   module. First tap = start, second = end (earlier than the start swaps them; the same day twice = a
-  single day), a third tap starts over; Apply/Cancel. Ranges are always closed, so `from`/`to` are both set.
+  single day), a third tap starts over; Apply/Cancel. Future days are selectable (a range may legitimately
+  cover scheduled/future-dated rows), unlike the Months grid, which only offers months up to today. Ranges are always closed, so `from`/`to` are both set.
 - Page size is 30 (`PAGE_SIZE`). `loans` is a server filter (`loans=only`), not a client filter on `loan_id`.
 - Totals come from page 1 of the *current* query (`currentData`), so a changing filter shows the skeleton
   rather than the previous filter's numbers; `count` drives the "N results" label.

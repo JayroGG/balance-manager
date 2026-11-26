@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { DateTime } from 'luxon';
+import { useTranslation } from 'react-i18next';
 import { font, spacing } from '../../components/theme';
 import { useTheme } from '../../hooks/useTheme';
 import { monthShortNames } from '../../utils/dates';
@@ -12,6 +13,7 @@ const YEARS_BACK = 20;
 // The year can't go past the current one, and future months of the current year are disabled.
 // `value` is the active { year, month } (or null); `onPick(year, month)` fires on a tap.
 export function MonthPicker({ value, onPick, locale, now = DateTime.now() }) {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
   const [year, setYear] = useState(value?.year ?? now.year);
@@ -22,11 +24,11 @@ export function MonthPicker({ value, onPick, locale, now = DateTime.now() }) {
   return (
     <View>
       <View style={styles.header}>
-        <Pressable hitSlop={12} disabled={!canPrev} accessibilityState={{ disabled: !canPrev }} testID="year-prev" style={styles.arrow} onPress={() => setYear((y) => y - 1)}>
+        <Pressable hitSlop={12} disabled={!canPrev} accessibilityState={{ disabled: !canPrev }} testID="year-prev" accessibilityRole="button" accessibilityLabel={t('transactions.prevYear')} style={styles.arrow} onPress={() => setYear((y) => y - 1)}>
           <Ionicons name="chevron-back" size={22} color={canPrev ? colors.text : colors.border} />
         </Pressable>
         <Text style={styles.year} testID="year-label">{year}</Text>
-        <Pressable hitSlop={12} disabled={!canNext} accessibilityState={{ disabled: !canNext }} testID="year-next" style={styles.arrow} onPress={() => setYear((y) => y + 1)}>
+        <Pressable hitSlop={12} disabled={!canNext} accessibilityState={{ disabled: !canNext }} testID="year-next" accessibilityRole="button" accessibilityLabel={t('transactions.nextYear')} style={styles.arrow} onPress={() => setYear((y) => y + 1)}>
           <Ionicons name="chevron-forward" size={22} color={canNext ? colors.text : colors.border} />
         </Pressable>
       </View>
@@ -40,6 +42,8 @@ export function MonthPicker({ value, onPick, locale, now = DateTime.now() }) {
               key={name}
               disabled={future}
               testID={`month-${month}`}
+              accessibilityRole="button"
+              accessibilityLabel={`${name} ${year}`}
               accessibilityState={{ disabled: future, selected: active }}
               style={styles.cell}
               onPress={() => onPick(year, month)}

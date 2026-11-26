@@ -71,7 +71,11 @@
     "results_one": "{{count}} result",
     "results_other": "{{count}} results",
     "noResults": "No transactions match these filters",
-    "resetFilters": "Reset filters"
+    "resetFilters": "Reset filters",
+    "prevYear": "Previous year",
+    "nextYear": "Next year",
+    "prevMonth": "Previous month",
+    "nextMonth": "Next month"
   },
   "lists": {
     "title": "Shopping lists",

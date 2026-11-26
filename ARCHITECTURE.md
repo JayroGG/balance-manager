@@ -157,7 +157,7 @@ balance-manager/                 # app name: balance-mobile
 ├── src/                         # ALL real code lives here
 │   ├── screens/                 # screen bodies (composition + data orchestration), mirrors team layout
 │   │   ├── Dashboard/index.jsx   Activity/index.jsx   # feed screen (ADR-017)
-│   │   ├── Transactions/{ListScreen,DateFilter,NewScreen,EditScreen}.jsx  TransactionForm.jsx
+│   │   ├── Transactions/{ListScreen,DateFilter,MonthPicker,RangeCalendar,NewScreen,EditScreen}.jsx  TransactionForm.jsx
 │   │   ├── Vaults/{ListScreen,NewScreen,DetailScreen}.jsx
 │   │   ├── Loans/{ListScreen,NewScreen,DetailScreen}.jsx   # lent-out money (ADR-018)
 │   │   ├── Teams/{ListScreen,ManageScreen}.jsx   # team management (ADR-012)

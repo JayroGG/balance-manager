@@ -51,8 +51,7 @@ export const monthRange = (year, month) => {
   return { from: first.toISODate(), to: first.endOf('month').toISODate() };
 };
 
-// Compact range label: "Nov 1–14", "Oct 28 – Nov 3", "3 Nov 2025 – 8 Jan 2026"; open ends read "From …" / "Until …"
-// via the caller's strings. Locale-aware through luxon.
+// Compact range label: "Nov 1–14", "Oct 28 – Nov 3", "3 Nov 2025 – 8 Jan 2026". Both bounds required (ranges are always closed). Locale-aware through luxon.
 export const formatRange = ({ from, to }, locale) => {
   const fmt = (iso, opts) => DateTime.fromISO(iso).setLocale(locale).toLocaleString(opts);
   const full = { day: 'numeric', month: 'short', year: 'numeric' };

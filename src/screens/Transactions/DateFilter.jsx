@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { AppButton, Chip } from '../../components/ui';
-import { font, spacing } from '../../components/theme';
+import { spacing } from '../../components/theme';
 import { useTheme } from '../../hooks/useTheme';
 import { formatMonthYear, formatRange } from '../../utils/dates';
 import { MonthPicker } from './MonthPicker';

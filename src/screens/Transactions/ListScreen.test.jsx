@@ -10,6 +10,7 @@ import authReducer from '../../reducers/auth';
 import contextReducer from '../../reducers/context';
 import prefsReducer from '../../reducers/prefs';
 import activityReducer from '../../reducers/activity';
+import { DateTime } from 'luxon';
 import { presetRange } from '../../utils/dates';
 import { formatMoney } from '../../utils/money';
 import TransactionsList from './ListScreen';
@@ -115,7 +116,8 @@ it('picking a month sends its first and last day', async () => {
   fireEvent.press(screen.getByTestId('year-prev'));
   fireEvent.press(screen.getByTestId('month-2'));
   await waitFor(() => expect(lastTx().get('from')).toBe(`${year - 1}-02-01`));
-  expect(lastTx().get('to')).toBe(`${year - 1}-02-28`);
+  const lastFeb = DateTime.fromObject({ year: year - 1, month: 2 }).endOf('month').toISODate();
+  expect(lastTx().get('to')).toBe(lastFeb);
 });
 
 it('the months picker cannot go past the current year and disables future months', async () => {
@@ -155,6 +157,21 @@ it('the same day tapped twice applies a single-day range; a lone tap does too', 
   fireEvent.press(screen.getByText('transactions.apply'));
   await waitFor(() => expect(lastTx().get('from')).toBe(`${ym}-05`));
   expect(lastTx().get('to')).toBe(`${ym}-05`);
+});
+
+it('reopening Custom prefills the applied range on its month', async () => {
+  renderWithStore(<TransactionsList />);
+  await screen.findByText('JulyTx');
+  const n = new Date();
+  const ym = `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}`;
+  fireEvent.press(screen.getByText('transactions.custom ▾'));
+  fireEvent.press(screen.getByTestId(`day-${ym}-10`));
+  fireEvent.press(screen.getByText('transactions.apply'));
+  await waitFor(() => expect(lastTx().get('from')).toBe(`${ym}-10`));
+
+  // The chip now carries the range label; reopen through it.
+  fireEvent.press(screen.getAllByText(/▾$/).at(-1));
+  expect(screen.getByTestId(`day-${ym}-10`).props.accessibilityState.selected).toBe(true);
 });
 
 it('the calendar navigates months and Apply is disabled until a day is picked', async () => {
