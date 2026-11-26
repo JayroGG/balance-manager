@@ -15,8 +15,10 @@ until the card is paid from the balance.
   an overdue statement (`due_date` past with `statement_balance > 0`) is flagged, never rolled forward.
 - Transaction form "Paid with": Cash (default) or a card, expenses only; edit can move a charge back to cash
   (`card_id: null`).
-- Transactions list: card badge on charges, payments (`card_payment`) shown as a neutral transfer (not a red
-  expense); filter by card. Client totals read the server `totals` (they gain `card_payments`).
+- Transactions list: expense rows carry a payment-method icon (`$` cash, purple credit-card icon for charges —
+  one `cardAccent` theme token for every card); payments (`card_payment`) are a neutral transfer (not a red
+  expense). Card and date filters are icon buttons (card / calendar) beside the search box that open option
+  menus; an active filter shows one purple "Filtering by …" line with a red x that clears it. Client totals read the server `totals` (they gain `card_payments`).
 - Dashboard cards block (total owed + next due card/amount) when at least one card exists, under ADR-019's
   trust rules (no money under an unconfirmed context). Next due = card with `statement_balance > 0` and the
   earliest `due_date`, from `/balance` `cards[]`.

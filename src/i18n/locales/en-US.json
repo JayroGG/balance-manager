@@ -77,7 +77,10 @@
     "prevYear": "Previous year",
     "nextYear": "Next year",
     "prevMonth": "Previous month",
-    "nextMonth": "Next month"
+    "nextMonth": "Next month",
+    "filterByDate": "Filter by date",
+    "filteringBy": "Filtering by {{label}}",
+    "clearFilter": "Clear filter: {{label}}"
   },
   "lists": {
     "title": "Shopping lists",
@@ -286,6 +289,7 @@
     "allCards": "All cards",
     "totalOwed": "Owed on cards",
     "noneDue": "No payments due",
-    "seeAll": "See all"
+    "seeAll": "See all",
+    "filterByCard": "Filter by card"
   }
 }

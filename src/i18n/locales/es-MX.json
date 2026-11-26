@@ -77,7 +77,10 @@
     "prevYear": "Año anterior",
     "nextYear": "Año siguiente",
     "prevMonth": "Mes anterior",
-    "nextMonth": "Mes siguiente"
+    "nextMonth": "Mes siguiente",
+    "filterByDate": "Filtrar por fecha",
+    "filteringBy": "Filtrando por {{label}}",
+    "clearFilter": "Quitar filtro: {{label}}"
   },
   "lists": {
     "title": "Listas de compra",
@@ -286,6 +289,7 @@
     "allCards": "Todas las tarjetas",
     "totalOwed": "Deuda en tarjetas",
     "noneDue": "Sin pagos pendientes",
-    "seeAll": "Ver todas"
+    "seeAll": "Ver todas",
+    "filterByCard": "Filtrar por tarjeta"
   }
 }

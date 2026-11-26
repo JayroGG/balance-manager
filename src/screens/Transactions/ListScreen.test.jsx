@@ -109,10 +109,15 @@ it('search is debounced into a single q param and the clear button resets it', a
   await waitFor(() => expect(lastTx().has('q')).toBe(false));
 });
 
+const pickDate = (key) => {
+  fireEvent.press(screen.getByTestId('date-filter-button'));
+  fireEvent.press(screen.getByTestId(`date-menu-${key}`));
+};
+
 it('a date preset sends the device-local from/to', async () => {
   renderWithStore(<TransactionsList />);
   await screen.findByText('JulyTx');
-  fireEvent.press(screen.getByText('transactions.today'));
+  pickDate('today');
   const { from, to } = presetRange('today');
   await waitFor(() => expect(lastTx().get('from')).toBe(from));
   expect(lastTx().get('to')).toBe(to);
@@ -121,7 +126,7 @@ it('a date preset sends the device-local from/to', async () => {
 it('picking a month sends its first and last day', async () => {
   renderWithStore(<TransactionsList />);
   await screen.findByText('JulyTx');
-  fireEvent.press(screen.getByText('transactions.months ▾'));
+  pickDate('months');
   const year = new Date().getFullYear();
   expect(screen.getByTestId('year-label').props.children).toBe(year);
   fireEvent.press(screen.getByTestId('year-prev'));
@@ -134,7 +139,7 @@ it('picking a month sends its first and last day', async () => {
 it('the months picker cannot go past the current year and disables future months', async () => {
   renderWithStore(<TransactionsList />);
   await screen.findByText('JulyTx');
-  fireEvent.press(screen.getByText('transactions.months ▾'));
+  pickDate('months');
   const year = new Date().getFullYear();
   expect(screen.getByTestId('year-label').props.children).toBe(year);
   expect(screen.getByTestId('year-next').props.accessibilityState.disabled).toBe(true); // can't pass the current year
@@ -147,7 +152,7 @@ it('the months picker cannot go past the current year and disables future months
 it('a custom range is picked on the calendar: tap 20 then 10 sends 10..20', async () => {
   renderWithStore(<TransactionsList />);
   await screen.findByText('JulyTx');
-  fireEvent.press(screen.getByText('transactions.custom ▾'));
+  pickDate('custom');
   const now = new Date();
   const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   fireEvent.press(screen.getByTestId(`day-${ym}-20`));
@@ -160,7 +165,7 @@ it('a custom range is picked on the calendar: tap 20 then 10 sends 10..20', asyn
 it('the same day tapped twice applies a single-day range; a lone tap does too', async () => {
   renderWithStore(<TransactionsList />);
   await screen.findByText('JulyTx');
-  fireEvent.press(screen.getByText('transactions.custom ▾'));
+  pickDate('custom');
   const now = new Date();
   const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   fireEvent.press(screen.getByTestId(`day-${ym}-05`));
@@ -175,13 +180,13 @@ it('reopening Custom prefills the applied range on its month', async () => {
   await screen.findByText('JulyTx');
   const n = new Date();
   const ym = `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}`;
-  fireEvent.press(screen.getByText('transactions.custom ▾'));
+  pickDate('custom');
   fireEvent.press(screen.getByTestId(`day-${ym}-10`));
   fireEvent.press(screen.getByText('transactions.apply'));
   await waitFor(() => expect(lastTx().get('from')).toBe(`${ym}-10`));
 
-  // The chip now carries the range label; reopen through it.
-  fireEvent.press(screen.getAllByText(/▾$/).at(-1));
+  // Reopen through the menu: the applied range is prefilled.
+  pickDate('custom');
   expect(screen.getByTestId(`day-${ym}-10`).props.accessibilityState.selected).toBe(true);
 });
 
@@ -189,7 +194,7 @@ it('the calendar navigates months and Apply is disabled until a day is picked', 
   renderWithStore(<TransactionsList />);
   await screen.findByText('JulyTx');
   const before = txUrls().length;
-  fireEvent.press(screen.getByText('transactions.custom ▾'));
+  pickDate('custom');
   const title = screen.getByTestId('cal-title').props.children;
   fireEvent.press(screen.getByTestId('cal-next'));
   expect(screen.getByTestId('cal-title').props.children).not.toBe(title);
@@ -341,13 +346,20 @@ describe('cards (ADR-023)', () => {
     );
   });
 
-  it('badges charges with the card name and renders payments as a neutral transfer', async () => {
+  it('expense rows show a purple card icon for charges and a $ for cash; payments keep the transfer look', async () => {
+    respond = () => ({
+      ...cardPage,
+      items: [...cardPage.items, row(13, 'Tacos', { amount: 90 })],
+    });
     renderWithStore(<TransactionsList />);
     await screen.findByText('Laptop');
-    await waitFor(() => expect(screen.getByTestId('card-badge-11')).toBeTruthy());
-    expect(screen.getByTestId('card-badge-11')).toHaveTextContent('Visa');
-    expect(screen.getByTestId('card-badge-10')).toHaveTextContent('Visa');
+    await waitFor(() => expect(screen.getByTestId('pay-icon-card-11')).toBeTruthy());
     const { colors } = { colors: require('../../components/theme').makeColors('light') };
+    expect(screen.getByTestId('pay-icon-card-11').props.accessibilityLabel).toBe('Visa');
+    expect(screen.getByTestId('pay-icon-card-11').props.color).toBe(colors.cardAccent);
+    expect(screen.getByTestId('pay-icon-cash-13')).toHaveTextContent('$');
+    expect(screen.queryByTestId('pay-icon-card-10')).toBeNull(); // payment: no method icon
+    expect(screen.queryByTestId('pay-icon-cash-10')).toBeNull();
     const flat = require('react-native').StyleSheet.flatten;
     expect(flat(screen.getByText(money(500)).props.style).color).toBe(colors.muted);
     expect(flat(screen.getByText(money(1200)).props.style).color).toBe(colors.danger);
@@ -364,12 +376,39 @@ describe('cards (ADR-023)', () => {
     expect(screen.getAllByText(money(500)).length).toBeGreaterThan(0);
   });
 
-  it('the card filter sends card_id and "All cards" clears it', async () => {
+  it('the card filter is an icon menu: no chip row, picks a card, sends card_id, "All cards" clears it', async () => {
     renderWithStore(<TransactionsList />);
     await screen.findByText('Laptop');
-    fireEvent.press(await screen.findByText('Amex'));
+    expect(screen.queryByText('Amex')).toBeNull(); // menu closed, no chip row
+    expect(screen.queryByTestId('active-filters')).toBeNull(); // no filter, no line
+    fireEvent.press(await screen.findByTestId('card-filter-button'));
+    fireEvent.press(screen.getByTestId('card-menu-8'));
     await waitFor(() => expect(lastTx().get('card_id')).toBe('8'));
-    fireEvent.press(screen.getByText('cards.allCards'));
+    expect(screen.getByTestId('active-filter-card')).toHaveTextContent('transactions.filteringBy');
+    fireEvent.press(screen.getByTestId('card-filter-button'));
+    fireEvent.press(screen.getByTestId('card-menu-all'));
     await waitFor(() => expect(lastTx().has('card_id')).toBe(false));
+    expect(screen.queryByTestId('active-filters')).toBeNull();
+  });
+
+  it('active-filter lines: card and date each get a line with its own x that clears just that filter', async () => {
+    renderWithStore(<TransactionsList />);
+    await screen.findByText('Laptop');
+    fireEvent.press(await screen.findByTestId('card-filter-button'));
+    fireEvent.press(screen.getByTestId('card-menu-7'));
+    pickDate('week');
+    await waitFor(() => expect(lastTx().get('card_id')).toBe('7'));
+    expect(screen.getByTestId('active-filter-card')).toBeTruthy();
+    expect(screen.getByTestId('active-filter-date')).toBeTruthy();
+    expect(screen.getByTestId('clear-filter-card').props.accessibilityLabel).toBe('transactions.clearFilter');
+
+    fireEvent.press(screen.getByTestId('clear-filter-date'));
+    await waitFor(() => expect(lastTx().has('from')).toBe(false));
+    expect(lastTx().get('card_id')).toBe('7');
+    expect(screen.queryByTestId('active-filter-date')).toBeNull();
+
+    fireEvent.press(screen.getByTestId('clear-filter-card'));
+    await waitFor(() => expect(lastTx().has('card_id')).toBe(false));
+    expect(screen.queryByTestId('active-filters')).toBeNull();
   });
 });
