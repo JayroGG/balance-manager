@@ -1,88 +1,69 @@
-import { useCallback, useMemo, useState } from 'react';
-import { FlatList, Modal, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { useGetTransactionsQuery } from '../../services/api/transactions';
+import { useGetTransactionsInfiniteQuery } from '../../services/api/transactions';
 import { useGetBalanceQuery } from '../../services/api/balance';
 import { useActiveTeamId } from '../../hooks/useActiveTeamId';
 import { usePermissions } from '../../permissions';
 import { useTheme } from '../../hooks/useTheme';
 import { useContextReady } from '../../hooks/useContextReady';
-import { Screen, ScreenHeader, Card, MoneyText, Chip, CyclingFigure, QueryBoundary, Skeleton, StaleBadge } from '../../components/ui';
+import { Screen, ScreenHeader, Card, MoneyText, Chip, CyclingFigure, QueryBoundary, Skeleton, StaleBadge, EmptyState, AppButton } from '../../components/ui';
 import { font, spacing } from '../../components/theme';
-import { formatDate, monthShortNames } from '../../utils/dates';
+import { formatDate, filterRange } from '../../utils/dates';
+import { DateFilter, ALL_TIME } from './DateFilter';
 
 const TYPE_FILTERS = ['all', 'income', 'expense', 'loans'];
 
-// Years present in the data (desc), always including the current year — feeds the year dropdown.
-const yearsFromData = (rows) => {
-  const set = new Set([new Date().getFullYear()]);
-  rows?.forEach((tx) => {
-    const y = Number((tx.occurred_at ?? '').slice(0, 4));
-    if (y) set.add(y);
-  });
-  return [...set].sort((a, b) => b - a);
-};
+const SEARCH_DEBOUNCE_MS = 300;
 
 export default function TransactionsList() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const router = useRouter();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
   const teamId = useActiveTeamId();
   const { canAdd } = usePermissions();
   const [typeFilter, setTypeFilter] = useState('all');
-  const filters = { team_id: teamId, ...(typeFilter === 'all' || typeFilter === 'loans' ? {} : { type: typeFilter }) };
-  const txQuery = useGetTransactionsQuery(filters);
-  const { data, isLoading, error, refetch } = txQuery;
+  const [sortDir, setSortDir] = useState('desc');
+  const [dateFilter, setDateFilter] = useState(ALL_TIME);
+  const [search, setSearch] = useState('');
+  const [q, setQ] = useState('');
+  useEffect(() => {
+    const id = setTimeout(() => setQ(search.trim()), SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(id);
+  }, [search]);
+
+  // Every filter goes to the server in one query (ADR-021); the 'loans' chip maps to loans=only.
+  const { from, to } = filterRange(dateFilter);
+  const filters = {
+    team_id: teamId,
+    q,
+    from,
+    to,
+    sort: sortDir,
+    ...(typeFilter === 'loans' ? { loans: 'only' } : typeFilter === 'all' ? {} : { type: typeFilter }),
+  };
+  const txQuery = useGetTransactionsInfiniteQuery(filters);
+  const { currentData, isFetching, error, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = txQuery;
   const { data: balance } = useGetBalanceQuery(teamId);
   const currency = balance?.currency;
   // The totals bar is a fixed-geometry figure — it must never paint under an unconfirmed context
   // (ADR-019). Staleness/lastUpdated describe this screen's own money data (the transactions query).
   const { confirmed, stale, offline, lastUpdated } = useContextReady(txQuery);
 
-  // Client-side date filter (ADR-015): `year` null = all years; `month` (1-12) null = whole year.
-  // occurred_at is a plain YYYY-MM-DD string, so a prefix match is exact and needs no parsing.
-  const [year, setYear] = useState(new Date().getFullYear());
-  const [month, setMonth] = useState(null);
-  const [yearOpen, setYearOpen] = useState(false);
-  const [sortDir, setSortDir] = useState('desc');
-
-  const monthNames = useMemo(() => monthShortNames(i18n.language), [i18n.language]);
-  const years = useMemo(() => yearsFromData(data), [data]);
-
-  const visible = useMemo(() => {
-    let rows = data;
-    if (year != null) {
-      const prefix = month == null ? String(year) : `${year}-${String(month).padStart(2, '0')}`;
-      rows = rows?.filter((tx) => (tx.occurred_at ?? '').startsWith(prefix));
-    }
-    if (typeFilter === 'loans') rows = rows?.filter((tx) => tx.loan_id != null);
-    const dir = sortDir === 'desc' ? -1 : 1;
-    rows = rows ? [...rows].sort((a, b) => {
-      const d = String(a.occurred_at ?? '').localeCompare(String(b.occurred_at ?? ''));
-      return d !== 0 ? d * dir : (b.id - a.id);
-    }) : rows;
-    return rows;
-  }, [data, year, month, typeFilter, sortDir]);
-
-  // Totals over the currently visible rows — reflects both the type and the date filter. Loan
-  // journal rows (loan_id set) are server-written mirrors of loan movements and never count here.
-  const totals = useMemo(() => {
-    let income = 0;
-    let expense = 0;
-    visible?.forEach((tx) => {
-      if (tx.loan_id != null) return;
-      if (tx.type === 'income') income += Number(tx.amount) || 0;
-      else if (tx.type === 'expense') expense += Number(tx.amount) || 0;
-    });
-    return { income, expense, net: income - expense };
-  }, [visible]);
-
-  const pickMonth = (m) => {
-    if (year == null) setYear(new Date().getFullYear()); // a month needs a year to mean anything
-    setMonth(month === m ? null : m);
+  const items = useMemo(() => currentData?.pages.flatMap((p) => p.items) ?? [], [currentData]);
+  // Server totals for the whole filtered set (loan journal rows already excluded) — first page only.
+  // `currentData` (not `data`): while a new filter loads, `data` still holds the previous filter's
+  // result — its totals must not pass for the new set. Same fixed-geometry skeleton as ADR-019.
+  const totals = currentData?.pages[0]?.totals;
+  const hasFilters = q !== '' || dateFilter.kind !== 'all' || typeFilter !== 'all';
+  const resetFilters = () => {
+    setSearch('');
+    setQ('');
+    setDateFilter(ALL_TIME);
+    setTypeFilter('all');
   };
 
   // Drive the spinner only from a user pull — not the auto refetch-on-mount, which on iOS
@@ -96,6 +77,10 @@ export default function TransactionsList() {
       setRefreshing(false);
     }
   }, [refetch]);
+
+  const onEndReached = useCallback(() => {
+    if (hasNextPage && !isFetching && !error) fetchNextPage();
+  }, [hasNextPage, isFetching, error, fetchNextPage]);
 
   const renderItem = ({ item }) => {
     const income = item.type === 'income';
@@ -150,27 +135,36 @@ export default function TransactionsList() {
         }
       />
 
+      <View style={styles.searchBox}>
+        <Ionicons name="search" size={18} color={colors.muted} />
+        <TextInput
+          testID="search-input"
+          style={styles.searchInput}
+          value={search}
+          onChangeText={setSearch}
+          placeholder={t('transactions.searchPlaceholder')}
+          placeholderTextColor={colors.muted}
+          returnKeyType="search"
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+        {search !== '' ? (
+          <Pressable hitSlop={12} testID="search-clear" accessibilityLabel={t('transactions.clearSearch')} onPress={() => setSearch('')}>
+            <Ionicons name="close-circle" size={18} color={colors.muted} />
+          </Pressable>
+        ) : null}
+      </View>
+
       <View style={styles.filters}>
         {TYPE_FILTERS.map((f) => (
           <Chip key={f} label={f === 'all' ? t('transactions.all') : t(`transactions.${f}`)} active={typeFilter === f} onPress={() => setTypeFilter(f)} />
         ))}
       </View>
 
-      <View style={styles.dateRow}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.monthsScroll} contentContainerStyle={styles.months}>
-          <Chip label={t('transactions.all')} active={month == null} onPress={() => setMonth(null)} />
-          {monthNames.map((name, i) => (
-            <Chip key={name} label={name} active={month === i + 1} onPress={() => pickMonth(i + 1)} />
-          ))}
-        </ScrollView>
-        <Pressable style={styles.yearBtn} testID="year-dropdown" onPress={() => setYearOpen(true)}>
-          <Text style={styles.yearText}>{year == null ? t('transactions.allYears') : year}</Text>
-          <Ionicons name="chevron-down" size={16} color={colors.text} />
-        </Pressable>
-      </View>
+      <DateFilter value={dateFilter} onChange={setDateFilter} />
 
       <View style={styles.totals}>
-        {confirmed ? (
+        {confirmed && totals ? (
           <>
             <CyclingFigure
               testID="totals-cycle"
@@ -184,11 +178,14 @@ export default function TransactionsList() {
                 { key: 'expense', label: t('transactions.expense'), amount: totals.expense, color: colors.danger },
               ]}
             />
-            {stale ? (
-              <View style={styles.staleBadgeWrap}>
-                <StaleBadge lastUpdated={lastUpdated} offline={offline} color={colors.muted} />
-              </View>
-            ) : null}
+            <View style={styles.totalsMeta}>
+              <Text style={styles.count} testID="totals-count">{t('transactions.results', { count: totals.count })}</Text>
+              {stale ? (
+                <View style={styles.staleBadgeWrap}>
+                  <StaleBadge lastUpdated={lastUpdated} offline={offline} color={colors.muted} />
+                </View>
+              ) : null}
+            </View>
           </>
         ) : (
           // Fixed-geometry placeholder — never wraps the figure, replaces it, so an unconfirmed
@@ -200,36 +197,26 @@ export default function TransactionsList() {
         )}
       </View>
 
-      <QueryBoundary
-        isLoading={isLoading && !data}
-        error={error}
-        isEmpty={!!visible && visible.length === 0}
-        emptyText={t('transactions.empty')}
-        onRetry={refetch}
-      >
+      <QueryBoundary isLoading={!currentData && isFetching} error={currentData ? null : error} onRetry={refetch}>
         <FlatList
-          data={visible}
+          data={items}
           keyExtractor={(item) => String(item.id)}
           renderItem={renderItem}
           contentContainerStyle={{ paddingHorizontal: spacing(2), paddingBottom: spacing(10) }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+          onEndReached={onEndReached}
+          onEndReachedThreshold={0.5}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          ListEmptyComponent={
+            <View style={styles.empty}>
+              <EmptyState text={hasFilters ? t('transactions.noResults') : t('transactions.empty')} />
+              {hasFilters ? <AppButton title={t('transactions.resetFilters')} variant="ghost" onPress={resetFilters} /> : null}
+            </View>
+          }
+          ListFooterComponent={isFetchingNextPage ? <ActivityIndicator style={styles.footer} color={colors.primary} /> : null}
         />
       </QueryBoundary>
-
-      <Modal visible={yearOpen} transparent animationType="fade" onRequestClose={() => setYearOpen(false)}>
-        <Pressable style={styles.backdrop} onPress={() => setYearOpen(false)}>
-          <View style={styles.menu}>
-            <Pressable style={styles.menuItem} onPress={() => { setYear(null); setYearOpen(false); }}>
-              <Text style={[styles.menuText, year == null && styles.menuTextActive]}>{t('transactions.allYears')}</Text>
-            </Pressable>
-            {years.map((y) => (
-              <Pressable key={y} style={styles.menuItem} onPress={() => { setYear(y); setYearOpen(false); }}>
-                <Text style={[styles.menuText, year === y && styles.menuTextActive]}>{y}</Text>
-              </Pressable>
-            ))}
-          </View>
-        </Pressable>
-      </Modal>
 
       {canAdd ? (
         <Pressable style={styles.fab} onPress={() => router.push('/(tabs)/transactions/new')}>
@@ -245,24 +232,20 @@ const makeStyles = (colors) =>
   headerPad: { paddingHorizontal: spacing(2), marginBottom: 0 },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: spacing(2) },
   filters: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: spacing(2), paddingTop: spacing(1) },
-  dateRow: { flexDirection: 'row', alignItems: 'center', paddingLeft: spacing(2), paddingRight: spacing(1) },
-  monthsScroll: { flex: 1 },
-  months: { flexDirection: 'row', alignItems: 'center', paddingRight: spacing(1) },
-  yearBtn: {
+  searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing(0.5),
-    paddingHorizontal: spacing(1.25),
-    paddingVertical: spacing(1),
-    minHeight: 40,
-    borderRadius: 999,
-    borderWidth: 1,
+    gap: spacing(1),
+    marginHorizontal: spacing(2),
+    marginBottom: spacing(1),
+    paddingHorizontal: spacing(1.5),
+    minHeight: 44,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,
     backgroundColor: colors.card,
-    marginBottom: spacing(1),
-    flexShrink: 0,
   },
-  yearText: { fontSize: font.sm, fontWeight: '700', color: colors.text },
+  searchInput: { flex: 1, fontSize: font.md, color: colors.text, paddingVertical: spacing(1) },
   totals: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -281,6 +264,10 @@ const makeStyles = (colors) =>
   },
   totalLabel: { fontSize: font.sm, color: colors.muted, fontWeight: '600', marginBottom: spacing(0.25) },
   totalValue: { fontSize: font.lg, fontWeight: '800' },
+  totalsMeta: { flexDirection: 'row', alignItems: 'center' },
+  count: { fontSize: font.sm, color: colors.muted, fontWeight: '600' },
+  empty: { paddingTop: spacing(4) },
+  footer: { paddingVertical: spacing(2) },
   staleBadgeWrap: { marginLeft: spacing(1.5) },
   totalSkeletonLabel: { marginBottom: spacing(0.5) },
   rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
@@ -297,11 +284,6 @@ const makeStyles = (colors) =>
   },
   loanBadgeText: { fontSize: 10, fontWeight: '700', color: colors.muted },
   amount: { fontSize: font.md, fontWeight: '700', marginLeft: spacing(1) },
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'center', paddingHorizontal: spacing(6) },
-  menu: { backgroundColor: colors.card, borderRadius: 12, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, overflow: 'hidden' },
-  menuItem: { paddingVertical: spacing(1.5), paddingHorizontal: spacing(2), borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
-  menuText: { fontSize: font.md, color: colors.text, textAlign: 'center' },
-  menuTextActive: { color: colors.primary, fontWeight: '700' },
   fab: {
     position: 'absolute',
     right: spacing(2.5),

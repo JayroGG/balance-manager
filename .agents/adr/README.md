@@ -41,12 +41,13 @@ Statuses: `Proposed` · `Accepted` · `Deprecated` · `Superseded by ADR-NNN`.
 | [ADR-011](ADR-011-auth-jwt-and-team-context.md) | Auth via the backend's email/password JWT, and a client-side team context (supersedes ADR-001) | Accepted |
 | [ADR-012](ADR-012-team-rbac-and-management.md) | Team RBAC (role-gated UI) and the team-management screen (extends ADR-011) | Accepted |
 | [ADR-013](ADR-013-team-color-and-theming.md) | Team color as the app accent, dynamic theming (useTheme seam), and dark mode | Accepted |
-| [ADR-015](ADR-015-shopping-lists-pre-expense.md) | Shopping lists: pre-expense checklists with a server-side checkout (+ history month filter) | Accepted |
+| [ADR-015](ADR-015-shopping-lists-pre-expense.md) | Shopping lists: pre-expense checklists with a server-side checkout (+ history month filter) | Accepted (history month/year filter superseded by ADR-021) |
 | [ADR-016](ADR-016-brand-identity.md) | Brand identity: Balance Ring mark, generated icon/splash assets, branded loader | Accepted |
 | [ADR-017](ADR-017-activity-feed.md) | Activity feed (`GET /events`) as the notification surface (polling now, Expo Push north star) | Accepted |
 | [ADR-018](ADR-018-loans-lent-money.md) | Loans: lent-out money as a first-class entity (vault-mirror balance math) | Accepted |
 | [ADR-019](ADR-019-cache-trust-and-loading-contract.md) | Cache trust: never render money under an unconfirmed context (+ the loading contract) | Accepted |
 | [ADR-020](ADR-020-opencode-migration.md) | Migration from Claude Code to OpenCode (supersedes ADR-002) | Accepted |
+| [ADR-021](ADR-021-transactions-search-and-date-presets.md) | Transactions search, date presets and infinite scroll (supersedes ADR-015's client-side month filter) | Accepted |
 
 > **Note:** ADR-001..019 predate the OpenCode migration (ADR-020) and reference the old `.claude/ADR/` /
 > `.claude/agents/plans/` paths. Those references are historical; current paths are `.agents/adr/` and

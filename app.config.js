@@ -40,6 +40,7 @@ module.exports = () => ({
       'expo-secure-store',
       'expo-localization',
       './plugins/withAndroidReleaseSigning',
+      './plugins/withPodsDeploymentTarget',
       [
         'expo-splash-screen',
         {

@@ -27,6 +27,7 @@ const makeStore = () =>
 const jsonResponse = (body, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
 
+const emptyPage = { items: [], next_cursor: null, totals: { income: 0, expense: 0, net: 0, count: 0 } };
 const fetchedUrls = () => global.fetch.mock.calls.map((c) => c[0].url);
 const balanceCalls = () => fetchedUrls().filter((u) => u.includes('/balance')).length;
 const transactionCalls = () => fetchedUrls().filter((u) => u.includes('/transactions')).length;
@@ -50,34 +51,76 @@ let store;
 beforeEach(() => {
   global.fetch.mockReset();
   // mockImplementation (not mockResolvedValue): a Response body reads once, so every call needs a fresh one.
-  global.fetch.mockImplementation(() => Promise.resolve(jsonResponse([])));
+  global.fetch.mockImplementation((req) =>
+    Promise.resolve(jsonResponse(new URL(req.url).pathname === '/transactions' ? emptyPage : [])),
+  );
 });
 afterEach(async () => {
   store?.dispatch(baseApi.util.resetApiState());
   await new Promise((r) => setTimeout(r, 0)); // let deferred (rAF) callbacks run before teardown
 });
 
-describe('getTransactions — filter → query string', () => {
-  it('serializes provided filters and drops empty values', async () => {
+describe('getTransactions — filter → query string (ADR-021)', () => {
+  const firstUrl = () => new URL(global.fetch.mock.calls[0][0].url);
+
+  it('maps every filter arg to its query param and drops empty values', async () => {
     store = makeStore();
     await store.dispatch(
       transactionsApi.endpoints.getTransactions.initiate({
+        q: 'milk',
+        from: '2026-03-01',
+        to: '2026-03-31',
         type: 'expense',
-        category_id: 2,
+        loans: 'exclude',
+        sort: 'asc',
         description: '',
+        category_id: undefined,
       }),
     );
-    const url = global.fetch.mock.calls[0][0].url;
-    expect(url).toContain('type=expense');
-    expect(url).toContain('category_id=2');
-    expect(url).not.toContain('description');
+    const p = firstUrl().searchParams;
+    expect(Object.fromEntries(p)).toEqual({
+      q: 'milk',
+      from: '2026-03-01',
+      to: '2026-03-31',
+      type: 'expense',
+      loans: 'exclude',
+      sort: 'asc',
+      limit: '30',
+    });
   });
 
-  it('hits /transactions with no query string when no filters are given', async () => {
+  it('first page sends limit only (no cursor), and no filters means /transactions?limit=30', async () => {
     store = makeStore();
     await store.dispatch(transactionsApi.endpoints.getTransactions.initiate({}));
-    const url = global.fetch.mock.calls[0][0].url;
-    expect(url).toMatch(/\/transactions$/);
+    expect(firstUrl().pathname).toBe('/transactions');
+    expect(firstUrl().search).toBe('?limit=30');
+  });
+
+  it('threads team_id as a URL param and keeps filters on the next page with the cursor', async () => {
+    global.fetch.mockImplementation(() =>
+      Promise.resolve(jsonResponse({ ...emptyPage, next_cursor: 'abc' })),
+    );
+    store = makeStore();
+    const sub = store.dispatch(transactionsApi.endpoints.getTransactions.initiate({ q: 'x', team_id: 5 }));
+    await sub;
+    await store.dispatch(transactionsApi.endpoints.getTransactions.initiate({ q: 'x', team_id: 5 }, { direction: 'forward' }));
+    const [first, second] = global.fetch.mock.calls.map((c) => new URL(c[0].url).searchParams);
+    expect(first.get('team_id')).toBe('5');
+    expect(first.has('cursor')).toBe(false);
+    expect(second.get('cursor')).toBe('abc');
+    expect(second.get('q')).toBe('x');
+    expect(second.get('team_id')).toBe('5');
+    sub.unsubscribe();
+  });
+
+  it('stops paging when next_cursor is null', async () => {
+    store = makeStore();
+    const sub = store.dispatch(transactionsApi.endpoints.getTransactions.initiate({}));
+    await sub;
+    const state = transactionsApi.endpoints.getTransactions.select({})(store.getState());
+    expect(state.data.pages).toHaveLength(1);
+    expect(state.hasNextPage).toBe(false);
+    sub.unsubscribe();
   });
 });
 

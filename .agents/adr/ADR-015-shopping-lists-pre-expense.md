@@ -1,6 +1,6 @@
 # ADR-015 — Shopping lists: pre-expense checklists with a server-side checkout
 
-- **Status:** Accepted
+- **Status:** Accepted — *History month/year filter* section superseded by ADR-021
 - **Date:** 2026-07-06
 - **Deciders:** Jayro (product/eng)
 - **Supersedes / Related:** ADR-009 (amount-based money actions), ADR-011 (team context), ADR-012 (RBAC)
