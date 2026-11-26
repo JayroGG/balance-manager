@@ -6,6 +6,8 @@ import authReducer from '../reducers/auth';
 import contextReducer from '../reducers/context';
 import prefsReducer from '../reducers/prefs';
 import activityReducer from '../reducers/activity';
+import lockReducer from '../reducers/lock';
+import vaultOrderReducer from '../reducers/vaultOrder';
 
 // Component tests need a real store now that useTheme() reads redux (prefs + auth + the getTeams
 // cache). Unauthed by default → useTheme skips the /teams fetch, so nothing hits the fetch mock.
@@ -18,6 +20,8 @@ const makeStore = () =>
       context: contextReducer,
       prefs: prefsReducer,
       activity: activityReducer,
+      lock: lockReducer,
+      vaultOrder: vaultOrderReducer,
     }),
     preloadedState: { auth: { token: null, user: null, bypass: false, bootstrapped: true } },
     middleware: (gdm) => gdm().concat(baseApi.middleware),

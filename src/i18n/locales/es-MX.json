@@ -36,7 +36,8 @@
     "emptyVaults": "Aún no hay bóvedas",
     "shoppingLists": "Listas de compra",
     "seeAll": "Ver todas",
-    "emptyLists": "No hay listas abiertas"
+    "emptyLists": "No hay listas abiertas",
+    "seeAllVaults": "Ver todas las bóvedas"
   },
   "transactions": {
     "title": "Movimientos",
@@ -176,7 +177,10 @@
     "environment": "Entorno",
     "auth": "Autenticación",
     "authBypassed": "Omitida (prototipo)",
-    "clearCache": "Borrar datos en caché"
+    "clearCache": "Borrar datos en caché",
+    "biometric": "Desbloqueo con huella",
+    "biometricHint": "Abre la app con la huella o el rostro guardados en este teléfono",
+    "biometricUnavailable": "Primero configura una huella o rostro en este teléfono"
   },
   "auth": {
     "email": "Correo",
@@ -185,7 +189,16 @@
     "hidePassword": "Ocultar contraseña",
     "signIn": "Iniciar sesión",
     "invalidCredentials": "Credenciales inválidas",
-    "logout": "Cerrar sesión"
+    "logout": "Cerrar sesión",
+    "lockTitle": "Balance está bloqueado",
+    "unlock": "Desbloquear",
+    "tryAgain": "Reintentar",
+    "usePassword": "Usar contraseña",
+    "biometricPrompt": "Desbloquear Balance",
+    "storedCredsRejected": "Tu contraseña cambió. Inicia sesión de nuevo.",
+    "unlocking": "Iniciando sesión…",
+    "useBiometric": "Desbloquear con Face ID",
+    "unlockFailed": "No se pudo desbloquear. Intenta de nuevo o usa tu contraseña."
   },
   "context": {
     "personal": "Personal",

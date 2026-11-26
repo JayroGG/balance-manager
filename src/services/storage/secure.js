@@ -6,3 +6,9 @@ const TOKEN_KEY = 'auth_token';
 export const getToken = () => SecureStore.getItemAsync(TOKEN_KEY);
 export const setToken = (token) => SecureStore.setItemAsync(TOKEN_KEY, token);
 export const clearToken = () => SecureStore.deleteItemAsync(TOKEN_KEY);
+
+const REFRESH_TOKEN_KEY = 'auth_refresh_token';
+
+export const getRefreshToken = () => SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
+export const setRefreshToken = (token) => SecureStore.setItemAsync(REFRESH_TOKEN_KEY, token);
+export const clearRefreshToken = () => SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);

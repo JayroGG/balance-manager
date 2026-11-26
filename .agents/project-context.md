@@ -20,13 +20,13 @@ query param. See ADR-011 and `docs/backend-auth-teams-contract.md`.
 - **Runtime:** Expo SDK 56 (managed / CNG), React Native 0.85, React 19.2. **JavaScript/JSX**, no TS.
 - **Navigation:** **expo-router** (file-based, `app/`) — ADR-004.
 - **State / data:** **Redux Toolkit + RTK Query** (`api.injectEndpoints`, one file per entity) — ADR-005.
-- **Storage:** `expo-secure-store` (token) + `@react-native-async-storage/async-storage` (cache/prefs);
+- **Storage:** `expo-secure-store` (access + refresh token, biometric-unlock credentials: ADR-024) + `@react-native-async-storage/async-storage` (cache/prefs);
   MMKV is the deferred north star — ADR-006.
 - **Persistence:** `redux-persist` over the RTK Query `api` reducer → instant cold-start paint + offline
   reads. Token is **not** persisted here (stays in secure-store). Local-first offline-writes + sync
   (`expo-sqlite` + outbox) is the Phase-3 north star — ADR-007.
 - **Config/env:** `app.config.js` + `expo-constants` reading `.env.dev/.env.stage/.env.prod` — ADR-003.
-- **Auth:** single token seam (RTK Query `prepareHeaders`); real **email/password JWT** login/logout, `401`
+- **Auth:** single token seam (RTK Query `prepareHeaders`) + one shared refresh on 401 (ADR-024); biometric lock on cold start / resume > 5 min; real **email/password JWT** login/logout, `401`
   auto-logout; **bypass is dev-only**. Ships in Expo Go (no Auth0, no dev build) — ADR-011 (supersedes ADR-001).
 - **Team context:** a `context` slice (`activeTeamId`, `null` = personal) threaded as `?team_id=` through
   every entity call (Dashboard switch); read-only `GET /teams`; team CRUD deferred — ADR-011.
