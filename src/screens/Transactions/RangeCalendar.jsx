@@ -31,8 +31,8 @@ export function RangeCalendar({ value, onChange, locale }) {
         </Pressable>
       </View>
       <View style={styles.week}>
-        {weekdayLabels(locale).map((label) => (
-          <Text key={label} style={styles.weekday} numberOfLines={1}>{label}</Text>
+        {weekdayLabels(locale).map((label, i) => (
+          <Text key={i} style={styles.weekday} numberOfLines={1}>{label}</Text>
         ))}
       </View>
       {weeks.map((week, wi) => (
