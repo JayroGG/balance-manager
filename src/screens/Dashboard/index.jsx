@@ -79,6 +79,7 @@ export default function Dashboard() {
     }
   }, [refetch]);
   const currency = data?.currency;
+  const overdrawn = Number(data?.available) < 0;
 
   return (
     <Screen scroll refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
@@ -156,21 +157,21 @@ export default function Dashboard() {
         <QueryBoundary isLoading={isLoading && !data} error={error} onRetry={refetch}>
           {/* All figures at once, no tap-to-cycle: the dashboard hero is glanced at, not operated.
               Available leads (it's the number you act on); total and lent sit under it. */}
-          <Card style={styles.hero} testID="hero">
-            <Text style={styles.heroLabel}>{t('dashboard.available')}</Text>
-            <MoneyText amount={data?.available} currency={currency} style={styles.heroFigure} />
+          <Card style={[styles.hero, overdrawn && styles.heroNegative]} testID="hero">
+            <Text style={[styles.heroLabel, overdrawn && styles.heroLabelNegative]}>{t('dashboard.available')}</Text>
+            <MoneyText amount={data?.available} currency={currency} style={[styles.heroFigure, overdrawn && styles.heroInkNegative]} signed />
             <View style={styles.figureRow}>
-              <Text style={styles.heroLabel}>{t('dashboard.total')}</Text>
-              <MoneyText amount={data?.total} currency={currency} style={styles.heroSecondary} />
+              <Text style={[styles.heroLabel, overdrawn && styles.heroLabelNegative]}>{t('dashboard.total')}</Text>
+              <MoneyText amount={data?.total} currency={currency} style={[styles.heroSecondary, overdrawn && styles.heroInkNegative]} signed />
             </View>
             {data?.lent > 0 ? (
               <View style={styles.figureRow}>
-                <Text style={styles.heroLabel}>{t('dashboard.lent')}</Text>
-                <MoneyText amount={data.lent} currency={currency} style={styles.heroSecondary} />
+                <Text style={[styles.heroLabel, overdrawn && styles.heroLabelNegative]}>{t('dashboard.lent')}</Text>
+                <MoneyText amount={data.lent} currency={currency} style={[styles.heroSecondary, overdrawn && styles.heroInkNegative]} />
               </View>
             ) : null}
             {stale ? (
-              <StaleBadge lastUpdated={lastUpdated} offline={offline} color={colors.primaryText} />
+              <StaleBadge lastUpdated={lastUpdated} offline={offline} color={overdrawn ? colors.muted : colors.primaryText} />
             ) : null}
           </Card>
 
@@ -221,6 +222,10 @@ const makeStyles = (colors) =>
     switch: { flexDirection: 'row', alignItems: 'center', paddingBottom: spacing(1) },
     roleBadge: { marginBottom: spacing(1.5), textTransform: 'capitalize' },
     hero: { backgroundColor: colors.primary, padding: spacing(3) },
+    // Overdrawn (available < 0, ADR-022): swap the accent surface for the card surface so the danger red is legible on any accent.
+    heroNegative: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.danger },
+    heroLabelNegative: { color: colors.muted, opacity: 1 },
+    heroInkNegative: { color: colors.text },
     heroLabel: { color: colors.primaryText, opacity: 0.85, fontSize: font.sm, fontWeight: '600' },
     heroFigure: { color: colors.primaryText, fontSize: font.hero, fontWeight: '800', marginTop: spacing(0.5) },
     heroSecondary: { color: colors.primaryText, fontSize: font.lg, fontWeight: '700' },

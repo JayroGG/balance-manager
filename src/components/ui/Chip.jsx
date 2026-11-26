@@ -10,6 +10,8 @@ export const Chip = ({ label, active, onPress, dot }) => {
   return (
     <Pressable
       onPress={onPress}
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked: !!active }}
       style={[styles.chip, active ? { backgroundColor: colors.primary, borderColor: colors.primary } : null]}
     >
       {dot ? <View style={[styles.dot, { backgroundColor: dot }]} /> : null}

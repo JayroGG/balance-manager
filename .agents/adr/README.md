@@ -36,7 +36,7 @@ Statuses: `Proposed` · `Accepted` · `Deprecated` · `Superseded by ADR-NNN`.
 | [ADR-006](ADR-006-storage-securestore-asyncstorage-mmkv-northstar.md) | Storage: secure-store + AsyncStorage now, MMKV north star | Accepted |
 | [ADR-007](ADR-007-persistence-and-offline-strategy.md) | Persistence & offline: cache-persist now, local-first sync north star | Accepted |
 | [ADR-008](ADR-008-app-structure-thin-routes-src-screens.md) | App structure: thin `app/` routes, `src/screens`, atomic `src/components/ui` | Accepted |
-| [ADR-009](ADR-009-amount-based-vault-allocation.md) | Amount-based vault allocation (follows backend ADR-004) | Accepted |
+| [ADR-009](ADR-009-amount-based-vault-allocation.md) | Amount-based vault allocation (follows backend ADR-004) | Accepted (never-negative `available` superseded in part by ADR-022) |
 | [ADR-010](ADR-010-testing-jest-expo-preset.md) | Testing: Jest with the `jest-expo` preset (not bare `react-native`) | Accepted |
 | [ADR-011](ADR-011-auth-jwt-and-team-context.md) | Auth via the backend's email/password JWT, and a client-side team context (supersedes ADR-001) | Accepted |
 | [ADR-012](ADR-012-team-rbac-and-management.md) | Team RBAC (role-gated UI) and the team-management screen (extends ADR-011) | Accepted |
@@ -48,6 +48,7 @@ Statuses: `Proposed` · `Accepted` · `Deprecated` · `Superseded by ADR-NNN`.
 | [ADR-019](ADR-019-cache-trust-and-loading-contract.md) | Cache trust: never render money under an unconfirmed context (+ the loading contract) | Accepted |
 | [ADR-020](ADR-020-opencode-migration.md) | Migration from Claude Code to OpenCode (supersedes ADR-002) | Accepted |
 | [ADR-021](ADR-021-transactions-search-and-date-presets.md) | Transactions search, date presets and infinite scroll (supersedes ADR-015's client-side month filter) | Accepted |
+| [ADR-022](ADR-022-negative-balance-and-multi-category-ui.md) | Negative balance display and multi-category transactions (supersedes ADR-009 in part) | Accepted |
 
 > **Note:** ADR-001..019 predate the OpenCode migration (ADR-020) and reference the old `.claude/ADR/` /
 > `.claude/agents/plans/` paths. Those references are historical; current paths are `.agents/adr/` and

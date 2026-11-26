@@ -76,6 +76,17 @@ it('renders the rows in server order', async () => {
   expect(texts).toEqual(['JulyTx', 'LoanOut', 'MarchTx']);
 });
 
+it('shows every category name on a row (ADR-022)', async () => {
+  respond = () => ({
+    ...page1,
+    items: [row(1, 'JulyTx', { categories: [{ id: 1, name: 'Food' }, { id: 2, name: 'Home' }] }), row(2, 'Plain', { categories: [] })],
+  });
+  renderWithStore(<TransactionsList />);
+  await screen.findByText('JulyTx');
+  expect(screen.getByTestId('categories-1').props.children).toBe('Food · Home');
+  expect(screen.queryByTestId('categories-2')).toBeNull();
+});
+
 it('the sort toggle re-queries oldest-first', async () => {
   renderWithStore(<TransactionsList />);
   await screen.findByText('JulyTx');

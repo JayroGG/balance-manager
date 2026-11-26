@@ -13,6 +13,7 @@ export const transactionsApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
     // Server-filtered, keyset-paged list (BE ADR-011 / FE ADR-021). Each page is
     // { items, next_cursor, totals } — `totals` cover the whole filtered set, so read them from page 1.
+    // Rows carry `categories: [{ id, name }]`; writes take `category_ids: int[]` (ADR-022 / BE ADR-013).
     // arg: { team_id?, q?, from?, to?, type?, loans?: 'only'|'exclude', sort?: 'asc'|'desc' }
     getTransactions: build.infiniteQuery({
       infiniteQueryOptions: {

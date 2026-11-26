@@ -99,6 +99,11 @@ export default function TransactionsList() {
                     </View>
                   ) : null}
                 </View>
+                {item.categories?.length ? (
+                  <Text style={styles.meta} numberOfLines={1} testID={`categories-${item.id}`}>
+                    {item.categories.map((c) => c.name).join(' · ')}
+                  </Text>
+                ) : null}
               </View>
               <MoneyText
                 amount={item.amount}
@@ -173,7 +178,7 @@ export default function TransactionsList() {
               labelStyle={styles.totalLabel}
               valueStyle={styles.totalValue}
               steps={[
-                { key: 'net', label: t('transactions.net'), amount: totals.net, color: colors.text },
+                { key: 'net', label: t('transactions.net'), amount: totals.net, color: colors.text, signed: true },
                 { key: 'income', label: t('transactions.income'), amount: totals.income, color: colors.success },
                 { key: 'expense', label: t('transactions.expense'), amount: totals.expense, color: colors.danger },
               ]}

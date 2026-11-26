@@ -193,8 +193,11 @@ export default function VaultDetail() {
             />
             <Muted style={styles.maxHint}>
               {picker === 'allocate' ? t('dashboard.available') : t('vaults.balance')}:{' '}
-              <MoneyText amount={max} currency={currency} />
+              <MoneyText amount={max} currency={currency} signed />
             </Muted>
+            {picker === 'allocate' && amountNum > max ? (
+              <Muted style={styles.overHint}>{t('common.exceedsAvailable')}</Muted>
+            ) : null}
             <AppButton
               title={t('common.confirm')}
               onPress={onConfirm}
@@ -259,6 +262,7 @@ const makeStyles = (colors) =>
   staleBadgeWrap: { marginTop: spacing(1) },
   actions: { flexDirection: 'row', marginVertical: spacing(1.5) },
   maxHint: { marginBottom: spacing(1.5) },
+  overHint: { color: colors.danger, marginBottom: spacing(1) },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   action: { fontWeight: '700', fontSize: font.md },
   histAmount: { fontWeight: '700', color: colors.text },

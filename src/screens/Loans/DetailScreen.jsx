@@ -198,8 +198,11 @@ export default function LoanDetail() {
             />
             <Muted style={styles.maxHint}>
               {picker === 'repay' ? t('loans.pending') : t('dashboard.available')}:{' '}
-              <MoneyText amount={max} currency={currency} />
+              <MoneyText amount={max} currency={currency} signed />
             </Muted>
+            {picker === 'lend' && amountNum > max ? (
+              <Muted style={styles.overHint}>{t('common.exceedsAvailable')}</Muted>
+            ) : null}
             <AppButton
               title={t('common.confirm')}
               onPress={onConfirm}
@@ -265,6 +268,7 @@ const makeStyles = (colors) =>
   staleBadgeWrap: { marginTop: spacing(1) },
   actions: { flexDirection: 'row', marginVertical: spacing(1.5) },
   maxHint: { marginBottom: spacing(1.5) },
+  overHint: { color: colors.danger, marginBottom: spacing(1) },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   action: { fontWeight: '700', fontSize: font.md },
   histAmount: { fontWeight: '700', color: colors.text },

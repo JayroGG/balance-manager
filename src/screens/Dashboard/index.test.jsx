@@ -10,6 +10,8 @@ import authReducer from '../../reducers/auth';
 import contextReducer from '../../reducers/context';
 import prefsReducer from '../../reducers/prefs';
 import activityReducer from '../../reducers/activity';
+import { StyleSheet } from 'react-native';
+import { makeColors } from '../../components/theme';
 import { formatMoney } from '../../utils/money';
 import Dashboard from './index';
 
@@ -94,6 +96,15 @@ it('renders available and total together, with no lent row when nothing is lent'
 
   expect(screen.getByText(money(60))).toBeTruthy();
   expect(screen.getByText(money(100))).toBeTruthy();
+});
+
+it('renders a negative available in the danger color (ADR-022)', async () => {
+  mockFetch({ ...baseBalance, available: -500, total: 100 });
+  renderWithStore(<Dashboard />);
+  await screen.findByTestId('hero');
+  const node = screen.getByText(money(-500));
+  expect(StyleSheet.flatten(node.props.style).color).toBe(makeColors('light').danger);
+  expect(StyleSheet.flatten(screen.getByText(money(100)).props.style).color).not.toBe(makeColors('light').danger);
 });
 
 it('renders the lent row only when there is an outstanding loan', async () => {

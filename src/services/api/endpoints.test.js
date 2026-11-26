@@ -443,12 +443,12 @@ describe('shopping lists — URLs, bodies, invalidation (ADR-015)', () => {
   it('POSTs checkout to /shopping-lists/:id/checkout with amount in the body, team_id only in the URL', async () => {
     store = makeStore();
     await store.dispatch(
-      shoppingListsApi.endpoints.checkoutList.initiate({ id: 7, team_id: 5, amount: 418.7, category_id: 3 }),
+      shoppingListsApi.endpoints.checkoutList.initiate({ id: 7, team_id: 5, amount: 418.7, category_ids: [3] }),
     );
     const request = global.fetch.mock.calls[0][0];
     expect(request.url).toMatch(/\/shopping-lists\/7\/checkout\?team_id=5$/);
     expect(request.method).toBe('POST');
-    await expect(request.clone().json()).resolves.toEqual({ amount: 418.7, category_id: 3 });
+    await expect(request.clone().json()).resolves.toEqual({ amount: 418.7, category_ids: [3] });
   });
 
   it('refetches /balance after a checkout (the posted expense moves available)', async () => {

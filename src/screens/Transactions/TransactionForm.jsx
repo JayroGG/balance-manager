@@ -7,14 +7,16 @@ import { font, spacing } from '../../components/theme';
 import { todayISODate } from '../../utils/dates';
 
 // Shared create/edit form. Transactions are a pure ledger — no vault here; vault funding is an
-// amount-based action on the vault detail screen (ADR-009). Enforces amount > 0. (PRD §4.1)
+// amount-based action on the vault detail screen (ADR-009). Categories are tags: 0..N (ADR-022). Enforces amount > 0. (PRD §4.1)
+const sameIds = (a, b) => a.length === b.length && a.every((id) => b.includes(id));
+
 export default function TransactionForm({ initial, categories = [], onSubmit, submitting, error, readOnly }) {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
   const [type, setType] = useState(initial?.type ?? 'expense');
   const [amount, setAmount] = useState(initial?.amount != null ? String(initial.amount) : '');
-  const [categoryId, setCategoryId] = useState(initial?.category_id ?? null);
+  const [categoryIds, setCategoryIds] = useState(() => (initial?.categories ?? []).map((c) => c.id));
   const [description, setDescription] = useState(initial?.description ?? '');
   const [occurredAt, setOccurredAt] = useState(initial?.occurred_at ?? todayISODate());
   const [touched, setTouched] = useState(false);
@@ -30,7 +32,7 @@ export default function TransactionForm({ initial, categories = [], onSubmit, su
       return;
     }
     setSaved(false);
-  }, [type, amount, categoryId, description, occurredAt]);
+  }, [type, amount, categoryIds, description, occurredAt]);
 
   const eligibleCategories = useMemo(
     () => categories.filter((c) => c.kind === type || c.kind === 'both'),
@@ -45,21 +47,24 @@ export default function TransactionForm({ initial, categories = [], onSubmit, su
     !isEdit ||
     type !== initial.type ||
     amountNum !== Number(initial.amount) ||
-    (categoryId ?? null) !== (initial.category_id ?? null) ||
+    !sameIds(categoryIds, (initial.categories ?? []).map((c) => c.id)) ||
     description.trim() !== (initial.description ?? '') ||
     occurredAt !== initial.occurred_at;
   const locked = isEdit && (saved || !dirty);
 
   const setTypeSafe = (next) => {
     setType(next);
-    setCategoryId(null);
+    setCategoryIds((ids) => ids.filter((id) => categories.some((c) => c.id === id && (c.kind === next || c.kind === 'both'))));
   };
+
+  const toggleCategory = (id) =>
+    setCategoryIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]));
 
   const submit = async () => {
     setTouched(true);
     if (!amountValid) return;
     const body = { type, amount: amountNum, occurred_at: occurredAt };
-    if (categoryId) body.category_id = categoryId;
+    if (categoryIds.length || isEdit) body.category_ids = categoryIds;
     if (description.trim()) body.description = description.trim();
     const ok = await onSubmit(body);
     if (ok && isEdit) setSaved(true);
@@ -83,10 +88,11 @@ export default function TransactionForm({ initial, categories = [], onSubmit, su
       {touched && !amountValid ? <Muted style={styles.err}>{t('transactions.amountPositive')}</Muted> : null}
 
       <Text style={styles.label}>{t('transactions.category')}</Text>
+      <Muted style={styles.hint}>{t('transactions.categoryHint')}</Muted>
       <View style={styles.row}>
         {eligibleCategories.length === 0 ? <Muted>{t('common.none')}</Muted> : null}
         {eligibleCategories.map((c) => (
-          <Chip key={c.id} label={c.name} active={categoryId === c.id} onPress={() => setCategoryId(categoryId === c.id ? null : c.id)} />
+          <Chip key={c.id} label={c.name} active={categoryIds.includes(c.id)} onPress={() => toggleCategory(c.id)} />
         ))}
       </View>
 
@@ -114,6 +120,7 @@ const makeStyles = (colors) =>
   StyleSheet.create({
   label: { fontSize: font.sm, color: colors.muted, marginBottom: spacing(0.75), fontWeight: '600' },
   row: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: spacing(1) },
+  hint: { marginBottom: spacing(0.75) },
   err: { color: colors.danger, marginBottom: spacing(1.5) },
   readOnly: { textAlign: 'center', marginTop: spacing(1) },
 });

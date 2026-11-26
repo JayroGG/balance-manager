@@ -71,9 +71,10 @@ export default function NewLoan() {
         <Muted style={styles.hint}>{t('loans.alreadyLentHint')}</Muted>
         {!preExisting && hasAmount ? (
           <Muted style={styles.maxHint}>
-            {t('dashboard.available')}: <MoneyText amount={available} currency={balance?.currency} />
+            {t('dashboard.available')}: <MoneyText amount={available} currency={balance?.currency} signed />
           </Muted>
         ) : null}
+        {overAvailable ? <Muted style={{ color: colors.danger, marginBottom: spacing(1.5) }}>{t('common.exceedsAvailable')}</Muted> : null}
         {error ? <Muted style={{ color: colors.danger, marginBottom: spacing(1.5) }}>{error.message}</Muted> : null}
         <AppButton
           title={t('common.create')}
