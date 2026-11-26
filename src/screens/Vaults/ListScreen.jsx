@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { useRouter, Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
@@ -10,6 +10,8 @@ import { useContextReady } from '../../hooks/useContextReady';
 import { Screen, ScreenHeader, Card, MoneyText, QueryBoundary, StaleBadge } from '../../components/ui';
 import { useTheme } from '../../hooks/useTheme';
 import { font, spacing } from '../../components/theme';
+import SortableList from '../../components/ui/SortableList';
+import { useOrderedVaults } from './reorder';
 
 export default function VaultsList() {
   const { t } = useTranslation();
@@ -22,6 +24,7 @@ export default function VaultsList() {
   const balanceQuery = useGetBalanceQuery(teamId);
   const { data, isLoading, error, refetch } = balanceQuery;
   const currency = data?.currency;
+  const { ordered, onReorder } = useOrderedVaults(data?.vaults);
   // Variable-length list — a skeleton can't honestly predict a row count (ADR-019), so the gate
   // reuses the existing spinner: an unconfirmed context is treated as still-loading, never rendering
   // vault rows (and their balances) under the wrong context.
@@ -84,9 +87,10 @@ export default function VaultsList() {
         emptyText={t('vaults.empty')}
         onRetry={refetch}
       >
-        <FlatList
-          data={data?.vaults}
+        <SortableList
+          data={ordered}
           keyExtractor={(item) => String(item.id)}
+          onReorder={onReorder}
           renderItem={renderItem}
           contentContainerStyle={{ padding: spacing(2), paddingBottom: spacing(10) }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}

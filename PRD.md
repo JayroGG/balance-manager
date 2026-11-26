@@ -25,7 +25,7 @@ Where this section conflicts with §5, **this section and the ADRs win**:
 | Storage | AsyncStorage | **expo-secure-store (token) + AsyncStorage (cache)**; MMKV deferred | ADR-006 |
 | Persistence/offline | non-goal | **redux-persist cache now** (fast cold start + offline reads); **local-first sync** is the Phase-3 north star | ADR-007 |
 | App structure | screens under `screens/`, navigators under `stacks/` | **thin `app/` route shims → `src/screens/` → `src/components/ui/` (atomic, one file each)** | ADR-008 |
-| Auth | wired but bypassed; Auth0 + RBAC north star | **Backend email/password JWT** (`/auth/login`,`/auth/logout`; not Auth0) — ships in Expo Go, no dev build; **bypass is dev-only** | ADR-011 |
+| Auth | wired but bypassed; Auth0 + RBAC north star | **Backend email/password JWT** (`/auth/login`,`/auth/refresh`,`/auth/logout`; not Auth0); access token refreshed silently on 401 (rotating refresh token, ADR-024); optional **biometric unlock** (device lock, creds in SecureStore); needs a native build (local-authentication, gesture-handler, reanimated); **bypass is dev-only** | ADR-011, ADR-024 |
 | Team context | (none) | **Personal vs team via `?team_id=` query param** (never in body); same screens reused + a Dashboard switch; team-management CRUD deferred | ADR-011 |
 
 Everything in §4 (the **backend contract**), §8 (screens/flows), and §9 (phases) stands unchanged.
@@ -71,7 +71,7 @@ Configure per environment via `react-native-config` (`API_URL`).
 **positive** — the `type` field (`income` / `expense`) carries the sign meaning.
 
 **Identity (now required — ADR-011):** every request carries `Authorization: Bearer <token>`, where the
-token is the backend's own **email/password JWT** (`POST /auth/login` → `{ token }`; `POST /auth/logout`
+token is the backend's own **email/password JWT** (`POST /auth/login` → `{ token, refreshToken }`; `POST /auth/refresh { refreshToken }` → new pair (rotation; a 401 triggers one shared refresh + one retry, failure → logout); `POST /auth/logout`
 to revoke; a `401` on any call but `/auth/login` means the session is over). The header is set in one
 place (`baseApi.prepareHeaders`). A **dev-only** `AUTH_BYPASS` still sends a placeholder token. See §7 and
 `docs/backend-auth-teams-contract.md`.
@@ -142,7 +142,8 @@ Utilities, Other).
 #### Vaults — `/vaults` (+ actions)
 | Method | Path | Body | Returns |
 |---|---|---|---|
-| GET | `/vaults` | — | `200` array |
+| GET | `/vaults` | — | `200` array, in the user's own order |
+| PUT | `/vaults/order` | `{ ids: number[] }` (per user; `?team_id=` for team context) | `204` (ADR-024) |
 | POST | `/vaults` | `{ name, target_amount? }` (decimal) | `201` |
 | GET / PUT / DELETE | `/vaults/:id` | `{ name?, target_amount? }` on PUT | `200` / `204` / `404` |
 | GET | `/vaults/:id/history` | — | `200` array of `{ id, user_id, vault_id, action, amount, created_at }`, newest first |

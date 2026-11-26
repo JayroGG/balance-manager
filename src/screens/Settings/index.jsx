@@ -1,18 +1,21 @@
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Alert, Modal, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import { useGetBalanceQuery } from '../../services/api/balance';
-import { useLogoutMutation } from '../../services/api/auth';
+import { useLoginMutation, useLogoutMutation } from '../../services/api/auth';
 import { hardLogout } from '../../services/api/hardLogout';
 import { setThemeMode, selectThemeMode, THEME_MODES } from '../../reducers/prefs';
 import { useActiveTeamId } from '../../hooks/useActiveTeamId';
 import { useTheme } from '../../hooks/useTheme';
 import { persistor } from '../../store';
+import { clearStoredCreds, saveStoredCreds, setOptOut, canUseBiometrics, promptBiometric } from '../../services/storage/biometric';
+import { setLockEnabled } from '../../reducers/lock';
 import { Config } from '../../utils/config';
 import { LANGUAGES, changeLanguage } from '../../i18n';
-import { Screen, ScreenHeader, Card, Chip, AppButton, SectionTitle } from '../../components/ui';
+import { Screen, ScreenHeader, Card, Chip, AppButton, SectionTitle, Field, Muted } from '../../components/ui';
 import { font, spacing } from '../../components/theme';
 
 const Row = ({ label, value }) => {
@@ -37,6 +40,54 @@ export default function Settings() {
   const teamId = useActiveTeamId();
   const { data } = useGetBalanceQuery(teamId);
   const [logout, { isLoading: loggingOut }] = useLogoutMutation();
+  const biometricOn = useSelector((s) => s.lock.enabled);
+
+  const [login, { isLoading: verifying }] = useLoginMutation();
+  const [enrolled, setEnrolled] = useState(true);
+  useEffect(() => {
+    canUseBiometrics().then(setEnrolled, () => setEnrolled(false));
+  }, []);
+  const [askCreds, setAskCreds] = useState(false);
+  const [bioEmail, setBioEmail] = useState('');
+  const [bioPassword, setBioPassword] = useState('');
+  const [bioError, setBioError] = useState(null);
+
+  // OFF deletes creds and records the opt-out (logins stop re-saving). ON asks for the account
+  // credentials in a modal (cross-platform), verifies them with /auth/login, then needs a biometric match.
+  const onToggleBiometric = async (next) => {
+    if (next) {
+      setBioError(null);
+      setAskCreds(true);
+      return;
+    }
+    await setOptOut(true);
+    await clearStoredCreds();
+    dispatch(setLockEnabled(false));
+  };
+
+  const closeModal = () => {
+    setAskCreds(false);
+    setBioPassword('');
+  };
+
+  const onConfirmBiometric = async () => {
+    setBioError(null);
+    const creds = { email: bioEmail.trim(), password: bioPassword };
+    try {
+      if (!(await canUseBiometrics())) {
+        setBioError(t('settings.biometricUnavailable'));
+        return;
+      }
+      await login(creds).unwrap();
+      if (!(await promptBiometric(t('auth.biometricPrompt'))).success) return;
+      await saveStoredCreds(creds);
+      await setOptOut(false);
+      dispatch(setLockEnabled(true));
+      closeModal();
+    } catch (err) {
+      setBioError(err?.message ?? t('auth.invalidCredentials'));
+    }
+  };
 
   const onClearCache = async () => {
     await persistor.purge();
@@ -79,6 +130,48 @@ export default function Settings() {
         </Pressable>
       </Card>
 
+      <Card>
+        <View style={styles.row}>
+          <Text style={styles.value}>{t('settings.biometric')}</Text>
+          <Switch value={biometricOn} onValueChange={onToggleBiometric} disabled={!biometricOn && !enrolled} />
+        </View>
+        <Text style={styles.label}>
+          {t(biometricOn || enrolled ? 'settings.biometricHint' : 'settings.biometricUnavailable')}
+        </Text>
+      </Card>
+
+      <Modal visible={askCreds} transparent animationType="fade" onRequestClose={closeModal}>
+        <View style={styles.backdrop}>
+          <View style={styles.sheet}>
+            <Text style={styles.value}>{t('settings.biometric')}</Text>
+            <Field
+              label={t('auth.email')}
+              value={bioEmail}
+              onChangeText={setBioEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            <Field
+              label={t('auth.password')}
+              value={bioPassword}
+              onChangeText={setBioPassword}
+              secureTextEntry
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            {bioError ? <Muted style={{ color: colors.danger }}>{bioError}</Muted> : null}
+            <AppButton
+              title={t('auth.unlock')}
+              onPress={onConfirmBiometric}
+              loading={verifying}
+              disabled={!bioEmail.trim() || !bioPassword}
+            />
+            <AppButton title={t('common.cancel')} variant="ghost" onPress={closeModal} />
+          </View>
+        </View>
+      </Modal>
+
       {bypass ? null : (
         <AppButton
           title={t('auth.logout')}
@@ -120,5 +213,7 @@ const makeStyles = (colors) =>
     value: { color: colors.text, fontSize: font.md, fontWeight: '600' },
     // Full-width row, 48dp tall: the whole row is the target, not just its label.
     navRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: spacing(1.5), minHeight: 48 },
+    backdrop: { flex: 1, justifyContent: 'center', padding: spacing(2), backgroundColor: 'rgba(0,0,0,0.5)' },
+    sheet: { backgroundColor: colors.card ?? colors.background, borderRadius: 16, padding: spacing(2), gap: spacing(1) },
     chipRow: { flexDirection: 'row', flexWrap: 'wrap' },
   });

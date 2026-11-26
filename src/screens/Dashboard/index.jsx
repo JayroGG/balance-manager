@@ -12,6 +12,7 @@ import { useActiveTeamId } from '../../hooks/useActiveTeamId';
 import { useActiveRole } from '../../hooks/useActiveRole';
 import { useUnreadActivity } from '../../hooks/useUnreadActivity';
 import { useContextReady } from '../../hooks/useContextReady';
+import { useOrderedVaults } from '../Vaults/reorder';
 import { useTheme } from '../../hooks/useTheme';
 import {
   Screen,
@@ -28,6 +29,9 @@ import {
 import { formatDate, todayISODate } from '../../utils/dates';
 import { formatMoney } from '../../utils/money';
 import { DEFAULT_ACCENT, font, spacing } from '../../components/theme';
+
+// First 3 non-empty vaults, server order (per-user order, plan FE item 4).
+export const topVaults = (vaults) => (vaults ?? []).filter((v) => v.balance > 0).slice(0, 3);
 
 const VaultRow = ({ vault, currency, onPress }) => {
   const { colors } = useTheme();
@@ -67,6 +71,8 @@ export default function Dashboard() {
   const balanceQuery = useGetBalanceQuery(teamId);
   const { data, isLoading, error, refetch } = balanceQuery;
   const { confirmed, stale, offline, lastUpdated } = useContextReady(balanceQuery);
+  const { ordered: orderedVaults } = useOrderedVaults(data?.vaults);
+  const topVaultRows = topVaults(orderedVaults);
   const { data: openLists } = useGetShoppingListsQuery({ status: 'open', team_id: teamId });
   const unread = useUnreadActivity();
   // Drive the spinner only from a user pull — not the auto refetch-on-mount, which on iOS
@@ -207,8 +213,8 @@ export default function Dashboard() {
           ) : null}
 
           <SectionTitle>{t('dashboard.vaults')}</SectionTitle>
-          {data?.vaults?.length ? (
-            data.vaults.map((v) => (
+          {topVaultRows.length ? (
+            topVaultRows.map((v) => (
               <VaultRow
                 key={v.id}
                 vault={v}
@@ -219,6 +225,15 @@ export default function Dashboard() {
           ) : (
             <Text style={styles.empty}>{t('dashboard.emptyVaults')}</Text>
           )}
+          {data?.vaults?.length ? (
+            <Pressable
+              hitSlop={12}
+              style={styles.seeAllBtn}
+              onPress={() => router.navigate('/(tabs)/vaults')}
+            >
+              <Text style={styles.seeAll}>{t('dashboard.seeAllVaults')}</Text>
+            </Pressable>
+          ) : null}
         </QueryBoundary>
       )}
 

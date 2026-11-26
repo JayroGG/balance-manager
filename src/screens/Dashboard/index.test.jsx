@@ -225,3 +225,53 @@ it('does not paint the cards block under an unconfirmed team context (ADR-019)',
   await new Promise((r) => setTimeout(r, 20));
   expect(screen.queryByTestId('cards-block')).toBeNull();
 });
+
+describe('Dashboard vaults block (top 3, order, see-all)', () => {
+  const vs = [
+    { id: 1, name: 'Zero', balance: 0, target: 0 },
+    { id: 2, name: 'Bravo', balance: 10, target: 0 },
+    { id: 3, name: 'Alpha', balance: 20, target: 0 },
+    { id: 4, name: 'Delta', balance: 30, target: 0 },
+    { id: 5, name: 'Echo', balance: 40, target: 0 },
+  ];
+
+  it('shows the first 3 non-empty vaults in server order and a see-all link', async () => {
+    mockFetch({ ...baseBalance, vaults: vs });
+    renderWithStore(<Dashboard />);
+    expect(await screen.findByText('Bravo')).toBeTruthy();
+    expect(screen.getByText('Alpha')).toBeTruthy();
+    expect(screen.getByText('Delta')).toBeTruthy();
+    expect(screen.queryByText('Zero')).toBeNull();
+    expect(screen.queryByText('Echo')).toBeNull();
+    fireEvent.press(screen.getByText('dashboard.seeAllVaults'));
+    expect(mockNavigateSpy).toHaveBeenCalledWith('/(tabs)/vaults');
+  });
+
+  it('shows empty text plus the link when every vault is empty', async () => {
+    mockFetch({ ...baseBalance, vaults: [vs[0]] });
+    renderWithStore(<Dashboard />);
+    expect(await screen.findByText('dashboard.seeAllVaults')).toBeTruthy();
+    expect(screen.queryByText('Zero')).toBeNull();
+  });
+});
+
+describe('Dashboard top-3 uses the local order', () => {
+  it('shows pending local order first', async () => {
+    mockFetch({
+      ...baseBalance,
+      vaults: [
+        { id: 1, name: 'Bravo', balance: 10, target: 0 },
+        { id: 2, name: 'Alpha', balance: 20, target: 0 },
+      ],
+    });
+    const { store } = renderWithStore(<Dashboard />);
+    await screen.findByText('Bravo');
+    const { saveOrder } = require('../../reducers/vaultOrder');
+    const { act } = require('@testing-library/react-native');
+    act(() => {
+      store.dispatch(saveOrder({ userId: null, teamId: null, ids: [2, 1] }));
+    });
+    const names = screen.getAllByText(/^(Alpha|Bravo)$/).map((n) => n.props.children);
+    expect(names).toEqual(['Alpha', 'Bravo']);
+  });
+});

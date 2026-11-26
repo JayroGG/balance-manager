@@ -36,7 +36,8 @@
     "emptyVaults": "No vaults yet",
     "shoppingLists": "Shopping lists",
     "seeAll": "See all",
-    "emptyLists": "No open lists"
+    "emptyLists": "No open lists",
+    "seeAllVaults": "See all vaults"
   },
   "transactions": {
     "title": "Transactions",
@@ -176,7 +177,10 @@
     "environment": "Environment",
     "auth": "Authentication",
     "authBypassed": "Bypassed (prototype)",
-    "clearCache": "Clear cached data"
+    "clearCache": "Clear cached data",
+    "biometric": "Fingerprint unlock",
+    "biometricHint": "Open the app with the fingerprint or face saved on this phone",
+    "biometricUnavailable": "Set up a fingerprint or face on this phone first"
   },
   "auth": {
     "email": "Email",
@@ -185,7 +189,16 @@
     "hidePassword": "Hide password",
     "signIn": "Sign in",
     "invalidCredentials": "Invalid credentials",
-    "logout": "Log out"
+    "logout": "Log out",
+    "lockTitle": "Balance is locked",
+    "unlock": "Unlock",
+    "tryAgain": "Try again",
+    "usePassword": "Use password",
+    "biometricPrompt": "Unlock Balance",
+    "storedCredsRejected": "Your password changed. Please sign in again.",
+    "unlocking": "Signing in…",
+    "useBiometric": "Unlock with Face ID",
+    "unlockFailed": "Could not unlock. Try again or use your password."
   },
   "context": {
     "personal": "Personal",

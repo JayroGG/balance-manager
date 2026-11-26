@@ -13,6 +13,7 @@ import { configureStore, combineReducers } from '@reduxjs/toolkit';
 import { baseApi } from './baseApi';
 import { balanceApi } from './balance';
 import { transactionsApi } from './transactions';
+import { categoriesApi } from './categories';
 import { authApi } from './auth';
 import authReducer from '../../reducers/auth';
 import contextReducer from '../../reducers/context';
@@ -148,6 +149,144 @@ describe('401 auto-logout — session over (ADR-011)', () => {
 
     expect(result.error.message).toBe('Invalid credentials');
     expect(store.getState().auth.token).toBe('realtoken');
+    expect(SecureStore.deleteItemAsync).not.toHaveBeenCalled();
+  });
+});
+
+describe('401 refresh — single shared refresh + one retry', () => {
+  // A syntactically valid JWT (sub=7) so decodeUser works.
+  const jwt = `h.${Buffer.from(JSON.stringify({ sub: '7', email: 'a@b.co' })).toString('base64')}.s`;
+  const isRefresh = (req) => req.url.endsWith('/auth/refresh');
+  const refreshCalls = () => global.fetch.mock.calls.filter(([r]) => isRefresh(r)).length;
+
+  // 401 for any request carrying the old token; 200 once the new token is attached.
+  const serve = (refreshResponse) =>
+    global.fetch.mockImplementation((req) => {
+      if (isRefresh(req)) return Promise.resolve(refreshResponse());
+      const ok = req.headers.get('Authorization') === `Bearer ${jwt}`;
+      const body = req.url.includes('/categories') ? [] : { total: 1 };
+      return Promise.resolve(ok ? jsonResponse(body) : jsonResponse({ error: 'expired' }, 401));
+    });
+
+  beforeEach(() => {
+    SecureStore.getItemAsync.mockImplementation(() => Promise.resolve('old-refresh'));
+    SecureStore.setItemAsync.mockClear();
+  });
+  afterEach(() => {
+    SecureStore.getItemAsync.mockImplementation(() => Promise.resolve(null));
+  });
+
+  it('2 concurrent 401s trigger exactly 1 refresh and both are retried', async () => {
+    serve(() => jsonResponse({ token: jwt, refreshToken: 'new-refresh' }));
+    store = makeStore({ token: 'old', bypass: false });
+
+    const [a, b] = await Promise.all([
+      store.dispatch(balanceApi.endpoints.getBalance.initiate()),
+      store.dispatch(categoriesApi.endpoints.getCategories.initiate()),
+    ]);
+
+    expect(refreshCalls()).toBe(1);
+    expect(a.data).toEqual({ total: 1 });
+    expect(b.data).toEqual([]);
+    expect(store.getState().auth.token).toBe(jwt);
+    expect(store.getState().auth.user).toEqual({ id: '7', email: 'a@b.co' });
+    expect(SecureStore.setItemAsync).toHaveBeenCalledWith('auth_refresh_token', 'new-refresh');
+    expect(SecureStore.setItemAsync).toHaveBeenCalledWith('auth_token', jwt);
+  });
+
+  it('a 401 after another refresh already completed retries with the new token, no second refresh', async () => {
+    let release;
+    const gate = new Promise((r) => (release = r));
+    global.fetch.mockImplementation(async (req) => {
+      if (isRefresh(req)) return jsonResponse({ token: jwt, refreshToken: 'new-refresh' });
+      if (req.headers.get('Authorization') === `Bearer ${jwt}`)
+        return jsonResponse(req.url.includes('/categories') ? [] : { total: 1 });
+      if (req.url.includes('/balance')) await gate; // slow request sent with the old token
+      return jsonResponse({ error: 'expired' }, 401);
+    });
+    store = makeStore({ token: 'old', bypass: false });
+
+    const slow = store.dispatch(balanceApi.endpoints.getBalance.initiate());
+    await store.dispatch(categoriesApi.endpoints.getCategories.initiate()); // 401 -> refresh completes
+    release();
+    const r = await slow;
+
+    expect(refreshCalls()).toBe(1);
+    expect(r.data).toEqual({ total: 1 });
+    expect(store.getState().auth.token).toBe(jwt);
+  });
+
+  it('a network error on refresh does NOT log out and returns the original 401', async () => {
+    global.fetch.mockImplementation((req) =>
+      isRefresh(req) ? Promise.reject(new TypeError('Network request failed')) : Promise.resolve(jsonResponse({ error: 'expired' }, 401)),
+    );
+    store = makeStore({ token: 'old', bypass: false });
+
+    const result = await store.dispatch(balanceApi.endpoints.getBalance.initiate());
+
+    expect(result.error.status).toBe(401);
+    expect(store.getState().auth.token).toBe('old');
+    expect(SecureStore.deleteItemAsync).not.toHaveBeenCalled();
+  });
+
+  it('a 5xx on refresh does NOT log out', async () => {
+    serve(() => jsonResponse({ error: 'boom' }, 503));
+    store = makeStore({ token: 'old', bypass: false });
+
+    await store.dispatch(balanceApi.endpoints.getBalance.initiate());
+
+    expect(store.getState().auth.token).toBe('old');
+    expect(SecureStore.deleteItemAsync).not.toHaveBeenCalled();
+  });
+
+  it('a failed refresh hard-logs-out', async () => {
+    serve(() => jsonResponse({ error: 'revoked' }, 401));
+    store = makeStore({ token: 'old', bypass: false });
+
+    await store.dispatch(balanceApi.endpoints.getBalance.initiate());
+
+    expect(store.getState().auth.token).toBeNull();
+    expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith('auth_token');
+    expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith('auth_refresh_token');
+  });
+
+  it('does not loop: a 401 after a successful refresh retries once, then logs out', async () => {
+    global.fetch.mockImplementation((req) =>
+      Promise.resolve(
+        isRefresh(req)
+          ? jsonResponse({ token: jwt, refreshToken: 'new-refresh' })
+          : jsonResponse({ error: 'nope' }, 401),
+      ),
+    );
+    store = makeStore({ token: 'old', bypass: false });
+
+    await store.dispatch(balanceApi.endpoints.getBalance.initiate());
+
+    expect(refreshCalls()).toBe(1);
+    expect(global.fetch).toHaveBeenCalledTimes(3); // original, refresh, one retry
+    expect(store.getState().auth.token).toBeNull();
+  });
+
+  it('no stored refresh token -> hard logout without a refresh call', async () => {
+    SecureStore.getItemAsync.mockImplementation(() => Promise.resolve(null));
+    serve(() => jsonResponse({}));
+    store = makeStore({ token: 'old', bypass: false });
+
+    await store.dispatch(balanceApi.endpoints.getBalance.initiate());
+
+    expect(refreshCalls()).toBe(0);
+    expect(store.getState().auth.token).toBeNull();
+  });
+
+  it('a 401 from login or refresh is not refreshed', async () => {
+    global.fetch.mockImplementation(() => Promise.resolve(jsonResponse({ error: 'bad' }, 401)));
+    store = makeStore({ token: 'old', bypass: false });
+
+    await store.dispatch(authApi.endpoints.login.initiate({ email: 'a@b.co', password: 'x' }));
+    await store.dispatch(authApi.endpoints.refresh.initiate({ refreshToken: 'r' }));
+
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+    expect(store.getState().auth.token).toBe('old');
     expect(SecureStore.deleteItemAsync).not.toHaveBeenCalled();
   });
 });

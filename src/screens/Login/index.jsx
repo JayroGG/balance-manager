@@ -1,13 +1,15 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Redirect } from 'expo-router';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
-import { selectIsAuthed, setToken, setUser } from '../../reducers/auth';
+import { selectIsAuthed } from '../../reducers/auth';
 import { useLoginMutation } from '../../services/api/auth';
-import { setToken as persistToken } from '../../services/storage/secure';
-import { decodeUser } from '../../utils/jwt';
+import { saveSession } from '../../services/api/session';
+import { saveStoredCreds, canUseBiometrics, isOptedOut, isBiometricEnabled } from '../../services/storage/biometric';
+import { setLockEnabled, clearRejected, clearPasswordOnly } from '../../reducers/lock';
+import { useAppLock } from '../../hooks/useAppLock';
 import { Screen, Field, AppButton, Muted } from '../../components/ui';
 import { useTheme } from '../../hooks/useTheme';
 import { font, spacing } from '../../components/theme';
@@ -25,16 +27,40 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
   const [login, { isLoading }] = useLoginMutation();
+  const { enabled, passwordOnly, rejected } = useSelector((s) => s.lock);
+  const { authenticate, busy: unlocking } = useAppLock();
+
+  // Logged out with fingerprint creds stored: open the OS prompt right away (not after "Use password").
+  // Re-check the keychain flag first: boot state may have missed it (keychain not ready at cold start).
+  useEffect(() => {
+    (async () => {
+      let on = enabled;
+      if (!on && !authed && (await isBiometricEnabled())) {
+        dispatch(setLockEnabled(true));
+        on = true;
+      }
+      if (on && !passwordOnly && !authed) authenticate();
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (authed) return <Redirect href="/(tabs)/dashboard" />;
 
   const submit = async () => {
     setErrorMessage(null);
     try {
-      const { token } = await login({ email: email.trim(), password }).unwrap();
-      await persistToken(token);
-      dispatch(setToken(token));
-      dispatch(setUser(decodeUser(token))); // myUserId for member RBAC (ADR-012)
+      const creds = { email: email.trim(), password };
+      const res = await login(creds).unwrap();
+      try {
+        if (!(await isOptedOut()) && (await canUseBiometrics())) {
+          await saveStoredCreds(creds);
+          dispatch(setLockEnabled(true));
+        }
+      } catch {
+        // keychain/biometric failure must never block a successful login
+      }
+      dispatch(clearRejected());
+      await saveSession(res, dispatch); // tokens + myUserId for member RBAC (ADR-012)
     } catch (err) {
       setErrorMessage(err?.message ?? t('auth.invalidCredentials'));
     }
@@ -87,6 +113,7 @@ export default function Login() {
             </Pressable>
           }
         />
+        {rejected && !errorMessage ? <Muted style={styles.err}>{t('auth.storedCredsRejected')}</Muted> : null}
         {errorMessage ? <Muted style={styles.err}>{errorMessage}</Muted> : null}
         <AppButton
           title={t('auth.signIn')}
@@ -94,6 +121,17 @@ export default function Login() {
           loading={isLoading}
           disabled={!canSubmit}
         />
+        {enabled ? (
+          <AppButton
+            title={t('auth.useBiometric')}
+            variant="ghost"
+            onPress={() => {
+              dispatch(clearPasswordOnly());
+              authenticate();
+            }}
+            loading={unlocking}
+          />
+        ) : null}
       </View>
     </Screen>
   );

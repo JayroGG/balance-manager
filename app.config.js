@@ -18,6 +18,7 @@ module.exports = () => ({
     ios: {
       supportsTablet: true,
       bundleIdentifier: 'com.jayro.balancemobile',
+      infoPlist: { NSFaceIDUsageDescription: 'Balance uses Face ID to unlock the app.' },
     },
     android: {
       package: 'com.jayro.balancemobile',
@@ -39,8 +40,13 @@ module.exports = () => ({
       'expo-router',
       'expo-secure-store',
       'expo-localization',
+      [
+        'expo-local-authentication',
+        { faceIDPermission: 'Balance uses Face ID to unlock the app.' },
+      ],
       './plugins/withAndroidReleaseSigning',
       './plugins/withPodsDeploymentTarget',
+      './plugins/withSceneLifecycle',
       [
         'expo-splash-screen',
         {

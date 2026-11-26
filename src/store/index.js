@@ -17,6 +17,10 @@ import authReducer from '../reducers/auth';
 import contextReducer from '../reducers/context';
 import prefsReducer from '../reducers/prefs';
 import activityReducer from '../reducers/activity';
+import lockReducer from '../reducers/lock';
+import { stripMutations } from './stripMutations';
+import vaultOrderReducer from '../reducers/vaultOrder';
+import { startVaultOrderSync } from '../reducers/vaultOrder/sync';
 
 const rootReducer = combineReducers({
   [baseApi.reducerPath]: baseApi.reducer,
@@ -24,6 +28,8 @@ const rootReducer = combineReducers({
   context: contextReducer,
   prefs: prefsReducer,
   activity: activityReducer,
+  lock: lockReducer,
+  vaultOrder: vaultOrderReducer,
 });
 
 // Persist the RTK Query cache only → instant cold-start paint + offline reads (ADR-007).
@@ -32,7 +38,8 @@ const persistConfig = {
   key: 'root',
   version: 1,
   storage: AsyncStorage,
-  whitelist: [baseApi.reducerPath, 'context', 'prefs', 'activity'],
+  whitelist: [baseApi.reducerPath, 'context', 'prefs', 'activity', 'vaultOrder'],
+  transforms: [stripMutations],
 };
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);
@@ -50,3 +57,4 @@ export const store = configureStore({
 export const persistor = persistStore(store);
 
 setupListeners(store.dispatch);
+startVaultOrderSync(store);
