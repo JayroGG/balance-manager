@@ -176,6 +176,8 @@
   "auth": {
     "email": "Email",
     "password": "Password",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
     "signIn": "Sign in",
     "invalidCredentials": "Invalid credentials",
     "logout": "Log out"

@@ -176,6 +176,8 @@
   "auth": {
     "email": "Correo",
     "password": "Contraseña",
+    "showPassword": "Mostrar contraseña",
+    "hidePassword": "Ocultar contraseña",
     "signIn": "Iniciar sesión",
     "invalidCredentials": "Credenciales inválidas",
     "logout": "Cerrar sesión"

@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Redirect } from 'expo-router';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
@@ -21,6 +22,7 @@ export default function Login() {
   const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
   const [login, { isLoading }] = useLoginMutation();
 
@@ -66,8 +68,24 @@ export default function Login() {
           label={t('auth.password')}
           value={password}
           onChangeText={setPassword}
-          secureTextEntry
+          secureTextEntry={!showPassword}
+          autoCapitalize="none"
+          autoCorrect={false}
           placeholder="••••••••"
+          right={
+            <Pressable
+              onPress={() => setShowPassword((v) => !v)}
+              accessibilityRole="button"
+              accessibilityLabel={t(showPassword ? 'auth.hidePassword' : 'auth.showPassword')}
+              style={styles.eye}
+            >
+              <Ionicons
+                name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                size={22}
+                color={colors.muted}
+              />
+            </Pressable>
+          }
         />
         {errorMessage ? <Muted style={styles.err}>{errorMessage}</Muted> : null}
         <AppButton
@@ -83,6 +101,7 @@ export default function Login() {
 
 const makeStyles = (colors) =>
   StyleSheet.create({
+  eye: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   wrap: { flex: 1, justifyContent: 'center', gap: spacing(0.5) },
   logo: { width: 96, height: 96, alignSelf: 'center', marginBottom: spacing(2) },
   title: {
