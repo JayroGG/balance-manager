@@ -156,7 +156,7 @@ export default function ShoppingListDetail() {
     setTouched(true);
     if (!amountValid) return;
     const body = { id, team_id: teamId, amount: amountNum };
-    if (categoryId) body.category_id = categoryId;
+    if (categoryId) body.category_ids = [categoryId];
     try {
       await checkout(body).unwrap();
       router.back();

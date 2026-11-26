@@ -1,7 +1,7 @@
 import { baseApi } from './baseApi';
 import { withTeam } from './teamParam';
 
-// GET /balance — the dashboard's primary call. Returns { total, available, vaults[], currency }. The
+// GET /balance — the dashboard's primary call. Returns { total, available, vaults[], currency, cards_owed, cards[{ id, name, owed, statement_balance, due_date }] } (total/available are cash only). The
 // optional team_id arg scopes it to a team and is part of the cache key. (PRD §4.1, ADR-011)
 export const balanceApi = baseApi.injectEndpoints({
   endpoints: (build) => ({

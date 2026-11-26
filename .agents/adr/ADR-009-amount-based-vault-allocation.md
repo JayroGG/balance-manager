@@ -1,6 +1,6 @@
 # ADR-009 — Amount-based vault allocation (follows backend ADR-004)
 
-- **Status:** Accepted
+- **Status:** Accepted — superseded in part by ADR-022 (the "`available` never negative" invariant for expense writes; vault allocate / loan lend caps stay)
 - **Date:** 2026-06-27
 - **Deciders:** mobile + backend agents
 - **Supersedes / Related:** backend ADR-004 (`vault-allocation-model`); refines PRD §4.1, §8; relates to ADR-005

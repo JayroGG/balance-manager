@@ -33,6 +33,7 @@ export const CyclingFigure = ({
         amount={active.amount}
         currency={currency}
         showCurrency={showCurrency}
+        signed={!!active.signed}
         style={[valueStyle, active.color ? { color: active.color } : null]}
       />
       {steps.length > 1 ? (

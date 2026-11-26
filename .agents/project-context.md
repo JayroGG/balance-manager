@@ -124,9 +124,11 @@ Global loop for non-trivial work: `/prime → /plan-feature → /implement → /
 - Minimal changes — only what's asked; no unrequested refactors or comments.
 - Validate at boundaries only (form input); trust the backend's invariants but mirror the obvious ones
   in UI: transactions are a **pure ledger** (no vault field); vaults are funded by **amount-based**
-  allocate/withdraw, capped client-side at `available` / the vault balance; **`available` can never go
-  negative** (overspending locked money 400s); a vault deletes only at a zero balance; amounts are
-  positive (the `type` carries the sign). See ADR-009 / backend ADR-004.
+  allocate/withdraw, capped client-side at `available` / the vault balance (loan lend likewise); **`available`
+  may go negative** — expenses and checkout are never capped or confirmed, and negative figures render in
+  the danger color via `MoneyText signed` (ADR-022); categories are tags (`category_ids`); a vault
+  deletes only at a zero balance; amounts are positive (the `type` carries the sign). See ADR-009 /
+  ADR-022 / backend ADR-004, ADR-012.
 - Money is **decimal** end-to-end on the client; never send cents. `formatMoney` uses
   `currencyDisplay: 'narrowSymbol'` (`$1,234.50`, not `MX$1,234.50`) and has three densities via
   `showCurrency`: `true` = symbol + national qualifier (`$1,234.50 M.N.` for MXN — pesos and dollars
@@ -169,6 +171,7 @@ Global loop for non-trivial work: `/prime → /plan-feature → /implement → /
   `pre_existing: true` creation atomically posts a counted opening income (`total +amount`,
   `available ±0`). Loan figures (`amount`/`pending`) come from `/balance` (`loans[]`, `lent`), not
   `GET /loans` — same split as vaults.
+- **Credit cards (ADR-023):** a charge is an expense with `card_id` — it never moves `total`/`available`; a payment (`type: 'card_payment'`) is cash out but not a spend and is read-only in the form (delete only). `owed`/`statement_balance`/`due_date` are server-computed — never derive them client-side; a past `due_date` with `statement_balance > 0` is overdue. `cards_owed` is shown beside, never subtracted from, `available`. Cards live under the Settings stack (`settings/cards`) with a Dashboard cards-block shortcut.
 - **Activity feed (ADR-017):** the feed is read-only — never add `invalidatesTags: ['Event']` to a
   mutation; freshness comes from the app-wide `refetchOnMountOrArgChange` (on-focus refetch) plus
   pull-to-refresh, since no local mutation can know about another member's action. `since_id`/`limit`

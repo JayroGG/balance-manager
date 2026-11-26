@@ -160,15 +160,16 @@ balance-manager/                 # app name: balance-mobile
 │   │   ├── Transactions/{ListScreen,DateFilter,MonthPicker,RangeCalendar,NewScreen,EditScreen}.jsx  TransactionForm.jsx
 │   │   ├── Vaults/{ListScreen,NewScreen,DetailScreen}.jsx
 │   │   ├── Loans/{ListScreen,NewScreen,DetailScreen}.jsx   # lent-out money (ADR-018)
+│   │   ├── Cards/{ListScreen,NewScreen,DetailScreen}.jsx   # credit cards + pay flow (ADR-023; routes app/(tabs)/settings/cards/*)
 │   │   ├── Teams/{ListScreen,ManageScreen}.jsx   # team management (ADR-012)
 │   │   ├── Categories/index.jsx   Settings/index.jsx
 │   ├── components/
 │   │   ├── ui/                  # shared atoms/molecules — one file each + index.js barrel
-│   │   │   └── {Screen,ScreenHeader,Card,Button,Field,Chip,ColorSwatchPicker,MoneyText,CyclingFigure,Skeleton,StaleBadge,Typography,EmptyState,QueryBoundary}.jsx
+│   │   │   └── {Screen,ScreenHeader,Card,Button,Field,Chip,ColorSwatchPicker,MoneyText (`signed` → danger when negative, ADR-022),CyclingFigure,Skeleton,StaleBadge,Typography,EmptyState,QueryBoundary}.jsx
 │   │   └── theme.js             # light/dark palettes + makeColors(scheme, accent) + PRESET_TEAM_COLORS; spacing/radius/font (ADR-013)
 │   ├── store/                   # configureStore + RTKQ middleware + redux-persist + setupListeners
 │   ├── services/
-│   │   ├── api/                 # baseApi.js + balance/transactions/vaults/loans/categories/events.js (injectEndpoints) + queryString.js (shared `withQuery`)
+│   │   ├── api/                 # baseApi.js + balance/transactions/vaults/loans/cards/categories/events.js (injectEndpoints) + queryString.js (shared `withQuery`)
 │   │   └── storage/             # secure.js (token), prefs.js (cache/prefs)
 │   ├── reducers/{auth,context,prefs,activity}/  # auth (token/user), context (activeTeamId), prefs (themeMode — ADR-013), activity (per-context lastSeen — ADR-017)
 │   ├── permissions/             # RBAC seam: usePermissions + pure can*() matrix (ADR-012)

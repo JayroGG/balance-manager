@@ -87,7 +87,7 @@ export const shoppingListsApi = baseApi.injectEndpoints({
     }),
 
     checkoutList: build.mutation({
-      // arg: { id, team_id?, amount, category_id?, occurred_at? } — posts an `expense` titled with the
+      // arg: { id, team_id?, amount, category_ids?, occurred_at? } — posts an `expense` titled with the
       // list name in the list's context, links it, and flips status → 'purchased' (all server-side).
       // No team fields in the body: the list's context comes from the ?team_id= param (ADR-015).
       query: ({ id, team_id, ...body }) => ({

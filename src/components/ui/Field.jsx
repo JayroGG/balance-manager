@@ -2,13 +2,21 @@ import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { font, radius, spacing } from '../theme';
 import { useTheme } from '../../hooks/useTheme';
 
-export const Field = ({ label, ...props }) => {
+// `right` is an optional adornment pinned to the input's right edge (e.g. the password eye toggle).
+export const Field = ({ label, right, ...props }) => {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
   return (
     <View style={{ marginBottom: spacing(2) }}>
       {!!label && <Text style={styles.label}>{label}</Text>}
-      <TextInput placeholderTextColor={colors.muted} style={styles.input} {...props} />
+      <View>
+        <TextInput
+          placeholderTextColor={colors.muted}
+          style={[styles.input, !!right && styles.inputWithRight]}
+          {...props}
+        />
+        {!!right && <View style={styles.right}>{right}</View>}
+      </View>
     </View>
   );
 };
@@ -26,4 +34,6 @@ const makeStyles = (colors) =>
       fontSize: font.md,
       color: colors.text,
     },
+    inputWithRight: { paddingRight: 44 },
+    right: { position: 'absolute', top: 0, bottom: 0, right: 0, width: 44, alignItems: 'center', justifyContent: 'center' },
   });

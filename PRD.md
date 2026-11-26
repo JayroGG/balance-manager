@@ -107,23 +107,27 @@ Returns the computed figures. **This is the dashboard's primary call.**
 #### Transactions — `/transactions`
 | Method | Path | Body / Query | Returns |
 |---|---|---|---|
-| GET | `/transactions` | `?q=&from=&to=&type=&category_id=&loans=&sort=&limit=&cursor=` (all optional; ADR-021) | `200` `{ items, next_cursor, totals }` |
-| POST | `/transactions` | `{ type, amount, category_id?, description?, occurred_at? }` | `201` record |
+| GET/POST | `/cards` | POST `{ name, cut_day, due_day, credit_limit? }`; rows carry `owed`, `statement_balance`, `current_period`, `last_cut`, `due_date` (ADR-023) | `200`/`201` card |
+| GET/PUT/DELETE | `/cards/:id` | DELETE `400` while `owed > 0` | `200` card / `204` |
+| POST | `/cards/:id/pay` | `{ amount, occurred_at? }` — `amount <= owed` | `201` card |
+| GET | `/transactions` | `?q=&from=&to=&type=&category_id=&card_id=&loans=&sort=&limit=&cursor=` (all optional; ADR-021) | `200` `{ items, next_cursor, totals }` |
+| POST | `/transactions` | `{ type, amount, category_ids?, card_id?, description?, occurred_at? }` (`card_id` only on expenses; `null` on PUT = back to cash) | `201` record |
 | GET | `/transactions/:id` | — | `200` record / `404` |
 | PUT | `/transactions/:id` | any subset of the create fields | `200` record / `404` |
 | DELETE | `/transactions/:id` | — | `204` / `404` (soft delete) |
 
-Record shape: `{ id, user_id, type, amount, category_id, description, occurred_at, created_at, updated_at, deleted_at }`.
+Record shape: `{ id, user_id, type (income | expense | card_payment), card_id, amount, categories: [{ id, name }], description, occurred_at, created_at, updated_at, deleted_at }`.
 Transactions are a **pure ledger** — money in / money out, no `vault_id`. Vault funding is an
 amount-based action on the vault (see Vaults below).
 
 **Invariants the app must respect (backend enforces with `400`):**
 - `type` ∈ `income | expense`; `amount` > 0.
-- **`available` can never go negative** — vaulted money is protected. A write that would push
-  `available` below zero is rejected with `400`: creating an expense larger than `available`, editing
-  an expense up (or an income down) past what's spendable, or deleting an income whose money is
-  currently locked in a vault. Surface `error` as the user-facing message; optionally pre-validate
-  client-side against `available` to fail fast (the backend is the authority).
+- **`available` may go negative** (ADR-022, BE ADR-012). Expense writes and shopping-list checkout are never
+  rejected for insufficient balance; negative `available`/`total`/`net` render in the danger color and the
+  app does not gate or confirm. Only vault **allocate** and loan **lend** stay capped by `available`
+  (a vault/loan balance itself never goes negative).
+- **Categories are tags** (ADR-022, BE ADR-013): 0..N `category_ids` per transaction; the full amount
+  counts under each, so per-category totals can exceed the overall total. The list's category filter stays single.
 
 #### Categories — `/categories`
 | Method | Path | Body | Returns |
@@ -220,6 +224,7 @@ balance-mobile/
 ### 6.1 Redux slices (state shape)
 
 - `balance` — `{ total, available, vaults: [{id,name,balance,target}], currency, status }` from `GET /balance`.
+- `cards` — credit cards (ADR-023 / BE ADR-014): `/cards` CRUD + `POST /cards/:id/pay`; computed `owed`, `statement_balance`, `due_date`, `current_period`. Charges = expenses with `card_id` (cash untouched); payments = `card_payment` (cash out, not a spend); `/balance` adds `cards_owed` + `cards[]`.
 - `transactions` — server-filtered paged list (search, date range, `type`, `loans`, sort) + CRUD thunks.
 - `vaults` — list + selected vault history + allocate/withdraw thunks taking `(vaultId, amount)`.
 - `categories` — list + CRUD thunks.
@@ -271,7 +276,7 @@ See `.agents/adr/ADR-011-auth-jwt-and-team-context.md` and `docs/backend-auth-te
    (name, balance, target progress). Pull-to-refresh re-fetches.
 2. **Transactions** — search bar (description + category), type chips, date chips (All · Today · Yesterday ·
    This week · Months · Custom), server totals + result count, infinite scroll (ADR-021); FAB to create.
-   Create/edit form: type toggle, amount, category picker, description, date (`occurred_at`).
+   Create/edit form: type toggle, amount, multi-select category chips, description, date (`occurred_at`).
    Swipe/menu to soft-delete. No vault field — transactions are a pure ledger.
 3. **Vaults** — list (name + balance/target from `/balance`); detail shows `history` and actions to
    **allocate** or **withdraw** an **amount** (capped client-side at `available` / the vault balance).

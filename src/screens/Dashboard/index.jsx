@@ -25,6 +25,8 @@ import {
   Skeleton,
   StaleBadge,
 } from '../../components/ui';
+import { formatDate, todayISODate } from '../../utils/dates';
+import { formatMoney } from '../../utils/money';
 import { DEFAULT_ACCENT, font, spacing } from '../../components/theme';
 
 const VaultRow = ({ vault, currency, onPress }) => {
@@ -79,6 +81,14 @@ export default function Dashboard() {
     }
   }, [refetch]);
   const currency = data?.currency;
+  // Next payment: card with a statement due (> 0) and the earliest due_date; a past date is overdue (ADR-023).
+  const cards = data?.cards ?? [];
+  const nextDue = cards
+    .filter((c) => c.statement_balance > 0 && c.due_date)
+    .sort((a, b) => (a.due_date < b.due_date ? -1 : a.due_date > b.due_date ? 1 : 0))[0];
+  const todayISO = todayISODate();
+  const nextOverdue = !!nextDue && nextDue.due_date < todayISO;
+  const overdrawn = Number(data?.available) < 0;
 
   return (
     <Screen scroll refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
@@ -156,23 +166,45 @@ export default function Dashboard() {
         <QueryBoundary isLoading={isLoading && !data} error={error} onRetry={refetch}>
           {/* All figures at once, no tap-to-cycle: the dashboard hero is glanced at, not operated.
               Available leads (it's the number you act on); total and lent sit under it. */}
-          <Card style={styles.hero} testID="hero">
-            <Text style={styles.heroLabel}>{t('dashboard.available')}</Text>
-            <MoneyText amount={data?.available} currency={currency} style={styles.heroFigure} />
+          <Card style={[styles.hero, overdrawn && styles.heroNegative]} testID="hero">
+            <Text style={[styles.heroLabel, overdrawn && styles.heroLabelNegative]}>{t('dashboard.available')}</Text>
+            <MoneyText amount={data?.available} currency={currency} style={[styles.heroFigure, overdrawn && styles.heroInkNegative]} signed />
             <View style={styles.figureRow}>
-              <Text style={styles.heroLabel}>{t('dashboard.total')}</Text>
-              <MoneyText amount={data?.total} currency={currency} style={styles.heroSecondary} />
+              <Text style={[styles.heroLabel, overdrawn && styles.heroLabelNegative]}>{t('dashboard.total')}</Text>
+              <MoneyText amount={data?.total} currency={currency} style={[styles.heroSecondary, overdrawn && styles.heroInkNegative]} signed />
             </View>
             {data?.lent > 0 ? (
               <View style={styles.figureRow}>
-                <Text style={styles.heroLabel}>{t('dashboard.lent')}</Text>
-                <MoneyText amount={data.lent} currency={currency} style={styles.heroSecondary} />
+                <Text style={[styles.heroLabel, overdrawn && styles.heroLabelNegative]}>{t('dashboard.lent')}</Text>
+                <MoneyText amount={data.lent} currency={currency} style={[styles.heroSecondary, overdrawn && styles.heroInkNegative]} />
               </View>
             ) : null}
             {stale ? (
-              <StaleBadge lastUpdated={lastUpdated} offline={offline} color={colors.primaryText} />
+              <StaleBadge lastUpdated={lastUpdated} offline={offline} color={overdrawn ? colors.muted : colors.primaryText} />
             ) : null}
           </Card>
+
+          {cards.length ? (
+            <Card onPress={() => router.navigate('/(tabs)/settings/cards')} testID="cards-block">
+              <View style={styles.rowBetween}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.vaultTarget}>{t('cards.totalOwed')}</Text>
+                  <MoneyText amount={data.cards_owed} currency={currency} showCurrency="symbol" style={styles.vaultName} />
+                  <Text
+                    testID="cards-next-due"
+                    style={[styles.vaultTarget, nextOverdue && { color: colors.danger, fontWeight: '700' }]}
+                  >
+                    {nextDue
+                      ? nextOverdue
+                        ? `${t('cards.overdue', { date: formatDate(nextDue.due_date) })} · ${t('cards.payBy', { amount: formatMoney(nextDue.statement_balance, currency, { showCurrency: 'symbol' }), date: formatDate(nextDue.due_date) })}`
+                        : t('cards.payBy', { amount: formatMoney(nextDue.statement_balance, currency, { showCurrency: 'symbol' }), date: formatDate(nextDue.due_date) })
+                      : t('cards.noneDue')}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={colors.muted} />
+              </View>
+            </Card>
+          ) : null}
 
           <SectionTitle>{t('dashboard.vaults')}</SectionTitle>
           {data?.vaults?.length ? (
@@ -221,6 +253,10 @@ const makeStyles = (colors) =>
     switch: { flexDirection: 'row', alignItems: 'center', paddingBottom: spacing(1) },
     roleBadge: { marginBottom: spacing(1.5), textTransform: 'capitalize' },
     hero: { backgroundColor: colors.primary, padding: spacing(3) },
+    // Overdrawn (available < 0, ADR-022): swap the accent surface for the card surface so the danger red is legible on any accent.
+    heroNegative: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.danger },
+    heroLabelNegative: { color: colors.muted, opacity: 1 },
+    heroInkNegative: { color: colors.text },
     heroLabel: { color: colors.primaryText, opacity: 0.85, fontSize: font.sm, fontWeight: '600' },
     heroFigure: { color: colors.primaryText, fontSize: font.hero, fontWeight: '800', marginTop: spacing(0.5) },
     heroSecondary: { color: colors.primaryText, fontSize: font.lg, fontWeight: '700' },

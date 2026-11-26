@@ -73,6 +73,10 @@ export default function Settings() {
           <Text style={styles.value}>{t('categories.title')}</Text>
           <Ionicons name="chevron-forward" size={20} color={colors.muted} />
         </Pressable>
+        <Pressable style={styles.navRow} onPress={() => router.push('/(tabs)/settings/cards')}>
+          <Text style={styles.value}>{t('cards.title')}</Text>
+          <Ionicons name="chevron-forward" size={20} color={colors.muted} />
+        </Pressable>
       </Card>
 
       {bypass ? null : (

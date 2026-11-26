@@ -17,6 +17,7 @@ const light = {
   incomeText: '#166534',
   expenseBg: '#FEE2E2',
   expenseText: '#991B1B',
+  cardAccent: '#7C3AED', // credit-card purple — one token for every card until per-card colors exist
 };
 
 const dark = {
@@ -31,6 +32,7 @@ const dark = {
   incomeText: '#86EFAC',
   expenseBg: '#3B1519',
   expenseText: '#FCA5A5',
+  cardAccent: '#A78BFA',
 };
 
 export const DEFAULT_ACCENT = '#2563EB';

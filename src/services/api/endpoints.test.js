@@ -12,6 +12,7 @@ import { categoriesApi } from './categories';
 import { shoppingListsApi } from './shoppingLists';
 import { eventsApi } from './events';
 import { loansApi } from './loans';
+import { cardsApi } from './cards';
 import authReducer from '../../reducers/auth';
 
 const makeStore = () =>
@@ -443,12 +444,12 @@ describe('shopping lists — URLs, bodies, invalidation (ADR-015)', () => {
   it('POSTs checkout to /shopping-lists/:id/checkout with amount in the body, team_id only in the URL', async () => {
     store = makeStore();
     await store.dispatch(
-      shoppingListsApi.endpoints.checkoutList.initiate({ id: 7, team_id: 5, amount: 418.7, category_id: 3 }),
+      shoppingListsApi.endpoints.checkoutList.initiate({ id: 7, team_id: 5, amount: 418.7, category_ids: [3] }),
     );
     const request = global.fetch.mock.calls[0][0];
     expect(request.url).toMatch(/\/shopping-lists\/7\/checkout\?team_id=5$/);
     expect(request.method).toBe('POST');
-    await expect(request.clone().json()).resolves.toEqual({ amount: 418.7, category_id: 3 });
+    await expect(request.clone().json()).resolves.toEqual({ amount: 418.7, category_ids: [3] });
   });
 
   it('refetches /balance after a checkout (the posted expense moves available)', async () => {
@@ -546,5 +547,59 @@ describe("loan mutations invalidate 'Balance' + the Transaction list (lend/repay
 
     balanceSub.unsubscribe();
     transactionsSub.unsubscribe();
+  });
+});
+
+describe('cards — URLs, bodies, invalidation (ADR-023)', () => {
+  const call = (i = 0) => global.fetch.mock.calls[i][0];
+
+  it('threads team_id into the URL and keeps it out of the body', async () => {
+    store = makeStore();
+    await store.dispatch(cardsApi.endpoints.getCards.initiate(5));
+    expect(call().url).toContain('/cards?team_id=5');
+    global.fetch.mockClear();
+    await store.dispatch(
+      cardsApi.endpoints.addCard.initiate({ name: 'Visa', cut_day: 5, due_day: 25, credit_limit: 5000, team_id: 5 }),
+    );
+    expect(call().url).toContain('/cards?team_id=5');
+    expect(await call().json()).toEqual({ name: 'Visa', cut_day: 5, due_day: 25, credit_limit: 5000 });
+  });
+
+  it('payCard posts { amount, occurred_at } to /cards/:id/pay', async () => {
+    store = makeStore();
+    await store.dispatch(cardsApi.endpoints.payCard.initiate({ id: 3, amount: 500, occurred_at: '2026-11-20', team_id: 5 }));
+    expect(call().method).toBe('POST');
+    expect(call().url).toContain('/cards/3/pay?team_id=5');
+    expect(await call().json()).toEqual({ amount: 500, occurred_at: '2026-11-20' });
+  });
+
+  it('refetches /balance and /transactions after payCard', async () => {
+    store = makeStore();
+    const balanceSub = store.dispatch(balanceApi.endpoints.getBalance.initiate());
+    const transactionsSub = store.dispatch(transactionsApi.endpoints.getTransactions.initiate({}));
+    await balanceSub;
+    await transactionsSub;
+    await store.dispatch(cardsApi.endpoints.payCard.initiate({ id: 3, amount: 500 }));
+    await waitForBalanceCalls(2);
+    await waitForTransactionCalls(2);
+    expect(balanceCalls()).toBeGreaterThan(1);
+    expect(transactionCalls()).toBeGreaterThan(1);
+    balanceSub.unsubscribe();
+    transactionsSub.unsubscribe();
+  });
+
+  it('a card charge (addTransaction) refetches the cards list; card_id filter is sent', async () => {
+    store = makeStore();
+    const sub = store.dispatch(cardsApi.endpoints.getCards.initiate());
+    await sub;
+    const cardCalls = () => fetchedUrls().filter((u) => /\/cards(\?|$)/.test(u)).length;
+    expect(cardCalls()).toBe(1);
+    await store.dispatch(transactionsApi.endpoints.addTransaction.initiate({ type: 'expense', amount: 1200, card_id: 3 }));
+    for (let i = 0; i < 50 && cardCalls() < 2; i++) await new Promise((r) => setTimeout(r, 20));
+    expect(cardCalls()).toBeGreaterThan(1);
+    sub.unsubscribe();
+    global.fetch.mockClear();
+    await store.dispatch(transactionsApi.endpoints.getTransactions.initiate({ card_id: 3 }));
+    expect(new URL(call().url).searchParams.get('card_id')).toBe('3');
   });
 });

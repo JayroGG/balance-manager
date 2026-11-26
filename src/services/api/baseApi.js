@@ -41,7 +41,7 @@ const baseQueryWithErrorShape = async (args, api, extraOptions) => {
 export const baseApi = createApi({
   reducerPath: 'api',
   baseQuery: baseQueryWithErrorShape,
-  tagTypes: ['Balance', 'Transaction', 'Vault', 'VaultHistory', 'Category', 'Team', 'TeamMember', 'ShoppingList', 'Event', 'Loan', 'LoanHistory'],
+  tagTypes: ['Balance', 'Transaction', 'Vault', 'VaultHistory', 'Category', 'Team', 'TeamMember', 'ShoppingList', 'Event', 'Loan', 'LoanHistory', 'Card'],
   // Show persisted/cached data immediately, then revalidate (ADR-007).
   refetchOnReconnect: true,
   refetchOnMountOrArgChange: true,
