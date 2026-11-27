@@ -195,7 +195,7 @@ export default function TransactionsList() {
       {cards?.length ? (
         <Pressable
           testID="card-filter-button"
-          style={[styles.iconButton, cardFilter != null && { borderColor: colors.cardAccent }]}
+          style={[styles.iconButton, cardFilter != null && styles.iconButtonActive]}
           accessibilityRole="button"
           accessibilityLabel={t('cards.filterByCard')}
           accessibilityState={{ selected: cardFilter != null }}
@@ -333,6 +333,7 @@ const makeStyles = (colors) =>
     borderColor: colors.border,
     backgroundColor: colors.card,
   },
+  iconButtonActive: { borderWidth: 2, borderColor: colors.cardAccent },
   activeFilters: { paddingHorizontal: spacing(2), paddingTop: spacing(0.5) },
   activeRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 44 },
   activeText: { flex: 1, fontSize: font.sm, fontWeight: '600', color: colors.cardAccent },
