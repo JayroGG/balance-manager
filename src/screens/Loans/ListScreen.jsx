@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { useRouter, Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
@@ -11,6 +11,8 @@ import { useContextReady } from '../../hooks/useContextReady';
 import { Screen, ScreenHeader, Card, MoneyText, QueryBoundary, StaleBadge } from '../../components/ui';
 import { useTheme } from '../../hooks/useTheme';
 import { font, spacing } from '../../components/theme';
+import SortableList from '../../components/ui/SortableList';
+import { useOrderedLoans } from './reorder';
 
 export default function LoansList() {
   const { t } = useTranslation();
@@ -24,6 +26,7 @@ export default function LoansList() {
   const balanceQuery = useGetBalanceQuery(teamId);
   const { data: balance, refetch: refetchBalance } = balanceQuery;
   const currency = balance?.currency;
+  const { ordered, onReorder } = useOrderedLoans(loans);
   // Variable-length list — a skeleton can't honestly predict a row count (ADR-019), so the gate
   // reuses the existing spinner: an unconfirmed context is treated as still-loading, never rendering
   // loan rows (and their pending figures) under the wrong context.
@@ -87,9 +90,10 @@ export default function LoansList() {
         emptyText={t('loans.empty')}
         onRetry={refetch}
       >
-        <FlatList
-          data={loans}
+        <SortableList
+          data={ordered}
           keyExtractor={(item) => String(item.id)}
+          onReorder={onReorder}
           renderItem={renderItem}
           contentContainerStyle={{ padding: spacing(2), paddingBottom: spacing(10) }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
