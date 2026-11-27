@@ -2,7 +2,7 @@ import { Platform, StyleSheet, View } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { GlassView, isLiquidGlassAvailable } from 'expo-glass-effect';
 import { useTheme } from '../../hooks/useTheme';
-import { withAlpha } from '../../utils/colors';
+import { CrystalSurface } from './CrystalSurface';
 import { nativeBlurAvailable, useReduceTransparency } from './glassSupport';
 
 export { useReduceTransparency };
@@ -13,8 +13,7 @@ export { useReduceTransparency };
 //   'wash'   — `flat` (the surface rotates/sits over a GlassFill layer) or the native blur is missing: wash only
 //   'liquid' — iOS 26+ liquid glass (expo-glass-effect)
 //   'blur'   — expo-blur (older iOS)
-//   'crystal'— Android (ADR-028): no native blur. Clear tinted fill (white light / smoked dark), accent-lit rim
-//              (per-side border colors: strong top-left, faint bottom-right) + inner top highlight
+//   'crystal'— Android (ADR-028): no native blur. Calm near-white / smoked body; only the edge is glass (see CrystalSurface)
 // Never put a native blur/glass under a 3D rotation (it darkens/glitches): rotating faces use `flat`.
 export const pickGlassKind = ({ reduceTransparency, liquid, flat = false, blurAvailable = true, android = false }) =>
   reduceTransparency ? 'solid' : android ? 'crystal' : flat ? 'wash' : liquid ? 'liquid' : blurAvailable ? 'blur' : 'wash';
@@ -53,25 +52,10 @@ export const GlassSurface = ({ children, style, intensity = 60, flat = false, un
     );
   }
   if (kind === 'crystal') {
-    // overdrawn: the whole rim goes danger; otherwise accent, bright at the top-left and fading to the bottom-right
-    const lit = danger ? colors.danger : withAlpha(accent, dark ? 0.85 : 0.7);
-    const dim = danger ? colors.danger : withAlpha(accent, dark ? 0.22 : 0.18);
-    const rimStyle = {
-      borderWidth: 1.5,
-      borderTopColor: lit,
-      borderLeftColor: lit,
-      borderRightColor: dim,
-      borderBottomColor: dim,
-    };
     return (
-      <View
-        testID={testID}
-        nativeID="glass-crystal"
-        style={[styles.surface, style, rimStyle, { backgroundColor: dark ? 'rgba(20,22,28,0.64)' : 'rgba(255,255,255,0.8)' }]}
-      >
-        {highlight}
+      <CrystalSurface testID={testID} style={style} accent={accent} danger={danger} dangerColor={colors.danger} dark={dark}>
         {children}
-      </View>
+      </CrystalSurface>
     );
   }
   if (kind === 'liquid') {
