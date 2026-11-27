@@ -10,6 +10,7 @@ import { useGetTeamsQuery } from '../../services/api/teams';
 import { setActiveTeam } from '../../reducers/context';
 import { useActiveTeamId } from '../../hooks/useActiveTeamId';
 import { useActiveRole } from '../../hooks/useActiveRole';
+import { useOwnedContexts } from '../../hooks/useOwnedContexts';
 import { useUnreadActivity } from '../../hooks/useUnreadActivity';
 import { useContextReady } from '../../hooks/useContextReady';
 import { useOrderedVaults } from '../Vaults/reorder';
@@ -75,6 +76,8 @@ export default function Dashboard() {
   const topVaultRows = topVaults(orderedVaults);
   const { data: openLists } = useGetShoppingListsQuery({ status: 'open', team_id: teamId });
   const unread = useUnreadActivity();
+  const ownedContexts = useOwnedContexts();
+  const canTransfer = (role === null || role === 'owner') && ownedContexts.some((c) => !c.isCurrent);
   // Drive the spinner only from a user pull — not the auto refetch-on-mount, which on iOS
   // leaves a programmatic RefreshControl spinner stuck until the user drags.
   const [refreshing, setRefreshing] = useState(false);
@@ -145,6 +148,12 @@ export default function Dashboard() {
           {t(`teams.role_${role}`)}
           {role === 'guest' ? ` · ${t('teams.readOnly')}` : ''}
         </Muted>
+      ) : null}
+
+      {canTransfer ? (
+        <Pressable hitSlop={12} testID="transfer-button" style={styles.seeAllBtn} onPress={() => router.push('/(tabs)/dashboard/transfer')}>
+          <Text style={styles.seeAll}>{t('dashboard.transfer')}</Text>
+        </Pressable>
       ) : null}
 
       {!confirmed ? (

@@ -15,6 +15,7 @@ import { font, spacing } from '../../components/theme';
 import { formatDate, filterRange } from '../../utils/dates';
 import { DateFilter, ALL_TIME, dateFilterLabel } from './DateFilter';
 import { FilterMenu } from './FilterMenu';
+import { isTransferRow, transferLabel } from './transferRow';
 
 const TYPE_FILTERS = ['all', 'income', 'expense', 'loans'];
 
@@ -99,6 +100,7 @@ export default function TransactionsList() {
   const renderItem = ({ item }) => {
     const income = item.type === 'income';
     const payment = item.type === 'card_payment';
+    const transfer = isTransferRow(item);
     const cardName = item.card_id != null ? cards?.find((c) => c.id === item.card_id)?.name ?? t('cards.card') : null;
     return (
       <Link href={`/(tabs)/transactions/${item.id}`} asChild>
@@ -121,7 +123,7 @@ export default function TransactionsList() {
                       <Text style={styles.cashIcon} testID={`pay-icon-cash-${item.id}`} accessibilityLabel={t('cards.cash')}>$</Text>
                     )
                   ) : null}
-                  <Text style={[styles.desc, { flexShrink: 1 }]} numberOfLines={1}>{item.description || (payment ? t('cards.payment') : t(`transactions.${item.type}`))}</Text>
+                  <Text style={[styles.desc, { flexShrink: 1 }]} numberOfLines={1}>{transfer ? transferLabel(item, t) : item.description || (payment ? t('cards.payment') : t(`transactions.${item.type}`))}</Text>
                 </View>
                 <View style={styles.metaRow}>
                   <Text style={styles.meta}>{formatDate(item.occurred_at)}{payment && cardName ? ` · ${cardName}` : ''}</Text>
@@ -138,10 +140,10 @@ export default function TransactionsList() {
                 ) : null}
               </View>
               <MoneyText
-                amount={item.amount}
+                amount={transfer && item.type === 'transfer_out' ? -item.amount : item.amount}
                 currency={currency}
                 showCurrency="symbol"
-                style={[styles.amount, { color: payment ? colors.muted : income ? colors.success : colors.danger }]}
+                style={[styles.amount, { color: payment || transfer ? colors.muted : income ? colors.success : colors.danger }]}
               />
             </View>
           </Card>

@@ -19,6 +19,9 @@ const rawBaseQuery = fetchBaseQuery({
 });
 
 const AUTH_ENDPOINTS = ['login', 'refresh'];
+// step-up shares a 401 for a wrong password and an expired bearer: it tries the shared refresh (so an expired
+// token recovers) but a final 401 is just "wrong password" — never a logout.
+const NO_LOGOUT_ENDPOINTS = ['stepUp'];
 
 // Single shared in-flight refresh: N concurrent 401s await ONE POST /auth/refresh (the backend rotates
 // the refresh token, so a second concurrent call would trip reuse detection and kill the session).
@@ -80,7 +83,7 @@ const baseQueryWithErrorShape = async (args, api, extraOptions) => {
         shapeError(result);
         session = result.error.status !== 401;
       }
-      if (!session) {
+      if (!session && !NO_LOGOUT_ENDPOINTS.includes(api.endpoint)) {
         // Required lazily, not imported: hardLogout reaches back for baseApi.util.resetApiState(), and a
         // top-level import on either side leaves one of them undefined at module-init time.
         const { hardLogout } = require('./hardLogout');
@@ -95,7 +98,7 @@ const baseQueryWithErrorShape = async (args, api, extraOptions) => {
 export const baseApi = createApi({
   reducerPath: 'api',
   baseQuery: baseQueryWithErrorShape,
-  tagTypes: ['Balance', 'Transaction', 'Vault', 'VaultHistory', 'Category', 'Team', 'TeamMember', 'ShoppingList', 'Event', 'Loan', 'LoanHistory', 'Card'],
+  tagTypes: ['Balance', 'Transaction', 'Vault', 'VaultHistory', 'Category', 'Team', 'TeamMember', 'ShoppingList', 'Event', 'Loan', 'LoanHistory', 'Card', 'Transfer'],
   // Show persisted/cached data immediately, then revalidate (ADR-007).
   refetchOnReconnect: true,
   refetchOnMountOrArgChange: true,

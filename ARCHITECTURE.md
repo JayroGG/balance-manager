@@ -163,6 +163,7 @@ balance-manager/                 # app name: balance-mobile
 │   │   ├── Vaults/{ListScreen,NewScreen,DetailScreen,reorder}.jsx   # local-first order hook (ADR-024)
 │   │   ├── Lock/index.jsx   # biometric lock screen (ADR-024)
 │   │   ├── Loans/{ListScreen,NewScreen,DetailScreen,reorder}.jsx   # lent-out money (ADR-018); device-only order (ADR-026)
+│   │   ├── Transfers/{NewScreen,StepUpModal,split}.jsx   # owner-only transfer between owned contexts + step-up prompt (ADR-027)
 │   │   ├── Cards/{ListScreen,NewScreen,DetailScreen}.jsx   # credit cards + pay flow (ADR-023; routes app/(tabs)/settings/cards/*)
 │   │   ├── Teams/{ListScreen,ManageScreen}.jsx   # team management (ADR-012)
 │   │   ├── Categories/index.jsx   Settings/index.jsx
@@ -172,7 +173,7 @@ balance-manager/                 # app name: balance-mobile
 │   │   └── theme.js             # light/dark palettes + makeColors(scheme, accent) + PRESET_TEAM_COLORS; spacing/radius/font (ADR-013)
 │   ├── store/                   # configureStore + RTKQ middleware + redux-persist + setupListeners
 │   ├── services/
-│   │   ├── api/                 # baseApi.js + balance/transactions/vaults/loans/cards/categories/events.js (injectEndpoints) + queryString.js (shared `withQuery`)
+│   │   ├── api/                 # baseApi.js + balance/transactions/vaults/loans/cards/categories/events/transfers.js (injectEndpoints) + queryString.js (shared `withQuery`)
 │   │   └── storage/             # secure.js (token), prefs.js (cache/prefs)
 │   ├── reducers/{auth,context,prefs,activity}/  # auth (token/user), context (activeTeamId), prefs (themeMode — ADR-013), activity (per-context lastSeen — ADR-017)
 │   ├── permissions/             # RBAC seam: usePermissions + pure can*() matrix (ADR-012)

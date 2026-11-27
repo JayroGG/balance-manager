@@ -47,6 +47,10 @@ export const eventMessage = (event, { t, actor, currency }) => {
     case 'loan_lent':
     case 'loan_repaid':
       return t(`activity.${key}`, { actor, name: summary.name, amount });
+    case 'transfer_sent':
+    case 'transfer_received':
+    case 'transfer_reversed':
+      return t(`activity.${key}`, { actor, amount, name: summary.counterpart });
     default:
       return t('activity.generic', { actor, entity, action });
   }
@@ -64,6 +68,7 @@ export const eventHref = ({ entity, action, entity_id, summary = {} }) => {
       return summary.list_id ? `/(tabs)/transactions/lists/${summary.list_id}` : null;
     case 'team': return `/(tabs)/teams/${entity_id}`;
     case 'loan': return `/(tabs)/loans/${entity_id}`;
+    case 'transfer': return null; // no transfers screen (ADR-027); the rows live in transactions
     default: return null;
   }
 };

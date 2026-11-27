@@ -37,7 +37,8 @@
     "shoppingLists": "Shopping lists",
     "seeAll": "See all",
     "emptyLists": "No open lists",
-    "seeAllVaults": "See all vaults"
+    "seeAllVaults": "See all vaults",
+    "transfer": "Transfer"
   },
   "transactions": {
     "title": "Transactions",
@@ -231,6 +232,7 @@
     "readOnly": "Read-only",
     "role_owner": "Owner",
     "role_member": "Member",
+    "role_admin": "Admin",
     "role_guest": "Guest"
   },
   "activity": {
@@ -249,6 +251,9 @@
     "loan_deleted": "{{actor}} deleted loan {{name}}",
     "loan_lent": "{{actor}} lent {{amount}} to {{name}}",
     "loan_repaid": "{{actor}} got {{amount}} back from {{name}}",
+    "transfer_sent": "{{actor}} sent {{amount}} to {{name}}",
+    "transfer_received": "{{actor}} moved {{amount}} in from {{name}}",
+    "transfer_reversed": "{{actor}} reverted a transfer of {{amount}} ({{name}})",
     "shopping_list_created": "{{actor}} started list {{name}}",
     "shopping_list_deleted": "{{actor}} deleted list {{name}}",
     "shopping_list_checked_out": "{{actor}} checked out {{name}} — {{amount}}",
@@ -304,5 +309,41 @@
     "noneDue": "No payments due",
     "seeAll": "See all",
     "filterByCard": "Filter by card"
+  },
+  "transfers": {
+    "title": "Transfer",
+    "destination": "Send to",
+    "amount": "Amount",
+    "available": "Available: {{amount}}",
+    "short": "Short by {{amount}} — cover it from your vaults",
+    "remaining": "Left to assign: {{amount}}",
+    "vaultPart": "{{name}} (max {{max}})",
+    "blocked": "Available plus vaults can't cover this amount",
+    "note": "Note (optional)",
+    "date": "Date",
+    "summary": "Send {{amount}} from {{from}} to {{to}}",
+    "fromVaults": "From vaults: {{amount}}",
+    "review": "Review",
+    "confirm": "Confirm",
+    "success": "Transfer sent",
+    "noDestination": "No other context you own",
+    "stepUpPrompt": "Confirm it's you to move money",
+    "stepUpTitle": "Confirm your identity",
+    "stepUpBody": "Enter your password to authorize this transfer.",
+    "wrongPassword": "Wrong password",
+    "stepUpExpired": "Verification expired. Try again.",
+    "stepUpFailed": "Could not verify. Try again.",
+    "rowTo": "Transfer to {{label}}",
+    "rowFrom": "Transfer from {{label}}",
+    "reversalTo": "Devolución to {{label}}",
+    "reversalFrom": "Devolución from {{label}}",
+    "detail": "Transfer",
+    "readOnly": "Transfers can’t be edited or deleted.",
+    "revert": "Revert",
+    "revertConfirmTitle": "Revert this transfer?",
+    "revertConfirmBody": "The money goes back to where it came from.",
+    "reverted": "Reverted",
+    "viewReversal": "Reversed on",
+    "isReversal": "Devolución"
   }
 }

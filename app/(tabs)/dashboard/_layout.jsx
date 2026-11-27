@@ -9,6 +9,7 @@ export default function DashboardLayout() {
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
       <Stack.Screen name="index" />
       <Stack.Screen name="activity" />
+      <Stack.Screen name="transfer" />
     </Stack>
   );
 }
