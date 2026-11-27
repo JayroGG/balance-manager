@@ -39,21 +39,28 @@ export const targetIndex = (heights, from, dy) => {
   return to;
 };
 
-function Row({ index, active, shift, onMeasure, onLift, onMove, onDrop, onCancel, children }) {
+function Row({ index, base, shift, onMeasure, onLift, onMove, onDrop, onCancel, children }) {
   const ty = useSharedValue(0);
   const lift = useSharedValue(0);
-  const sh = useSharedValue(0); // displacement of a non-dragged row while others are dragged
+  const sh = useSharedValue(0); // drag displacement of a non-dragged row (animated)
+  const bs = useSharedValue(base); // slot base: display slot top - mounted slot top (instant, like the native layout)
   const prevIndex = useRef(index);
-  // Displaced rows glide to their offset while the drag is on. When the drop reorders the data the
-  // layout itself has already moved by that offset, so it snaps to 0 in the same frame instead.
+  const baseRef = useRef(base);
+  // Native views never change order (see SortableList): a row's slot is only ever a transform. Displaced
+  // rows glide to their displacement while the drag is on; when the drop reorders the data the base changes by
+  // exactly the displacement it had, so both are set without animation (visually continuous). The base is
+  // never animated: the native layout it compensates moves instantly too.
   useLayoutEffect(() => {
     const moved = prevIndex.current !== index;
     prevIndex.current = index;
+    baseRef.current = base;
+    bs.value = base;
     sh.value = moved ? shift : withTiming(shift, SNAP);
-  }, [shift, index]);
+  }, [base, shift, index]);
+  // zIndex follows `lift` (set at lift, back to 0 only when the settle animation ends) so no commit flips it.
   const style = useAnimatedStyle(() => ({
-    transform: [{ translateY: ty.value + sh.value }, { scale: 1 + 0.03 * lift.value }],
-    zIndex: active ? 10 : 0,
+    transform: [{ translateY: ty.value + sh.value + bs.value }, { scale: 1 + 0.03 * lift.value }],
+    zIndex: lift.value > 0 ? 10 : 0,
     shadowColor: '#000',
     shadowOpacity: 0.25 * lift.value,
     shadowRadius: 10 * lift.value,
@@ -86,9 +93,11 @@ function Row({ index, active, shift, onMeasure, onLift, onMove, onDrop, onCancel
             lift.value = withTiming(0, SNAP);
             return;
           }
-          // The row's layout slot changes by `delta` when the data reorders; offset the translation by it
-          // so the row stays under the finger, then snap to rest.
+          // The row's slot moves by `delta`; shift the slot base and counter-offset the translation by the
+          // same amount so the row stays under the finger, then snap to rest. Transforms only.
+          const base0 = baseRef.current;
           const delta = latest.current.onDrop(latest.current.index, e.translationY);
+          bs.value = base0 + delta;
           ty.value = e.translationY - delta;
           ty.value = withTiming(0, SNAP);
           lift.value = withTiming(0, SNAP);
@@ -107,9 +116,28 @@ function Row({ index, active, shift, onMeasure, onLift, onMove, onDrop, onCancel
 
 export default function SortableList({ data, renderItem, keyExtractor, onReorder, ...rest }) {
   const heights = useRef({}); // by key, so a measurement survives reordering
-  const [drag, setDrag] = useState(null); // { from, to }
+  const mounted = useRef(null); // key-stable native order: the order rows first rendered (the saved order)
+  const [drag, setDrag] = useState(null); // { from, to } — display indices
+  const [, bump] = useState(0);
   const keys = data.map(keyExtractor);
   const hs = () => keys.map((k) => heights.current[k] ?? 0);
+
+  // Keep native order stable across drops/refetches: drop removed keys, append new ones.
+  const keySet = new Set(keys);
+  mounted.current = [...(mounted.current ?? []).filter((k) => keySet.has(k)), ...keys.filter((k) => !(mounted.current ?? []).includes(k))];
+  const order = mounted.current;
+
+  const tops = (list) => {
+    const t = {};
+    let acc = 0;
+    list.forEach((k) => {
+      t[k] = acc;
+      acc += heights.current[k] ?? 0;
+    });
+    return t;
+  };
+  const displayTop = tops(keys);
+  const mountedTop = tops(order);
 
   const shiftFor = (i) => {
     if (!drag) return 0;
@@ -136,26 +164,33 @@ export default function SortableList({ data, renderItem, keyExtractor, onReorder
   return (
     <ScrollView {...rest} scrollEnabled={!drag}>
       <View>
-        {data.map((item, index) => (
-          <Row
-            key={keys[index]}
-            index={index}
-            active={drag?.from === index}
-            shift={shiftFor(index)}
-            onMeasure={(height) => {
-              heights.current[keys[index]] = height;
-            }}
-            onLift={(i) => setDrag({ from: i, to: i })}
-            onMove={(i, dy) => {
-              const to = targetIndex(hs(), i, dy);
-              setDrag((d) => (d && d.from === i && d.to === to ? d : { from: i, to }));
-            }}
-            onDrop={drop}
-            onCancel={() => setDrag(null)}
-          >
-            {renderItem({ item, index })}
-          </Row>
-        ))}
+        {order.map((key) => {
+          const index = keys.indexOf(key);
+          return (
+            <Row
+              key={key}
+              index={index}
+              base={displayTop[key] - mountedTop[key]}
+              shift={shiftFor(index)}
+              onMeasure={(height) => {
+                if (heights.current[key] !== height) {
+                  const first = heights.current[key] === undefined;
+                  heights.current[key] = height;
+                  if (!first || order.some((k, i) => k !== keys[i])) bump((n) => n + 1);
+                }
+              }}
+              onLift={(i) => setDrag({ from: i, to: i })}
+              onMove={(i, dy) => {
+                const to = targetIndex(hs(), i, dy);
+                setDrag((d) => (d && d.from === i && d.to === to ? d : { from: i, to }));
+              }}
+              onDrop={drop}
+              onCancel={() => setDrag(null)}
+            >
+              {renderItem({ item: data[index], index })}
+            </Row>
+          );
+        })}
       </View>
     </ScrollView>
   );

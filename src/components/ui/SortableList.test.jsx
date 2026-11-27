@@ -26,8 +26,8 @@ jest.mock('react-native-reanimated', () => {
   return {
     __esModule: true,
     default: { View },
-    useSharedValue: (v) => ({ value: v }),
-    useAnimatedStyle: (f) => f(),
+    useSharedValue: (v) => require('react').useRef({ value: v }).current,
+    useAnimatedStyle: (f) => require('../../test-utils/visualOrder').lazyStyle(f),
     withSpring: (v) => v,
     Easing: { out: (f) => f, cubic: 1 },
     withTiming: (v) => v,
@@ -63,5 +63,57 @@ describe('SortableList', () => {
     act(() => mockHandlers.onFinalize({ translationY: 0 }, false));
     expect(UNSAFE_getByType(ScrollView).props.scrollEnabled).toBe(true);
     expect(onReorder).not.toHaveBeenCalled();
+  });
+
+  it('drop reorders data but never reorders native rows (key-stable mount order)', () => {
+    const { Text } = require('react-native');
+    const rows = () => screen.getAllByText(/^[abc]$/).map((n) => n.props.children);
+    const { visualOrder } = require('../../test-utils/visualOrder');
+    const visual = () => visualOrder(screen.getAllByText(/^[abc]$/), 50).map((n) => n.props.children);
+    const Host = () => {
+      const [d, setD] = require('react').useState(data);
+      return (
+        <SortableList data={d} keyExtractor={(i) => i.id} renderItem={({ item }) => <Text>{item.id}</Text>} onReorder={(_k, items) => setD(items)} />
+      );
+    };
+    render(<Host />);
+    expect(rows()).toEqual(['a', 'b', 'c']);
+    ['a', 'b', 'c'].forEach((id) => {
+      const view = require('../../test-utils/visualOrder').rowView(screen.getByText(id), 'onLayout');
+      act(() => view.props.onLayout({ nativeEvent: { layout: { height: 50 } } }));
+    });
+    // handlers belong to the last row ('c', index 2): drag it to the top
+    act(() => mockHandlers.onStart());
+    act(() => mockHandlers.onFinalize({ translationY: -110 }, true));
+    expect(rows()).toEqual(['a', 'b', 'c']);
+    // display order changed through offsets only
+    expect(visual()).toEqual(['c', 'a', 'b']);
+  });
+
+  it('a key added at the top after rows were measured pushes the others down on its first measure', () => {
+    const { Text } = require('react-native');
+    const { visualOrder, rowView } = require('../../test-utils/visualOrder');
+    const Host = () => {
+      const [d, setD] = require('react').useState(data);
+      return (
+        <>
+          <Text testID="add" onPress={() => setD([{ id: 'n' }, ...data])}>
+            add
+          </Text>
+          <SortableList data={d} keyExtractor={(i) => i.id} renderItem={({ item }) => <Text>{item.id}</Text>} onReorder={() => {}} />
+        </>
+      );
+    };
+    const { fireEvent } = require('@testing-library/react-native');
+    render(<Host />);
+    const measure = () =>
+      ['a', 'b', 'c', 'n'].forEach((id) => {
+        const t = screen.queryByText(id);
+        if (t) act(() => rowView(t, 'onLayout').props.onLayout({ nativeEvent: { layout: { height: 50 } } }));
+      });
+    measure();
+    fireEvent.press(screen.getByTestId('add'));
+    measure();
+    expect(visualOrder(screen.getAllByText(/^[abcn]$/), 50).map((n) => n.props.children)).toEqual(['n', 'a', 'b', 'c']);
   });
 });

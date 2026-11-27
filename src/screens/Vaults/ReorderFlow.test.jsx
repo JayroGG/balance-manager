@@ -32,7 +32,7 @@ jest.mock('react-native-reanimated', () => {
     __esModule: true,
     default: { View },
     useSharedValue: (v) => useRef({ value: v }).current,
-    useAnimatedStyle: (f) => f(),
+    useAnimatedStyle: (f) => require('../../test-utils/visualOrder').lazyStyle(f),
     withSpring: (v) => v,
     withTiming: (v) => v,
     Easing: { out: (f) => f, cubic: 1 },
@@ -45,6 +45,7 @@ import { render, act } from '@testing-library/react-native';
 import { configureStore, combineReducers } from '@reduxjs/toolkit';
 import { baseApi } from '../../services/api/baseApi';
 import '../../services/api';
+import { visualOrder } from '../../test-utils/visualOrder';
 import { useGetBalanceQuery } from '../../services/api/balance';
 import authReducer from '../../reducers/auth';
 import contextReducer from '../../reducers/context';
@@ -71,7 +72,7 @@ function Harness() {
   );
 }
 
-const names = (r) => r.getAllByTestId('row').map((n) => n.props.children);
+const names = (r) => visualOrder(r.getAllByTestId('row')).map((n) => n.props.children);
 const measure = (r) =>
   r.UNSAFE_getAllByType(View).filter((v) => v.props.onLayout).forEach((v) => v.props.onLayout({ nativeEvent: { layout: { height: 100 } } }));
 
