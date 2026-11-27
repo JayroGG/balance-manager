@@ -1,10 +1,12 @@
 import { createSlice } from '@reduxjs/toolkit';
+import { orderKey, applySavedOrder } from '../../utils/savedOrder';
+
+export { orderKey };
 
 // Local-first vault order. One entry per (user, context): { userId, teamId, ids, pending }.
 // `pending` = saved on device, not yet confirmed by PUT /vaults/order. While pending the local order
 // wins; otherwise the backend order wins and `ids` is just a refreshed copy of it. Persisted; NOT reset
 // on logout (keyed by user id, so a queued order survives and syncs on the next sign-in).
-export const orderKey = (userId, teamId) => `${userId ?? 'anon'}:${teamId == null ? 'personal' : String(teamId)}`;
 
 const slice = createSlice({
   name: 'vaultOrder',
@@ -51,10 +53,7 @@ export const { saveOrder, orderSynced, refreshFromServer, releaseHold } = slice.
 export const mergeOrder = (vaults, entry) => {
   const list = vaults ?? [];
   if (!entry || !(entry.pending || entry.awaiting)) return list;
-  const byId = new Map(list.map((v) => [v.id, v]));
-  const head = entry.ids.map((id) => byId.get(id)).filter(Boolean);
-  const seen = new Set(head.map((v) => v.id));
-  return [...head, ...list.filter((v) => !seen.has(v.id))];
+  return applySavedOrder(list, entry.ids);
 };
 
 export const selectOrderEntry = (state, userId, teamId) => state.vaultOrder?.byKey?.[orderKey(userId, teamId)];

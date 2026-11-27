@@ -1,15 +1,14 @@
 import { createSlice } from '@reduxjs/toolkit';
+import { orderKey, applySavedOrder } from '../../utils/savedOrder';
 
 // Device-only loan order (ADR-026): one entry per (user, context) { ids }. No server sync. Persisted;
 // NOT reset on logout (keyed by user id).
-export const loanOrderKey = (userId, teamId) => `${userId ?? 'anon'}:${teamId == null ? 'personal' : String(teamId)}`;
-
 const slice = createSlice({
   name: 'loanOrder',
   initialState: { byKey: {} },
   reducers: {
     saveLoanOrder: (state, { payload: { userId, teamId, ids } }) => {
-      state.byKey[loanOrderKey(userId, teamId)] = { ids };
+      state.byKey[orderKey(userId, teamId)] = { ids };
     },
   },
 });
@@ -21,10 +20,7 @@ export const { saveLoanOrder } = slice.actions;
 export const mergeLoanOrder = (loans, entry) => {
   const list = loans ?? [];
   if (!entry?.ids?.length) return list;
-  const byId = new Map(list.map((l) => [l.id, l]));
-  const head = entry.ids.map((id) => byId.get(id)).filter(Boolean);
-  const seen = new Set(head.map((l) => l.id));
-  return [...head, ...list.filter((l) => !seen.has(l.id))];
+  return applySavedOrder(list, entry.ids);
 };
 
 export default slice.reducer;
