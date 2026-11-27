@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Alert } from 'react-native';
+import { Alert, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useGetMeQuery, useUpdateMeMutation } from '../../services/api/users';
-import { Screen, ScreenHeader, Card, ColorSwatchPicker, AppButton, SectionTitle, Muted } from '../../components/ui';
-import { DEFAULT_ACCENT } from '../../components/theme';
+import { Screen, ScreenHeader, Card, Chip, ColorSwatchPicker, AppButton, SectionTitle, Muted } from '../../components/ui';
 import { isValidHex, normalizeHex } from '../../utils/colors';
 
 // Personal context management (ADR-028): color only — no rename, members or delete. The color lives on the account
@@ -13,7 +12,8 @@ export default function PersonalScreen() {
   const { data: me } = useGetMeQuery();
   const [updateMe, { isLoading }] = useUpdateMeMutation();
 
-  const saved = (me?.color && normalizeHex(me.color)) || DEFAULT_ACCENT;
+  // null = the client default accent (what a null account color means)
+  const saved = (me?.color && normalizeHex(me.color)) || null;
   const [color, setColor] = useState(saved);
   const [invalid, setInvalid] = useState(false);
   useEffect(() => {
@@ -29,6 +29,7 @@ export default function PersonalScreen() {
     }
   };
   const onSave = () => {
+    if (color === null) return save(null);
     const hex = normalizeHex(color);
     if (!isValidHex(color) || !hex) return setInvalid(true);
     setInvalid(false);
@@ -40,8 +41,11 @@ export default function PersonalScreen() {
       <ScreenHeader back title={t('teams.personalName')} />
       <SectionTitle>{t('teams.personalColor')}</SectionTitle>
       <Card>
+        <View style={{ flexDirection: 'row' }}>
+          <Chip label={t('teams.colorDefault')} active={color === null} onPress={() => { setColor(null); setInvalid(false); }} />
+        </View>
         <ColorSwatchPicker
-          value={color}
+          value={color ?? ''}
           onChange={(next) => {
             setColor(next);
             setInvalid(false);
@@ -49,7 +53,6 @@ export default function PersonalScreen() {
         />
         {invalid ? <Muted>{t('teams.invalidColor')}</Muted> : null}
         {color !== saved ? <AppButton title={t('common.save')} onPress={onSave} loading={isLoading} /> : null}
-        {me?.color ? <AppButton title={t('teams.colorDefault')} variant="ghost" onPress={() => save(null)} disabled={isLoading} /> : null}
       </Card>
       <Muted>{t('teams.personalHint')}</Muted>
     </Screen>

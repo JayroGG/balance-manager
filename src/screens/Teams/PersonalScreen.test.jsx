@@ -30,11 +30,27 @@ describe('PersonalScreen', () => {
     fireEvent.press(screen.getByText('common.save'));
     await waitFor(() => expect(update).toHaveBeenCalledWith({ color: '#16A34A' }));
   });
-  it('resets to the default with null, only when a color is saved', async () => {
+  it('offers a Default choice, selected when the account color is null, with no pending save', () => {
+    useGetMeQuery.mockReturnValue({ data: { id: 1, email: 'a@b.c', color: null } });
+    renderWithStore(<PersonalScreen />);
+    expect(screen.getByRole('checkbox', { name: 'teams.colorDefault' }).props.accessibilityState.checked).toBe(true);
+    expect(screen.queryByText('common.save')).toBeNull();
+  });
+  it('picking Default sends color:null and is not selected while a color is saved', async () => {
     useGetMeQuery.mockReturnValue({ data: { id: 1, email: 'a@b.c', color: '#16A34A' } });
     renderWithStore(<PersonalScreen />);
+    const chip = () => screen.getByRole('checkbox', { name: 'teams.colorDefault' });
+    expect(chip().props.accessibilityState.checked).toBe(false);
     fireEvent.press(screen.getByText('teams.colorDefault'));
+    expect(chip().props.accessibilityState.checked).toBe(true);
+    fireEvent.press(screen.getByText('common.save'));
     await waitFor(() => expect(update).toHaveBeenCalledWith({ color: null }));
+  });
+  it('labels the section Color, not Team color', () => {
+    useGetMeQuery.mockReturnValue({ data: { id: 1, email: 'a@b.c', color: null } });
+    renderWithStore(<PersonalScreen />);
+    expect(screen.getByText('teams.personalColor')).toBeTruthy();
+    expect(screen.queryByText('teams.color')).toBeNull();
   });
   it('has no rename, members or delete controls and survives a missing endpoint', () => {
     useGetMeQuery.mockReturnValue({ data: undefined, error: { status: 404 } });
