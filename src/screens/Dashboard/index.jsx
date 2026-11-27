@@ -1,6 +1,6 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useDispatch } from 'react-redux';
 import { useTranslation } from 'react-i18next';
@@ -10,9 +10,29 @@ import { useGetTeamsQuery } from '../../services/api/teams';
 import { setActiveTeam } from '../../reducers/context';
 import { useActiveTeamId } from '../../hooks/useActiveTeamId';
 import { useActiveRole } from '../../hooks/useActiveRole';
+import { useOwnedContexts } from '../../hooks/useOwnedContexts';
 import { useUnreadActivity } from '../../hooks/useUnreadActivity';
 import { useContextReady } from '../../hooks/useContextReady';
 import { useOrderedVaults } from '../Vaults/reorder';
+import { PressSwap } from '../../components/motion/PressSwap';
+import { BalanceOptions } from './BalanceOptions';
+import { GlassSurface } from '../../components/glass/GlassSurface';
+import { GlassBackdrop } from '../../components/glass/GlassBackdrop';
+import { GlassFill } from '../../components/glass/GlassFill';
+
+const CARD_RADIUS = 16;
+
+// minHeight: the back (24pt pad + 56pt disc + label + a two-line disabled reason) must fit even a short front
+const HERO_MIN_HEIGHT = 150;
+// The balance card's frosted glass frame (ADR-027); a stable component so PressSwap never remounts its content.
+const HeroSurface = ({ style, children, overdrawn }) => {
+  const { colors } = useTheme();
+  return (
+    <GlassSurface flat under={<GlassFill />} testID="hero" style={[style, { minHeight: HERO_MIN_HEIGHT }, overdrawn && { borderColor: colors.danger }]}>
+      {children}
+    </GlassSurface>
+  );
+};
 import { useTheme } from '../../hooks/useTheme';
 import {
   Screen,
@@ -65,7 +85,7 @@ export default function Dashboard() {
   const router = useRouter();
   const teamId = useActiveTeamId();
   const role = useActiveRole(); // null in personal context; 'owner'|'member'|'guest' in a team
-  const { colors } = useTheme();
+  const { colors, scheme } = useTheme();
   const styles = makeStyles(colors);
   const { data: teams } = useGetTeamsQuery();
   const balanceQuery = useGetBalanceQuery(teamId);
@@ -75,6 +95,14 @@ export default function Dashboard() {
   const topVaultRows = topVaults(orderedVaults);
   const { data: openLists } = useGetShoppingListsQuery({ status: 'open', team_id: teamId });
   const unread = useUnreadActivity();
+  const ownedContexts = useOwnedContexts();
+  const canTransfer = (role === null || role === 'owner') && ownedContexts.some((c) => !c.isCurrent);
+  // Balance card flip menu (ADR-027): flips back after a pick, on context switch and on leaving the screen.
+  const [side, setSide] = useState('front');
+  useEffect(() => setSide('front'), [teamId]);
+  useFocusEffect(useCallback(() => () => setSide('front'), []));
+  const isOwnerHere = role === null || role === 'owner';
+  const transferReason = !isOwnerHere ? t('dashboard.transferNotOwner') : t('dashboard.transferNoDestination');
   // Drive the spinner only from a user pull — not the auto refetch-on-mount, which on iOS
   // leaves a programmatic RefreshControl spinner stuck until the user drags.
   const [refreshing, setRefreshing] = useState(false);
@@ -172,23 +200,46 @@ export default function Dashboard() {
         <QueryBoundary isLoading={isLoading && !data} error={error} onRetry={refetch}>
           {/* All figures at once, no tap-to-cycle: the dashboard hero is glanced at, not operated.
               Available leads (it's the number you act on); total and lent sit under it. */}
-          <Card style={[styles.hero, overdrawn && styles.heroNegative]} testID="hero">
-            <Text style={[styles.heroLabel, overdrawn && styles.heroLabelNegative]}>{t('dashboard.available')}</Text>
-            <MoneyText amount={data?.available} currency={currency} style={[styles.heroFigure, overdrawn && styles.heroInkNegative]} signed />
-            <View style={styles.figureRow}>
-              <Text style={[styles.heroLabel, overdrawn && styles.heroLabelNegative]}>{t('dashboard.total')}</Text>
-              <MoneyText amount={data?.total} currency={currency} style={[styles.heroSecondary, overdrawn && styles.heroInkNegative]} signed />
-            </View>
-            {data?.lent > 0 ? (
-              <View style={styles.figureRow}>
-                <Text style={[styles.heroLabel, overdrawn && styles.heroLabelNegative]}>{t('dashboard.lent')}</Text>
-                <MoneyText amount={data.lent} currency={currency} style={[styles.heroSecondary, overdrawn && styles.heroInkNegative]} />
-              </View>
-            ) : null}
-            {stale ? (
-              <StaleBadge lastUpdated={lastUpdated} offline={offline} color={overdrawn ? colors.muted : colors.primaryText} />
-            ) : null}
-          </Card>
+          <GlassBackdrop accent={colors.primary} style={styles.heroScene}>
+            <PressSwap
+              testID="balance-swap"
+              radius={CARD_RADIUS}
+              side={side}
+              onSwap={setSide}
+              Surface={HeroSurface}
+              frostTint={scheme === 'dark' ? 'dark' : 'light'}
+              surfaceProps={{ overdrawn }}
+              front={
+                <View style={styles.hero}>
+                  <Text style={[styles.heroLabel, overdrawn && styles.heroLabelNegative]}>{t('dashboard.available')}</Text>
+                  <MoneyText amount={data?.available} currency={currency} style={[styles.heroFigure, overdrawn && styles.heroInkNegative]} signed />
+                  <View style={styles.figureRow}>
+                    <Text style={[styles.heroLabel, overdrawn && styles.heroLabelNegative]}>{t('dashboard.total')}</Text>
+                    <MoneyText amount={data?.total} currency={currency} style={[styles.heroSecondary, overdrawn && styles.heroInkNegative]} signed />
+                  </View>
+                  {data?.lent > 0 ? (
+                    <View style={styles.figureRow}>
+                      <Text style={[styles.heroLabel, overdrawn && styles.heroLabelNegative]}>{t('dashboard.lent')}</Text>
+                      <MoneyText amount={data.lent} currency={currency} style={[styles.heroSecondary, overdrawn && styles.heroInkNegative]} />
+                    </View>
+                  ) : null}
+                  {stale ? (
+                    <StaleBadge lastUpdated={lastUpdated} offline={offline} color={colors.muted} />
+                  ) : null}
+                </View>
+              }
+              back={
+                <BalanceOptions
+                  canTransfer={canTransfer}
+                  transferReason={transferReason}
+                  onTransfer={() => {
+                    setSide('front');
+                    router.push('/(tabs)/dashboard/transfer');
+                  }}
+                />
+              }
+            />
+          </GlassBackdrop>
 
           {cards.length ? (
             <Card onPress={() => router.navigate('/(tabs)/settings/cards')} testID="cards-block">
@@ -267,14 +318,14 @@ const makeStyles = (colors) =>
   StyleSheet.create({
     switch: { flexDirection: 'row', alignItems: 'center', paddingBottom: spacing(1) },
     roleBadge: { marginBottom: spacing(1.5), textTransform: 'capitalize' },
-    hero: { backgroundColor: colors.primary, padding: spacing(3) },
+    hero: { padding: spacing(3) },
+    heroScene: { padding: spacing(2), marginBottom: spacing(1.5) },
     // Overdrawn (available < 0, ADR-022): swap the accent surface for the card surface so the danger red is legible on any accent.
-    heroNegative: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.danger },
     heroLabelNegative: { color: colors.muted, opacity: 1 },
     heroInkNegative: { color: colors.text },
-    heroLabel: { color: colors.primaryText, opacity: 0.85, fontSize: font.sm, fontWeight: '600' },
-    heroFigure: { color: colors.primaryText, fontSize: font.hero, fontWeight: '800', marginTop: spacing(0.5) },
-    heroSecondary: { color: colors.primaryText, fontSize: font.lg, fontWeight: '700' },
+    heroLabel: { color: colors.muted, fontSize: font.sm, fontWeight: '600' },
+    heroFigure: { color: colors.text, fontSize: font.hero, fontWeight: '800', marginTop: spacing(0.5) },
+    heroSecondary: { color: colors.text, fontSize: font.lg, fontWeight: '700' },
     figureRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: spacing(2) },
     heroLabelSkeleton: { opacity: 0.55 },
     heroValueSkeleton: { marginTop: spacing(0.5), opacity: 0.55 },

@@ -10,3 +10,4 @@ export * from './shoppingLists';
 export * from './events';
 export * from './loans';
 export * from './cards';
+export * from './transfers';

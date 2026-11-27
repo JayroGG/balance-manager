@@ -37,7 +37,11 @@
     "shoppingLists": "Listas de compra",
     "seeAll": "Ver todas",
     "emptyLists": "No hay listas abiertas",
-    "seeAllVaults": "Ver todas las bóvedas"
+    "seeAllVaults": "Ver todas las bóvedas",
+    "soon": "Pronto",
+    "transfer": "Transferir",
+    "transferNotOwner": "Solo un propietario de este contexto puede transferir",
+    "transferNoDestination": "Necesitas otro contexto del que seas propietario"
   },
   "transactions": {
     "title": "Movimientos",
@@ -198,7 +202,9 @@
     "storedCredsRejected": "Tu contraseña cambió. Inicia sesión de nuevo.",
     "unlocking": "Iniciando sesión…",
     "useBiometric": "Desbloquear con Face ID",
-    "unlockFailed": "No se pudo desbloquear. Intenta de nuevo o usa tu contraseña."
+    "unlockFailed": "No se pudo desbloquear. Intenta de nuevo o usa tu contraseña.",
+    "lockPasswordBody": "Ingresa tu contraseña para desbloquear Balance.",
+    "networkError": "Sin conexión. Revisa tu red e inténtalo de nuevo."
   },
   "context": {
     "personal": "Personal",
@@ -231,6 +237,7 @@
     "readOnly": "Solo lectura",
     "role_owner": "Propietario",
     "role_member": "Miembro",
+    "role_admin": "Administrador",
     "role_guest": "Invitado"
   },
   "activity": {
@@ -249,6 +256,9 @@
     "loan_deleted": "{{actor}} eliminó el préstamo {{name}}",
     "loan_lent": "{{actor}} prestó {{amount}} a {{name}}",
     "loan_repaid": "{{actor}} recibió {{amount}} de {{name}}",
+    "transfer_sent": "{{actor}} envió {{amount}} a {{name}}",
+    "transfer_received": "{{actor}} movió {{amount}} desde {{name}}",
+    "transfer_reversed": "{{actor}} devolvió una transferencia de {{amount}} ({{name}})",
     "shopping_list_created": "{{actor}} inició la lista {{name}}",
     "shopping_list_deleted": "{{actor}} eliminó la lista {{name}}",
     "shopping_list_checked_out": "{{actor}} pagó {{name}} — {{amount}}",
@@ -304,5 +314,42 @@
     "noneDue": "Sin pagos pendientes",
     "seeAll": "Ver todas",
     "filterByCard": "Filtrar por tarjeta"
+  },
+  "transfers": {
+    "title": "Transferir",
+    "destination": "Enviar a",
+    "amount": "Monto",
+    "available": "Disponible: {{amount}}",
+    "short": "Faltan {{amount}} — cúbrelos con tus bóvedas",
+    "remaining": "Por asignar: {{amount}}",
+    "vaultPart": "{{name}} (máx. {{max}})",
+    "blocked": "Disponible más bóvedas no alcanzan para este monto",
+    "note": "Nota (opcional)",
+    "date": "Fecha",
+    "summary": "Enviar {{amount}} de {{from}} a {{to}}",
+    "fromVaults": "De bóvedas: {{amount}}",
+    "review": "Revisar",
+    "confirm": "Confirmar",
+    "success": "Transferencia enviada",
+    "noDestination": "No tienes otro contexto propio",
+    "stepUpPrompt": "Confirma que eres tú para mover dinero",
+    "stepUpTitle": "Confirma tu identidad",
+    "stepUpBody": "Ingresa tu contraseña para autorizar esta transferencia.",
+    "wrongPassword": "Contraseña incorrecta",
+    "stepUpExpired": "La verificación expiró. Inténtalo de nuevo.",
+    "stepUpFailed": "No se pudo verificar. Intenta de nuevo.",
+    "personalLabel": "{{name}} (personal)",
+    "rowTo": "Transferencia a {{label}}",
+    "rowFrom": "Transferencia de {{label}}",
+    "reversalTo": "Devolución a {{label}}",
+    "reversalFrom": "Devolución de {{label}}",
+    "detail": "Transferencia",
+    "readOnly": "Las transferencias no se pueden editar ni borrar.",
+    "revert": "Revertir",
+    "revertConfirmTitle": "¿Revertir esta transferencia?",
+    "revertConfirmBody": "El dinero vuelve a su origen.",
+    "reverted": "Revertida",
+    "viewReversal": "Devuelta el",
+    "isReversal": "Devolución"
   }
 }

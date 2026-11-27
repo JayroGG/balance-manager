@@ -129,7 +129,7 @@ stateDiagram-v2
   Bootstrapping --> Bootstrapping: init i18n (expo-localization + AsyncStorage lng_preference)
   Bootstrapping --> Bootstrapping: read token from expo-secure-store + AUTH_BYPASS
   Bootstrapping --> AuthHydrated: dispatch auth slice { token, bypass }
-  AuthHydrated --> Locked: biometric creds stored (ADR-024) - Lock screen, OS prompt opens automatically
+  AuthHydrated --> Locked: a session exists or biometric creds stored (ADR-024 amendment: mandatory) - Lock screen; OS prompt if biometrics on, else password via /auth/step-up
   Locked --> Ready: biometric OK (unlock, or login with stored creds)
   AuthHydrated --> Ready: SplashScreen.hideAsync() (cached data paints instantly, then refetchOnReconnect)
   Ready --> Tabs: bypass || token present
@@ -161,8 +161,9 @@ balance-manager/                 # app name: balance-mobile
 │   │   ├── Dashboard/index.jsx   Activity/index.jsx   # feed screen (ADR-017)
 │   │   ├── Transactions/{ListScreen,DateFilter,MonthPicker,RangeCalendar,NewScreen,EditScreen}.jsx  TransactionForm.jsx
 │   │   ├── Vaults/{ListScreen,NewScreen,DetailScreen,reorder}.jsx   # local-first order hook (ADR-024)
-│   │   ├── Lock/index.jsx   # biometric lock screen (ADR-024)
+│   │   ├── Lock/index.jsx   # mandatory lock screen: biometric or password (ADR-024)
 │   │   ├── Loans/{ListScreen,NewScreen,DetailScreen,reorder}.jsx   # lent-out money (ADR-018); device-only order (ADR-026)
+│   │   ├── Transfers/{NewScreen,StepUpModal,split}.jsx   # owner-only transfer between owned contexts + step-up prompt (ADR-027)
 │   │   ├── Cards/{ListScreen,NewScreen,DetailScreen}.jsx   # credit cards + pay flow (ADR-023; routes app/(tabs)/settings/cards/*)
 │   │   ├── Teams/{ListScreen,ManageScreen}.jsx   # team management (ADR-012)
 │   │   ├── Categories/index.jsx   Settings/index.jsx
@@ -172,7 +173,7 @@ balance-manager/                 # app name: balance-mobile
 │   │   └── theme.js             # light/dark palettes + makeColors(scheme, accent) + PRESET_TEAM_COLORS; spacing/radius/font (ADR-013)
 │   ├── store/                   # configureStore + RTKQ middleware + redux-persist + setupListeners
 │   ├── services/
-│   │   ├── api/                 # baseApi.js + balance/transactions/vaults/loans/cards/categories/events.js (injectEndpoints) + queryString.js (shared `withQuery`)
+│   │   ├── api/                 # baseApi.js + balance/transactions/vaults/loans/cards/categories/events/transfers.js (injectEndpoints) + queryString.js (shared `withQuery`)
 │   │   └── storage/             # secure.js (token), prefs.js (cache/prefs)
 │   ├── reducers/{auth,context,prefs,activity}/  # auth (token/user), context (activeTeamId), prefs (themeMode — ADR-013), activity (per-context lastSeen — ADR-017)
 │   ├── permissions/             # RBAC seam: usePermissions + pure can*() matrix (ADR-012)
@@ -187,3 +188,4 @@ balance-manager/                 # app name: balance-mobile
 > `npx expo prebuild` when the app moves to a dev build (ADR-003).
 
 │   ├── components/ui/SortableList.jsx   # generic vertical drag-and-drop list: the standard for reorderable lists (ADR-024)
+│   ├── components/{motion/PressSwap,glass/*}.jsx + theme/motion.js   # balance-card press-swap + frosted glass (ADR-027)

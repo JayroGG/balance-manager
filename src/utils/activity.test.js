@@ -116,3 +116,17 @@ describe('eventHref — deep links', () => {
     expect(eventHref({ entity: 'widget', action: 'created', entity_id: 1 })).toBeNull();
   });
 });
+
+describe('eventMessage — transfers (ADR-027)', () => {
+  it.each(['sent', 'received', 'reversed'])('transfer %s maps to its key with amount and counterpart', (action) => {
+    const event = { entity: 'transfer', action, summary: { amount: 1500, counterpart: 'Casa' } };
+    const msg = eventMessage(event, { t, actor, currency });
+    expect(msg).toContain(`activity.transfer_${action}`);
+    expect(msg).toContain(`"amount":"${money(1500)}"`);
+    expect(msg).toContain('"name":"Casa"');
+  });
+
+  it('transfer events have no deep link', () => {
+    expect(eventHref({ entity: 'transfer', action: 'sent', entity_id: 1 })).toBeNull();
+  });
+});

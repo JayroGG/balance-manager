@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Provider, useSelector } from 'react-redux';
+import { Provider } from 'react-redux';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { PersistGate } from 'redux-persist/integration/react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -10,8 +10,8 @@ import { store, persistor } from '../src/store';
 import { useTheme } from '../src/hooks/useTheme';
 import { AnimatedSplash } from '../src/components/AnimatedSplash';
 import { useAppLockWatcher } from '../src/hooks/useAppLockWatcher';
+import { LockGate } from '../src/components/LockGate';
 import { bootstrapState } from '../src/services/bootstrap';
-import Lock from '../src/screens/Lock';
 
 // Keep the native splash up until the cold-start bootstrap finishes (ADR-001/006/007);
 // AnimatedSplash then hides it behind an identical frame and animates the handoff (ADR-016).
@@ -20,7 +20,6 @@ SplashScreen.preventAutoHideAsync();
 function Bootstrap({ children }) {
   const [ready, setReady] = useState(false);
   const [handoff, setHandoff] = useState(true);
-  const locked = useSelector((s) => s.lock.locked);
   useAppLockWatcher();
 
   useEffect(() => {
@@ -32,7 +31,7 @@ function Bootstrap({ children }) {
   if (!ready) return null; // native splash still covering
   return (
     <>
-      {locked ? <Lock /> : children}
+      <LockGate>{children}</LockGate>
       {handoff && <AnimatedSplash onDone={() => setHandoff(false)} />}
     </>
   );

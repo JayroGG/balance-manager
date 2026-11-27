@@ -11,10 +11,14 @@ export const authApi = baseApi.injectEndpoints({
     refresh: build.mutation({
       query: (body) => ({ url: '/auth/refresh', method: 'POST', body }),
     }),
+    // {password} -> {permit}. Exempt from the 401 refresh+logout (a wrong password is an inline error).
+    stepUp: build.mutation({
+      query: (body) => ({ url: '/auth/step-up', method: 'POST', body }),
+    }),
     logout: build.mutation({
       query: () => ({ url: '/auth/logout', method: 'POST' }),
     }),
   }),
 });
 
-export const { useLoginMutation, useRefreshMutation, useLogoutMutation } = authApi;
+export const { useLoginMutation, useRefreshMutation, useLogoutMutation, useStepUpMutation } = authApi;

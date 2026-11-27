@@ -15,6 +15,7 @@ import { font, spacing } from '../../components/theme';
 import { formatDate, filterRange } from '../../utils/dates';
 import { DateFilter, ALL_TIME, dateFilterLabel } from './DateFilter';
 import { FilterMenu } from './FilterMenu';
+import { isTransferRow, transferLabel } from './transferRow';
 
 const TYPE_FILTERS = ['all', 'income', 'expense', 'loans'];
 
@@ -99,6 +100,7 @@ export default function TransactionsList() {
   const renderItem = ({ item }) => {
     const income = item.type === 'income';
     const payment = item.type === 'card_payment';
+    const transfer = isTransferRow(item);
     const cardName = item.card_id != null ? cards?.find((c) => c.id === item.card_id)?.name ?? t('cards.card') : null;
     return (
       <Link href={`/(tabs)/transactions/${item.id}`} asChild>
@@ -121,7 +123,7 @@ export default function TransactionsList() {
                       <Text style={styles.cashIcon} testID={`pay-icon-cash-${item.id}`} accessibilityLabel={t('cards.cash')}>$</Text>
                     )
                   ) : null}
-                  <Text style={[styles.desc, { flexShrink: 1 }]} numberOfLines={1}>{item.description || (payment ? t('cards.payment') : t(`transactions.${item.type}`))}</Text>
+                  <Text style={[styles.desc, { flexShrink: 1 }]} numberOfLines={1}>{transfer ? transferLabel(item, t) : item.description || (payment ? t('cards.payment') : t(`transactions.${item.type}`))}</Text>
                 </View>
                 <View style={styles.metaRow}>
                   <Text style={styles.meta}>{formatDate(item.occurred_at)}{payment && cardName ? ` · ${cardName}` : ''}</Text>
@@ -138,10 +140,10 @@ export default function TransactionsList() {
                 ) : null}
               </View>
               <MoneyText
-                amount={item.amount}
+                amount={transfer && item.type === 'transfer_out' ? -item.amount : item.amount}
                 currency={currency}
                 showCurrency="symbol"
-                style={[styles.amount, { color: payment ? colors.muted : income ? colors.success : colors.danger }]}
+                style={[styles.amount, { color: payment || transfer ? colors.muted : income ? colors.success : colors.danger }]}
               />
             </View>
           </Card>
@@ -248,26 +250,26 @@ export default function TransactionsList() {
         </View>
       ) : null}
 
-      <View style={styles.totals}>
-        {confirmed && totals ? (
-          <>
-            <CyclingFigure
-              testID="totals-cycle"
-              currency={currency}
-              dotColor={colors.muted}
-              labelStyle={styles.totalLabel}
-              valueStyle={styles.totalValue}
-              steps={[
-                { key: 'net', label: t('transactions.net'), amount: totals.net, color: colors.text, signed: true },
-                { key: 'income', label: t('transactions.income'), amount: totals.income, color: colors.success },
-                { key: 'expense', label: t('transactions.expense'), amount: totals.expense, color: colors.danger },
-                // Charges are already inside `expense`; payments are cash out but not a spend, so they are
-                // a separate step (never added into expense/net) — keeps the rows adding up (ADR-023).
-                ...(totals.card_payments > 0
-                  ? [{ key: 'card_payments', label: t('cards.payment'), amount: totals.card_payments, color: colors.muted }]
-                  : []),
-              ]}
-            />
+      {confirmed && totals ? (
+        <CyclingFigure
+          testID="totals-cycle"
+          style={styles.totals}
+          accessibilityHint={t('transactions.results', { count: totals.count })}
+          currency={currency}
+          dotColor={colors.muted}
+          labelStyle={styles.totalLabel}
+          valueStyle={styles.totalValue}
+          steps={[
+            { key: 'net', label: t('transactions.net'), amount: totals.net, color: colors.text, signed: true },
+            { key: 'income', label: t('transactions.income'), amount: totals.income, color: colors.success },
+            { key: 'expense', label: t('transactions.expense'), amount: totals.expense, color: colors.danger },
+            // Charges are already inside `expense`; payments are cash out but not a spend, so they are
+            // a separate step (never added into expense/net) — keeps the rows adding up (ADR-023).
+            ...(totals.card_payments > 0
+              ? [{ key: 'card_payments', label: t('cards.payment'), amount: totals.card_payments, color: colors.muted }]
+              : []),
+          ]}
+          trailing={
             <View style={styles.totalsMeta}>
               <Text style={styles.count} testID="totals-count">{t('transactions.results', { count: totals.count })}</Text>
               {stale ? (
@@ -276,16 +278,16 @@ export default function TransactionsList() {
                 </View>
               ) : null}
             </View>
-          </>
-        ) : (
-          // Fixed-geometry placeholder — never wraps the figure, replaces it, so an unconfirmed
-          // context can never paint a plausible-looking 0.00 (ADR-019).
-          <View testID="totals-skeleton">
-            <Skeleton width={70} height={font.sm + 2} style={styles.totalSkeletonLabel} />
-            <Skeleton width={110} height={font.lg + 6} />
-          </View>
-        )}
-      </View>
+          }
+        />
+      ) : (
+        // Fixed-geometry placeholder — never wraps the figure, replaces it, so an unconfirmed
+        // context can never paint a plausible-looking 0.00 (ADR-019).
+        <View testID="totals-skeleton" style={styles.totals}>
+          <Skeleton width={70} height={font.sm + 2} style={styles.totalSkeletonLabel} />
+          <Skeleton width={110} height={font.lg + 6} />
+        </View>
+      )}
 
       <QueryBoundary isLoading={!currentData && isFetching} error={currentData ? null : error} onRetry={refetch}>
         <FlatList

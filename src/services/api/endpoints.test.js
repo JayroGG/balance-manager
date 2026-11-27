@@ -13,6 +13,7 @@ import { shoppingListsApi } from './shoppingLists';
 import { eventsApi } from './events';
 import { loansApi } from './loans';
 import { cardsApi } from './cards';
+import { transfersApi, isStepUpRequired } from './transfers';
 import authReducer from '../../reducers/auth';
 
 const makeStore = () =>
@@ -601,5 +602,51 @@ describe('cards — URLs, bodies, invalidation (ADR-023)', () => {
     global.fetch.mockClear();
     await store.dispatch(transactionsApi.endpoints.getTransactions.initiate({ card_id: 3 }));
     expect(new URL(call().url).searchParams.get('card_id')).toBe('3');
+  });
+});
+
+describe('transfers + step-up', () => {
+  const lastReq = () => global.fetch.mock.calls[global.fetch.mock.calls.length - 1][0];
+
+  it('createTransfer sends the permit as X-Step-Up, team_id in the URL, and refetches balance/transactions/vaults', async () => {
+    store = makeStore();
+    const bal = store.dispatch(balanceApi.endpoints.getBalance.initiate());
+    const tx = store.dispatch(transactionsApi.endpoints.getTransactions.initiate({}));
+    const vs = store.dispatch(vaultsApi.endpoints.getVaults.initiate());
+    await Promise.all([bal, tx, vs]);
+    global.fetch.mockClear();
+    await store.dispatch(
+      transfersApi.endpoints.createTransfer.initiate({ team_id: 2, permit: 'p1', body: { to_team_id: null, amount: 10 } }),
+    );
+    const post = global.fetch.mock.calls.map((c) => c[0]).find((r) => r.method === 'POST');
+    expect(post.url).toBe('http://localhost/transfers?team_id=2');
+    expect(post.headers.get('X-Step-Up')).toBe('p1');
+    for (let i = 0; i < 50 && fetchedUrls().filter((u) => /\/vaults/.test(u)).length < 1; i++) await new Promise((r) => setTimeout(r, 20));
+    expect(balanceCalls()).toBeGreaterThan(0);
+    expect(transactionCalls()).toBeGreaterThan(0);
+    expect(fetchedUrls().some((u) => /\/vaults/.test(u))).toBe(true);
+    [bal, tx, vs].forEach((s) => s.unsubscribe());
+  });
+
+  it('reverseTransfer posts to /transfers/:id/reverse with the permit', async () => {
+    store = makeStore();
+    await store.dispatch(transfersApi.endpoints.reverseTransfer.initiate({ id: 7, team_id: null, permit: 'p2' }));
+    expect(lastReq().url).toBe('http://localhost/transfers/7/reverse');
+    expect(lastReq().headers.get('X-Step-Up')).toBe('p2');
+  });
+
+  it('stepUp posts the password and a 401 without a refresh token is returned as-is (no logout)', async () => {
+    store = makeStore();
+    global.fetch.mockImplementation(() => Promise.resolve(jsonResponse({ error: 'bad' }, 401)));
+    const res = await store.dispatch(authApi.endpoints.stepUp.initiate({ password: 'x' }));
+    expect(res.error.status).toBe(401);
+    expect(fetchedUrls().filter((u) => u.includes('/auth/refresh'))).toHaveLength(0);
+    expect(lastReq().url).toBe('http://localhost/auth/step-up');
+  });
+
+  it('isStepUpRequired matches 403 + STEP_UP_REQUIRED only', () => {
+    expect(isStepUpRequired({ status: 403, data: { code: 'STEP_UP_REQUIRED' } })).toBe(true);
+    expect(isStepUpRequired({ status: 403, data: { code: 'OTHER' } })).toBe(false);
+    expect(isStepUpRequired(undefined)).toBe(false);
   });
 });

@@ -27,7 +27,7 @@ const makeStyles = (colors) =>
       alignItems: 'center',
       paddingHorizontal: spacing(1.5),
       paddingVertical: spacing(1),
-      minHeight: 40,
+      minHeight: 44,
       borderRadius: 999,
       borderWidth: 1,
       borderColor: colors.border,

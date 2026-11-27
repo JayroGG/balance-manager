@@ -1,5 +1,5 @@
 import { useSelector } from 'react-redux';
-import { selectMyUserId } from '../reducers/auth';
+import { selectIsGlobalAdmin, selectMyUserId } from '../reducers/auth';
 import { useActiveRole } from '../hooks/useActiveRole';
 
 // The single source of RBAC gating truth, mirroring the backend (ADR-012). The API enforces the same
@@ -8,25 +8,31 @@ import { useActiveRole } from '../hooks/useActiveRole';
 //   role === null   → personal context: everything allowed (your own data)
 //   'owner'         → add + edit/delete ANY row + manage the team
 //   'member'        → add + edit/delete ONLY rows they created (row.user_id === myUserId)
+//   'admin'         → global admin WITHOUT a real membership row (BE listAll returns the real role when one exists): same affordances as owner (the API allows it)
 //   'guest'         → read-only
 //   undefined       → role not resolved yet → treat as read-only until it loads
 //
 // All checks are strict so `undefined` (loading) never reads as `null` (personal).
 
-export const canAdd = (role) => role === null || role === 'owner' || role === 'member';
+export const canAdd = (role) =>
+  role === null || role === 'owner' || role === 'admin' || role === 'member';
 
-export const canManageTeam = (role) => role === 'owner';
+export const canManageTeam = (role) => role === 'owner' || role === 'admin';
 
 export const canEditRow = (role, row, myUserId) => {
-  if (role === null || role === 'owner') return true;
+  if (role === null || role === 'owner' || role === 'admin') return true;
   if (role === 'member') return row != null && String(row.user_id) === String(myUserId);
   return false; // guest or unresolved
 };
 
 // Hook: bind the matrix to the active context + signed-in user.
 export const usePermissions = () => {
-  const role = useActiveRole();
+  const activeRole = useActiveRole();
   const myUserId = useSelector(selectMyUserId);
+  const isAdmin = useSelector(selectIsGlobalAdmin);
+  // A global admin gets owner affordances in EVERY team, even where their real role is member/guest.
+  // UI only — transfers use useOwnedContexts (real ownership) and the API enforces everything.
+  const role = isAdmin && activeRole != null ? 'admin' : activeRole;
   return {
     role,
     canAdd: canAdd(role),

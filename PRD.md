@@ -110,6 +110,9 @@ Returns the computed figures. **This is the dashboard's primary call.**
 | GET/POST | `/cards` | POST `{ name, cut_day, due_day, credit_limit? }`; rows carry `owed`, `statement_balance`, `current_period`, `last_cut`, `due_date` (ADR-023) | `200`/`201` card |
 | GET/PUT/DELETE | `/cards/:id` | DELETE `400` while `owed > 0` | `200` card / `204` |
 | POST | `/cards/:id/pay` | `{ amount, occurred_at? }` — `amount <= owed` | `201` card |
+| POST | `/auth/step-up` | `{ password }` | `200` `{ permit, expires_at }` — single-use, 5 min (BE ADR-018) |
+| POST | `/transfers` | `{ to_team_id\|null, amount, description?, occurred_at?, vaults? }` + header `X-Step-Up`; owner of both contexts (ADR-027) | `201` transfer; `403 STEP_UP_REQUIRED` without a fresh permit |
+| POST | `/transfers/:id/reverse` | header `X-Step-Up` | `201` reversal ("devolución"); blocked if destination spent the money |
 | GET | `/transactions` | `?q=&from=&to=&type=&category_id=&card_id=&loans=&sort=&limit=&cursor=` (all optional; ADR-021) | `200` `{ items, next_cursor, totals }` |
 | POST | `/transactions` | `{ type, amount, category_ids?, card_id?, description?, occurred_at? }` (`card_id` only on expenses; `null` on PUT = back to cash) | `201` record |
 | GET | `/transactions/:id` | — | `200` record / `404` |

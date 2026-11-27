@@ -5,6 +5,7 @@ import { render } from '@testing-library/react-native';
 import { Provider } from 'react-redux';
 import { configureStore, combineReducers } from '@reduxjs/toolkit';
 import { renderWithStore, screen, fireEvent } from '../../test-utils/renderWithStore';
+import { waitFor } from '@testing-library/react-native';
 import { baseApi } from '../../services/api/baseApi';
 import authReducer from '../../reducers/auth';
 import contextReducer from '../../reducers/context';
@@ -19,6 +20,7 @@ import Dashboard from './index';
 // text the same way the screen does.
 const money = (amount) => formatMoney(amount, 'USD');
 
+jest.mock('react-native-reanimated', () => require('../../test-utils/reanimatedMock'));
 jest.mock('@expo/vector-icons', () => ({ Ionicons: 'Ionicons' }));
 jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
@@ -30,6 +32,7 @@ const mockNavigateSpy = jest.fn();
 jest.mock('expo-router', () => ({
   useRouter: () => ({ push: mockPushSpy, navigate: mockNavigateSpy }),
   Link: ({ children }) => children,
+  useFocusEffect: (cb) => require('react').useEffect(cb, []),
 }));
 
 const jsonResponse = (body, status = 200) =>
@@ -273,5 +276,105 @@ describe('Dashboard top-3 uses the local order', () => {
     });
     const names = screen.getAllByText(/^(Alpha|Bravo)$/).map((n) => n.props.children);
     expect(names).toEqual(['Alpha', 'Bravo']);
+  });
+});
+
+// ADR-027: the old text link is gone; pressing the balance card swaps it to a glass options menu.
+describe('balance card press-swap menu (ADR-027)', () => {
+  const mockWithTeams = (teams) => {
+    mockFetch(baseBalance);
+    const base = global.fetch.getMockImplementation();
+    global.fetch.mockImplementation((req) =>
+      req.url.includes('/teams') ? Promise.resolve(jsonResponse(teams)) : base(req),
+    );
+  };
+  // A full tap: in, release, out — then wait for the min-duration sequence to land the swap.
+  const tapCard = async () => {
+    const press = screen.getByTestId('balance-swap-press');
+    fireEvent(press, 'pressIn');
+    fireEvent(press, 'press');
+    fireEvent(press, 'pressOut');
+  };
+
+  it('has no old transfer link', async () => {
+    mockWithTeams([{ id: 2, name: 'Casa', role: 'owner' }]);
+    renderWithStore(<Dashboard />);
+    await screen.findByTestId('hero');
+    expect(screen.queryByTestId('transfer-button')).toBeNull();
+  });
+
+  it('swaps to the options on a tap and disables the transfer tile with no other owned context', async () => {
+    mockWithTeams([]);
+    renderWithStore(<Dashboard />);
+    await screen.findByTestId('hero');
+    expect(screen.queryByTestId('transfer-tile')).toBeNull();
+    await tapCard();
+    await waitFor(() => expect(screen.getByTestId('transfer-tile')).toBeTruthy());
+    expect(screen.getByTestId('transfer-tile').props.accessibilityState.disabled).toBe(true);
+    expect(screen.getByText('dashboard.transferNoDestination')).toBeTruthy();
+    fireEvent.press(screen.getByTestId('transfer-tile'));
+    expect(mockPushSpy).not.toHaveBeenCalled();
+  });
+
+  it('shows two dimmed placeholders that capture no touch: a tap on them swaps back, no action fires', async () => {
+    mockWithTeams([{ id: 2, name: 'Casa', role: 'owner' }]);
+    renderWithStore(<Dashboard />);
+    await screen.findByTestId('hero');
+    await tapCard();
+    await waitFor(() => expect(screen.getByTestId('transfer-tile')).toBeTruthy());
+    // the reveal ghost duplicates the tree while the card rises: wait for it to settle
+    await waitFor(() => expect(screen.getAllByTestId('placeholder-slot', { includeHiddenElements: true })).toHaveLength(2), { timeout: 2000 });
+    const slots = screen.getAllByTestId('placeholder-slot', { includeHiddenElements: true });
+    slots.forEach((slot) => {
+      expect(slot.props.pointerEvents).toBe('none'); // not hit-testable, so the touch lands on the card
+      expect(slot.props.onPress).toBeUndefined();
+      expect(slot.props.accessibilityRole).not.toBe('button');
+    });
+    expect(screen.getAllByText('dashboard.soon', { includeHiddenElements: true })).toHaveLength(2);
+    // the touch that lands on a placeholder is the card's own press: it swaps back and triggers nothing else
+    await tapCard();
+    await waitFor(() => expect(screen.queryByTestId('transfer-tile')).toBeNull());
+    expect(mockPushSpy).not.toHaveBeenCalled();
+  });
+
+  it('opens the transfer flow from the enabled tile and returns to the front', async () => {
+    mockWithTeams([{ id: 2, name: 'Casa', role: 'owner' }]);
+    renderWithStore(<Dashboard />);
+    await screen.findByTestId('hero');
+    await tapCard();
+    await waitFor(() => expect(screen.getByTestId('transfer-tile').props.accessibilityState.disabled).toBe(false));
+    fireEvent.press(screen.getByTestId('transfer-tile'));
+    expect(mockPushSpy).toHaveBeenCalledWith('/(tabs)/dashboard/transfer');
+    await waitFor(() => expect(screen.queryByTestId('transfer-tile')).toBeNull());
+  });
+
+  it('swaps back when the card is pressed outside the tiles', async () => {
+    mockWithTeams([]);
+    renderWithStore(<Dashboard />);
+    await screen.findByTestId('hero');
+    await tapCard();
+    await waitFor(() => expect(screen.getByTestId('transfer-tile')).toBeTruthy());
+    await new Promise((r) => setTimeout(r, 800)); // let the rise finish: presses during a sequence are ignored
+    await tapCard();
+    await waitFor(() => expect(screen.queryByTestId('transfer-tile')).toBeNull());
+  });
+
+  it('ignores a second tap while the sequence is running (no half-swapped state)', async () => {
+    mockWithTeams([]);
+    renderWithStore(<Dashboard />);
+    await screen.findByTestId('hero');
+    await tapCard();
+    await tapCard(); // immediately: ignored
+    await waitFor(() => expect(screen.getByTestId('transfer-tile')).toBeTruthy());
+    await new Promise((r) => setTimeout(r, 450));
+    expect(screen.getByTestId('transfer-tile')).toBeTruthy(); // still the options side
+  });
+
+  it('the hero sits on a frosted glass frame over a blur layer', async () => {
+    mockWithTeams([]);
+    renderWithStore(<Dashboard />);
+    const hero = await screen.findByTestId('hero');
+    expect(hero.props.nativeID).toMatch(/^glass-(wash|solid)$/);
+    expect(screen.getByTestId('glass-fill').props.nativeID).toMatch(/^glass-/);
   });
 });

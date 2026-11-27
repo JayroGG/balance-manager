@@ -20,3 +20,20 @@ export const contrastOn = (hex) => {
   const b = parseInt(value.slice(5, 7), 16);
   return (r * 299 + g * 587 + b * 114) / 1000 >= 150 ? '#16181D' : '#FFFFFF';
 };
+
+// A soft pastel of an accent (hex) for the blurred glass backdrop (ADR-027): same hue, low saturation.
+export const pastel = (hex, scheme = 'light') => {
+  const m = /^#?([0-9A-Fa-f]{2})([0-9A-Fa-f]{2})([0-9A-Fa-f]{2})$/.exec(hex ?? '');
+  const [r, g, b] = m ? [m[1], m[2], m[3]].map((x) => parseInt(x, 16) / 255) : [0.15, 0.39, 0.92];
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const d = max - min;
+  let h = 0;
+  if (d) {
+    if (max === r) h = ((g - b) / d) % 6;
+    else if (max === g) h = (b - r) / d + 2;
+    else h = (r - g) / d + 4;
+  }
+  h = Math.round((h * 60 + 360) % 360);
+  return scheme === 'dark' ? `hsl(${h}, 30%, 42%)` : `hsl(${h}, 40%, 80%)`;
+};

@@ -7,10 +7,12 @@ import { useTheme } from '../../hooks/useTheme';
 // `steps`: [{ key, label, amount, color }] — one figure shown at a time, tap to advance to the next.
 // `dotColor` is required from the consumer (never hardcoded — ADR-013): the hero sits on the accent
 // (colors.primaryText) while the totals bar sits on a card (colors.muted), and the atom can't know which.
+// `style` styles the Pressable itself (so a card-looking container IS the tap target, padding included);
+// `trailing` renders inside it, to the right of the figure.
 // The render index is clamped (`i % steps.length`) so a step list that shrinks between renders (e.g. the
 // Lent step disappearing when a loan is fully repaid) can never index out of bounds.
 export const CyclingFigure = ({
-  steps, currency, showCurrency = true, labelStyle, valueStyle, dotColor, testID,
+  steps, currency, showCurrency = true, labelStyle, valueStyle, dotColor, testID, style, trailing, accessibilityHint,
 }) => {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
@@ -26,29 +28,34 @@ export const CyclingFigure = ({
       testID={testID}
       accessibilityRole="button"
       accessibilityLabel={active.label}
+      accessibilityHint={accessibilityHint}
       onPress={() => setI((n) => n + 1)}
+      style={style}
     >
-      <Text style={labelStyle}>{active.label}</Text>
-      <MoneyText
-        amount={active.amount}
-        currency={currency}
-        showCurrency={showCurrency}
-        signed={!!active.signed}
-        style={[valueStyle, active.color ? { color: active.color } : null]}
-      />
-      {steps.length > 1 ? (
-        <View style={styles.dots}>
-          {steps.map((step, idx) => (
-            <View
-              key={step.key}
-              style={[
-                styles.dot,
-                { backgroundColor: dotColor, opacity: idx === index ? 1 : 0.35 },
-              ]}
-            />
-          ))}
-        </View>
-      ) : null}
+      <View>
+        <Text style={labelStyle}>{active.label}</Text>
+        <MoneyText
+          amount={active.amount}
+          currency={currency}
+          showCurrency={showCurrency}
+          signed={!!active.signed}
+          style={[valueStyle, active.color ? { color: active.color } : null]}
+        />
+        {steps.length > 1 ? (
+          <View style={styles.dots}>
+            {steps.map((step, idx) => (
+              <View
+                key={step.key}
+                style={[
+                  styles.dot,
+                  { backgroundColor: dotColor, opacity: idx === index ? 1 : 0.35 },
+                ]}
+              />
+            ))}
+          </View>
+        ) : null}
+      </View>
+      {trailing}
     </Pressable>
   );
 };

@@ -19,6 +19,9 @@ const rawBaseQuery = fetchBaseQuery({
 });
 
 const AUTH_ENDPOINTS = ['login', 'refresh'];
+// step-up shares a 401 for a wrong password and an expired bearer: it tries the shared refresh (so an expired
+// token recovers) but a final 401 is just "wrong password" — never a logout.
+const NO_LOGOUT_ENDPOINTS = ['stepUp'];
 
 // Single shared in-flight refresh: N concurrent 401s await ONE POST /auth/refresh (the backend rotates
 // the refresh token, so a second concurrent call would trip reuse detection and kill the session).
@@ -73,14 +76,20 @@ const baseQueryWithErrorShape = async (args, api, extraOptions) => {
       // refreshing again would reuse the rotated refresh token and revoke the session.
       const alreadyRefreshed = selectToken(api.getState()) !== sentToken;
       if (!alreadyRefreshed) outcome = await refreshSession(api, extraOptions);
-      if (outcome === 'transient') return result; // stay logged in; the caller can retry later
+      // stay logged in; the caller can retry later. `refresh` tells a caller that cannot log out (step-up, the lock
+      // screen) why the 401 is not a verdict on its own request.
+      if (outcome === 'transient') {
+        result.error.refresh = outcome;
+        return result;
+      }
       if (outcome === 'ok') {
         result = await rawBaseQuery(args, api, extraOptions);
         if (!result.error) return result;
         shapeError(result);
         session = result.error.status !== 401;
       }
-      if (!session) {
+      if (outcome === 'invalid') result.error.refresh = outcome;
+      if (!session && !NO_LOGOUT_ENDPOINTS.includes(api.endpoint)) {
         // Required lazily, not imported: hardLogout reaches back for baseApi.util.resetApiState(), and a
         // top-level import on either side leaves one of them undefined at module-init time.
         const { hardLogout } = require('./hardLogout');
@@ -95,7 +104,7 @@ const baseQueryWithErrorShape = async (args, api, extraOptions) => {
 export const baseApi = createApi({
   reducerPath: 'api',
   baseQuery: baseQueryWithErrorShape,
-  tagTypes: ['Balance', 'Transaction', 'Vault', 'VaultHistory', 'Category', 'Team', 'TeamMember', 'ShoppingList', 'Event', 'Loan', 'LoanHistory', 'Card'],
+  tagTypes: ['Balance', 'Transaction', 'Vault', 'VaultHistory', 'Category', 'Team', 'TeamMember', 'ShoppingList', 'Event', 'Loan', 'LoanHistory', 'Card', 'Transfer'],
   // Show persisted/cached data immediately, then revalidate (ADR-007).
   refetchOnReconnect: true,
   refetchOnMountOrArgChange: true,

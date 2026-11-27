@@ -56,12 +56,16 @@ describe('lock timing', () => {
 });
 
 describe('lock slice', () => {
-  it('cold start locks only when creds are stored; lockApp is a no-op when disabled', () => {
+  it('lockApp locks regardless of biometrics (the lock is mandatory with a session)', () => {
     const s = makeStore();
-    s.dispatch(lockApp());
     expect(s.getState().lock.locked).toBe(false);
-    s.dispatch(initLock(true));
-    expect(s.getState().lock.locked).toBe(true);
+    s.dispatch(lockApp());
+    expect(s.getState().lock).toMatchObject({ locked: true, enabled: false });
+  });
+  it('initLock sets the biometric flag and the locked state independently', () => {
+    const s = makeStore();
+    s.dispatch(initLock({ enabled: false, locked: true }));
+    expect(s.getState().lock).toMatchObject({ enabled: false, locked: true });
   });
 });
 
@@ -69,7 +73,7 @@ describe('useAppLock', () => {
   it('logged in: unlocks with no network', async () => {
     const s = makeStore();
     s.dispatch(hydrateAuth({ token: 'a.b.c', user: null }));
-    s.dispatch(initLock(true));
+    s.dispatch(initLock({ enabled: true, locked: true }));
     const { result } = setup(s);
     let r;
     await act(async () => { r = await result.current.authenticate(); });
@@ -81,7 +85,7 @@ describe('useAppLock', () => {
   it('cancelled prompt stays locked', async () => {
     LA.authenticateAsync.mockResolvedValue({ success: false });
     const s = makeStore();
-    s.dispatch(initLock(true));
+    s.dispatch(initLock({ enabled: true, locked: true }));
     const { result } = setup(s);
     let r;
     await act(async () => { r = await result.current.authenticate(); });
@@ -95,7 +99,7 @@ describe('useAppLock', () => {
       Promise.resolve(new Response(JSON.stringify({ error: 'bad' }), { status: 401, headers: { 'content-type': 'application/json' } })));
     const s = makeStore();
     s.dispatch(hydrateAuth({ token: null, user: null }));
-    s.dispatch(initLock(true));
+    s.dispatch(initLock({ enabled: true, locked: true }));
     const { result } = setup(s);
     let r;
     await act(async () => { r = await result.current.authenticate(); });
@@ -114,7 +118,7 @@ describe('resume / keychain edge cases', () => {
       .mockResolvedValueOnce({ success: true });
     const s = makeStore();
     s.dispatch(hydrateAuth({ token: 'a.b.c', user: null }));
-    s.dispatch(initLock(true));
+    s.dispatch(initLock({ enabled: true, locked: true }));
     s.dispatch(lockApp());
     const { result } = setup(s);
     let r;
@@ -129,7 +133,7 @@ describe('resume / keychain edge cases', () => {
   it('a user cancel is NOT retried', async () => {
     LA.authenticateAsync.mockResolvedValue({ success: false, error: 'user_cancel' });
     const s = makeStore();
-    s.dispatch(initLock(true));
+    s.dispatch(initLock({ enabled: true, locked: true }));
     const { result } = setup(s);
     await act(async () => { await result.current.authenticate(); });
     expect(LA.authenticateAsync).toHaveBeenCalledTimes(1);
@@ -140,7 +144,7 @@ describe('resume / keychain edge cases', () => {
     SecureStore.getItemAsync.mockResolvedValue(null); // locked device: every read is null
     const s = makeStore();
     s.dispatch(hydrateAuth({ token: null, user: null }));
-    s.dispatch(initLock(true));
+    s.dispatch(initLock({ enabled: true, locked: true }));
     SecureStore.deleteItemAsync.mockClear();
     const { result } = setup(s);
     let r;
@@ -155,7 +159,7 @@ describe('resume / keychain edge cases', () => {
     SecureStore.getItemAsync.mockImplementation(async (k) => (k === 'bio_enabled' ? '1' : null));
     const s = makeStore();
     s.dispatch(hydrateAuth({ token: null, user: null }));
-    s.dispatch(initLock(true));
+    s.dispatch(initLock({ enabled: true, locked: true }));
     const { result } = setup(s);
     let r;
     await act(async () => { r = await result.current.authenticate(); });
@@ -172,7 +176,7 @@ describe('prompt gating', () => {
   it('single-flight: concurrent authenticate calls share one prompt', async () => {
     const s = makeStore();
     s.dispatch(hydrateAuth({ token: 'a.b.c', user: null }));
-    s.dispatch(initLock(true));
+    s.dispatch(initLock({ enabled: true, locked: true }));
     const { result } = setup(s);
     await act(async () => { await Promise.all([result.current.authenticate(), result.current.authenticate()]); });
     expect(LA.authenticateAsync).toHaveBeenCalledTimes(1);
@@ -182,7 +186,7 @@ describe('prompt gating', () => {
     setState('inactive');
     const s = makeStore();
     s.dispatch(hydrateAuth({ token: 'a.b.c', user: null }));
-    s.dispatch(initLock(true));
+    s.dispatch(initLock({ enabled: true, locked: true }));
     const { result } = setup(s);
     let r;
     await act(async () => { r = await result.current.authenticate(); });
@@ -193,7 +197,7 @@ describe('prompt gating', () => {
   it('unmount cancels a pending wait: no stale prompt', async () => {
     setState('inactive');
     const s = makeStore();
-    s.dispatch(initLock(true));
+    s.dispatch(initLock({ enabled: true, locked: true }));
     const { result, unmount } = setup(s);
     let p;
     act(() => { p = result.current.authenticate(); });
@@ -216,7 +220,7 @@ describe('flag + creds reads', () => {
     SecureStore.getItemAsync.mockResolvedValue(null);
     const s = makeStore();
     s.dispatch(hydrateAuth({ token: null, user: null }));
-    s.dispatch(initLock(true));
+    s.dispatch(initLock({ enabled: true, locked: true }));
     const { result } = setup(s);
     await act(async () => { await result.current.authenticate(); });
     expect(result.current.error).toBe('auth.unlockFailed');

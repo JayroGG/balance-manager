@@ -189,7 +189,7 @@ describe('401 refresh — single shared refresh + one retry', () => {
     expect(a.data).toEqual({ total: 1 });
     expect(b.data).toEqual([]);
     expect(store.getState().auth.token).toBe(jwt);
-    expect(store.getState().auth.user).toEqual({ id: '7', email: 'a@b.co' });
+    expect(store.getState().auth.user).toEqual({ id: '7', email: 'a@b.co', isAdmin: false });
     expect(SecureStore.setItemAsync).toHaveBeenCalledWith('auth_refresh_token', 'new-refresh');
     expect(SecureStore.setItemAsync).toHaveBeenCalledWith('auth_token', jwt);
   });

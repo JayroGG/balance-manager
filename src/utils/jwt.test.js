@@ -6,7 +6,7 @@ const TOKEN = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI0MiIsImVtYWlsIjoiYUBiLmNvIn0.x';
 
 describe('decodeUser', () => {
   it('extracts id (sub) and email from a JWT', () => {
-    expect(decodeUser(TOKEN)).toEqual({ id: '42', email: 'a@b.co' });
+    expect(decodeUser(TOKEN)).toEqual({ id: '42', email: 'a@b.co', isAdmin: false });
   });
 
   it('returns null for a missing token', () => {
@@ -19,4 +19,12 @@ describe('decodeUser', () => {
     expect(decodeUser('bypass-placeholder-token')).toBeNull();
     expect(decodeUser('not.a.jwt')).toBeNull();
   });
+});
+
+describe('decodeUser admin flag', () => {
+it('flags a global admin from the role claim', () => {
+  // payload { sub: '1', role: 'admin' }
+  const admin = `eyJhbGciOiJIUzI1NiJ9.${Buffer.from(JSON.stringify({ sub: '1', role: 'admin' })).toString('base64url')}.x`;
+  expect(decodeUser(admin).isAdmin).toBe(true);
+});
 });

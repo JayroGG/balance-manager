@@ -9,6 +9,17 @@ const steps = [
 ];
 
 describe('CyclingFigure', () => {
+  it('makes the styled container the tap target, trailing content included', () => {
+    const { Text } = require('react-native');
+    renderWithStore(
+      <CyclingFigure steps={steps} currency="USD" dotColor="#333" testID="fig" style={{ padding: 16 }} trailing={<Text>meta</Text>} />,
+    );
+    const press = screen.getByTestId('fig');
+    expect(press.props.style).toEqual({ padding: 16 });
+    fireEvent.press(screen.getByText('meta'));
+    expect(screen.getByText('Income')).toBeTruthy();
+  });
+
   it('renders the first step label and amount', () => {
     renderWithStore(<CyclingFigure steps={steps} currency="USD" dotColor="#333" testID="fig" />);
     expect(screen.getByText('Balance')).toBeTruthy();

@@ -273,6 +273,6 @@ const makeStyles = (colors) =>
   action: { fontWeight: '700', fontSize: font.md },
   histAmount: { fontWeight: '700', color: colors.text },
   histDate: { color: colors.muted, fontSize: font.sm, marginTop: spacing(0.5) },
-  deleteIcon: { alignSelf: 'center', padding: spacing(2), marginTop: spacing(1) },
+  deleteIcon: { alignSelf: 'center', padding: spacing(2), marginTop: spacing(1), minWidth: 44, minHeight: 44 },
   deleteHint: { textAlign: 'center', marginTop: spacing(1.5) },
 });

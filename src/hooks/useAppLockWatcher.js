@@ -8,7 +8,8 @@ export const LOCK_AFTER_MS = 5 * 60 * 1000;
 export const shouldLockOnResume = (backgroundedAt, now) =>
   backgroundedAt != null && now - backgroundedAt > LOCK_AFTER_MS;
 
-// Locks the app when it returns to the foreground after more than 5 minutes in the background.
+// Locks the app when it returns to the foreground after more than 5 minutes in the background (the existing grace
+// window), whenever a session exists or biometric creds are stored.
 export function useAppLockWatcher() {
   const dispatch = useDispatch();
   const store = useStore();
@@ -19,7 +20,8 @@ export function useAppLockWatcher() {
       if (next === 'background') {
         bgAt.current = Date.now();
       } else if (next === 'active') {
-        if (store.getState().lock.enabled && shouldLockOnResume(bgAt.current, Date.now())) {
+        const state = store.getState();
+        if ((state.lock.enabled || !!state.auth.token) && shouldLockOnResume(bgAt.current, Date.now())) {
           dispatch(lockApp());
         }
         bgAt.current = null;
