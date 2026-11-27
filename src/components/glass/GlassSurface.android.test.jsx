@@ -45,6 +45,19 @@ describe('GlassSurface on Android', () => {
     expect(screen.queryByText('under')).toBeNull();
     expect(UNSAFE_queryAllByType('BlurView')).toHaveLength(0);
   });
+  it('a centred disc keeps its body full-size (no icon-wide slab) and fully round', () => {
+    render(
+      <GlassSurface testID="d" flat style={{ width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center' }}>
+        <Text>i</Text>
+      </GlassSurface>,
+    );
+    const body = flat('d-body');
+    expect(body.alignSelf).toBe('stretch'); // else the outer alignItems:center shrinks the body to the icon's width
+    expect(body.borderRadius).toBe(26.5);
+    expect(body.alignItems).toBe('center');
+    expect(body.justifyContent).toBe('center');
+    expect(flat('d').borderRadius).toBe(28);
+  });
   it('turns the rim sheen and glow to danger when overdrawn', () => {
     render(<GlassSurface testID="g" flat danger><Text>x</Text></GlassSurface>);
     const outer = flat('g');

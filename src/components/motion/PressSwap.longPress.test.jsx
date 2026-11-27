@@ -1,5 +1,5 @@
 jest.mock('react-native-reanimated', () => require('../../test-utils/reanimatedMock'));
-jest.mock('expo-haptics', () => ({ impactAsync: jest.fn(), ImpactFeedbackStyle: { Medium: 'medium' } }));
+jest.mock('expo-haptics', () => ({ impactAsync: jest.fn(), ImpactFeedbackStyle: { Light: 'light', Medium: 'medium' } }));
 import { useState } from 'react';
 import { StyleSheet, Text } from 'react-native';
 import { render, fireEvent, screen, act } from '@testing-library/react-native';

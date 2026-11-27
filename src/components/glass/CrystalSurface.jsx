@@ -44,6 +44,8 @@ export const CrystalSurface = ({ children, style, accent, danger, dangerColor, d
         testID={testID && `${testID}-body`}
         style={{
           flex: 1,
+          // an outer `alignItems` (e.g. a centred disc) would otherwise shrink the body to its content's width: a slab
+          alignSelf: 'stretch',
           // the caller's content alignment (e.g. a centred icon in a disc) applies to the body, which holds the children
           alignItems: flat?.alignItems,
           justifyContent: flat?.justifyContent,
