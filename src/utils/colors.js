@@ -21,9 +21,8 @@ export const contrastOn = (hex) => {
   return (r * 299 + g * 587 + b * 114) / 1000 >= 150 ? '#16181D' : '#FFFFFF';
 };
 
-// Soft pastel hues derived from an accent (hex), for the blurred glass backdrop (ADR-027). Same hue plus two
-// neighbours; light mode is bright and airy, dark mode deeper so the white glass wash still reads.
-export const pastelPalette = (hex, scheme = 'light') => {
+// A soft pastel of an accent (hex) for the blurred glass backdrop (ADR-027): same hue, low saturation.
+export const pastel = (hex, scheme = 'light') => {
   const m = /^#?([0-9A-Fa-f]{2})([0-9A-Fa-f]{2})([0-9A-Fa-f]{2})$/.exec(hex ?? '');
   const [r, g, b] = m ? [m[1], m[2], m[3]].map((x) => parseInt(x, 16) / 255) : [0.15, 0.39, 0.92];
   const max = Math.max(r, g, b);
@@ -35,9 +34,6 @@ export const pastelPalette = (hex, scheme = 'light') => {
     else if (max === g) h = (b - r) / d + 2;
     else h = (r - g) / d + 4;
   }
-  h = (h * 60 + 360) % 360;
-  const l = scheme === 'dark' ? 0.42 : 0.8;
-  const s = scheme === 'dark' ? 0.55 : 0.85;
-  const hsl = (hue) => `hsl(${Math.round((hue + 360) % 360)}, ${Math.round(s * 100)}%, ${Math.round(l * 100)}%)`;
-  return [hsl(h), hsl(h + 38), hsl(h - 38)];
+  h = Math.round((h * 60 + 360) % 360);
+  return scheme === 'dark' ? `hsl(${h}, 30%, 42%)` : `hsl(${h}, 40%, 80%)`;
 };

@@ -5,11 +5,10 @@ import { GlassSurface } from '../../components/glass/GlassSurface';
 import { useTheme } from '../../hooks/useTheme';
 import { font, spacing } from '../../components/theme';
 
-// Back face of the balance card (ADR-027): a transparent frosted face (the blur is the card's static underlay)
-// whose 2x2 grid of glass tiles fills it edge to edge. Transfer is live; the rest are greyed placeholders.
+// Back side of the balance card (ADR-027): the card's own glass frames it; a 2x2 grid of glass tiles fills it edge to edge. Transfer is live; the rest are greyed placeholders.
 // `transferReason` is the short text shown when transfer isn't possible.
 // Gutters live on wrapper Views OUTSIDE each tile's Pressable, so a tap on a gutter (or the face) falls through
-// to the card and flips it back; a tap on a tile never does (noop when inert).
+// to the card and swaps it back; a tap on a tile never does (noop when inert).
 const noop = () => {};
 const PLACEHOLDERS = ['pricetag-outline', 'calendar-outline', 'stats-chart-outline'];
 
@@ -30,8 +29,10 @@ export const BalanceOptions = ({ canTransfer, transferReason, onTransfer, radius
       >
         <GlassSurface flat style={[styles.tile, off && styles.off]}>
           <Ionicons name={icon} size={22} color={colors.text} />
-          <Text style={styles.label}>{label}</Text>
-          {reason ? <Text style={styles.reason} numberOfLines={2}>{reason}</Text> : null}
+          <View style={styles.texts}>
+            <Text style={styles.label} numberOfLines={1}>{label}</Text>
+            {reason ? <Text style={styles.reason} numberOfLines={2}>{reason}</Text> : null}
+          </View>
         </GlassSurface>
       </Pressable>
     </View>
@@ -40,7 +41,7 @@ export const BalanceOptions = ({ canTransfer, transferReason, onTransfer, radius
     tile(icon, { icon, label: t('dashboard.comingSoon'), off: true, disabled: true, testID: 'placeholder-tile' });
 
   return (
-    <GlassSurface flat style={styles.face} testID="balance-options">
+    <View style={styles.face} testID="balance-options">
       <View style={styles.grid}>
         <View style={styles.row}>
           {tile('transfer', {
@@ -59,19 +60,23 @@ export const BalanceOptions = ({ canTransfer, transferReason, onTransfer, radius
           {soon(PLACEHOLDERS[2])}
         </View>
       </View>
-    </GlassSurface>
+    </View>
   );
 };
 
 const makeStyles = (colors, radius = 16) =>
   StyleSheet.create({
-    face: { ...StyleSheet.absoluteFillObject, borderRadius: radius, padding: spacing(0.5) },
+    // explicit edges: StyleSheet.absoluteFillObject was removed in RN 0.85 (spreading it silently gives nothing, so the
+    // face collapsed to ~0 height and every row overlapped at the top)
+    face: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, padding: spacing(0.5) },
     grid: { flex: 1 },
     row: { flex: 1, flexDirection: 'row' },
     cell: { flex: 1, padding: spacing(0.5), minHeight: 44 },
     press: { flex: 1 },
-    tile: { flex: 1, borderRadius: radius - 4, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing(1) },
+    // icon + text side by side: a tile stays legible however short the card is (no vertical stacking to overflow)
+    tile: { flex: 1, borderRadius: radius - 4, flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing(1), gap: spacing(1) },
+    texts: { flex: 1, justifyContent: 'center' },
     off: { opacity: 0.55 },
-    label: { color: colors.text, fontSize: font.sm, fontWeight: '700', marginTop: 2 },
-    reason: { color: colors.muted, fontSize: 10, textAlign: 'center' },
+    label: { color: colors.text, fontSize: font.sm, fontWeight: '700' },
+    reason: { color: colors.muted, fontSize: 10 },
   });

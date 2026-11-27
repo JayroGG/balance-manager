@@ -20,5 +20,6 @@ module.exports = {
   interpolate: (x, [a, b], [c, d]) => c + ((x - a) / (b - a)) * (d - c),
   withSpring: (v) => v,
   withTiming: (v) => v,
+  withDelay: (_ms, v) => v,
   Easing: { out: (f) => f, cubic: 1 },
 };

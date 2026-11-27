@@ -1,32 +1,30 @@
 import * as Haptics from 'expo-haptics';
 
-// Single home for the "toony" motion language (ADR-027): spring presets, flip timings, 3D shadow depth
-// levels and the haptic tap. Components import from here — nothing animation-specific is inlined in screens.
+// Single home for the motion language (ADR-027): press-swap timings, shadow depth, and the haptic tap.
+// Components import from here — nothing animation-specific is inlined in screens.
 
-// Springy with a visible overshoot (low damping) — the flip lands, wobbles, settles.
-export const springs = {
-  toony: { damping: 11, stiffness: 170, mass: 0.9 },
-  settle: { damping: 18, stiffness: 220, mass: 0.8 },
-  // Release snap of the draggable card: clearly underdamped so it wobbles around the face before it settles.
-  magnetic: { damping: 12, stiffness: 130, mass: 1 },
+// Press-swap (PressSwap): press sinks the card and fades its content, the content swaps at the bottom, release
+// rises smoothly. Every phase has a MINIMUM duration so even a quick tap plays the whole sequence.
+export const pressSwap = {
+  sinkMs: 120, // down + content fade-out (min)
+  holdMs: 80, // at the bottom, after the swap (min)
+  riseMs: 300, // smooth ease back up + content fade-in
+  sinkY: 5, // pt the card moves down
+  sinkScale: 0.96,
+  fadeFloor: 0.28, // outgoing content softens to this opacity, never to blank
+  blurMax: 6, // px of real blur at the bottom (Android only)
+  ghostOpacity: 0.7, // the template's peak opacity
+  ghostInMs: 90, // the template forms at the bottom
+  realDelayMs: 60, // the real text starts sharpening in on top of it
+  ghostBlurFrom: 4, // px (Android) -> ghostBlurTo while it dissolves
+  ghostBlurTo: 14,
+  crossfadeMs: 160, // Reduce Motion and external swaps: no sink, just fade out/in
 };
 
-export const flip = {
-  perspective: 1600, // long lens: the card must not balloon toward the camera mid-flip
-  squash: 0.02, // peak scale change mid-flip — subtle, never a visible grow
-  grabScale: 0.015, // extra lift while a finger holds the card
-  dragSpan: 0.9, // fraction of the card width that is one full flip
-  tiltMax: 8, // deg of X tilt following the finger
-  maxVelocity: 2.5, // cap (cards/sec) on the release velocity fed to the snap spring: the wobble can't swing past the other face
-  throw: 0.25, // how far release velocity projects the card before it picks a face
-  reducedMs: 160, // Reduce Motion: short crossfade instead of the spring
-};
-
-// Layered boxShadow per depth: resting vs lifted off the screen. `shift` is multiplied by sin(rotation)
-// so the shadow slides sideways as the card turns.
+// Layered shadow per depth: resting vs pressed (tighter, closer to the surface).
 export const depth = {
-  rest: { y: 4, blur: 10, alpha: 0.14 },
-  lifted: { y: 14, blur: 26, alpha: 0.3, shift: 18 },
+  rest: { y: 5, blur: 14, alpha: 0.14 },
+  pressed: { y: 1, blur: 3, alpha: 0.22 },
 };
 
 export const tapHaptic = () => {

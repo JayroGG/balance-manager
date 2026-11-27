@@ -22,8 +22,6 @@ jest.mock('react-native-gesture-handler', () => ({
         {
           get: (_, name) => (fn) => {
             if (typeof fn === 'function') h[name] = fn;
-            // FlipCard3D's pan (the only one calling .enabled) is not a vault row: don't index it
-            if (name === 'enabled') mockPans.splice(mockPans.indexOf(h), 1);
             return chain;
           },
         },

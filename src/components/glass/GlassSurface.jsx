@@ -24,7 +24,7 @@ const liquidAvailable = () => {
   }
 };
 
-export const GlassSurface = ({ children, style, intensity = 60, flat = false, testID }) => {
+export const GlassSurface = ({ children, style, intensity = 60, flat = false, under, testID }) => {
   const { colors, scheme } = useTheme();
   const reduceTransparency = useReduceTransparency();
   const kind = pickGlassKind({ reduceTransparency, liquid: liquidAvailable(), flat, blurAvailable: nativeBlurAvailable() });
@@ -62,6 +62,7 @@ export const GlassSurface = ({ children, style, intensity = 60, flat = false, te
       {kind === 'blur' ? (
         <BlurView intensity={intensity} tint={dark ? 'dark' : 'light'} style={StyleSheet.absoluteFill} pointerEvents="none" />
       ) : null}
+      {under}
       {highlight}
       {children}
     </View>

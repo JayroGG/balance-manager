@@ -188,4 +188,4 @@ balance-manager/                 # app name: balance-mobile
 > `npx expo prebuild` when the app moves to a dev build (ADR-003).
 
 │   ├── components/ui/SortableList.jsx   # generic vertical drag-and-drop list: the standard for reorderable lists (ADR-024)
-│   ├── components/{motion/FlipCard3D,glass/GlassSurface}.jsx + theme/motion.js   # balance-card flip + glass (ADR-027)
+│   ├── components/{motion/PressSwap,glass/*}.jsx + theme/motion.js   # balance-card press-swap + frosted glass (ADR-027)

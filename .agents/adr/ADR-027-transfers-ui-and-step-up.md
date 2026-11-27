@@ -8,7 +8,7 @@ BE adds owner-only inter-context transfers guarded by a server step-up permit. T
 global admin as read-only inside teams (role 'admin' unknown to `src/permissions`).
 
 ## Decision
-- **Entry:** the Dashboard balance card flips (tap) to a glass options menu whose **Transfer** tile opens the flow (the old text link is removed). The tile is enabled only when the caller owns the current context
+- **Entry:** pressing the Dashboard balance card swaps it to a glass options menu whose **Transfer** tile opens the flow (the old text link is removed). The tile is enabled only when the caller owns the current context
   (personal counts) and at least one other (real role from `GET /teams`, not 'admin').
 - **Flow:** destination (owned contexts except current) -> amount -> if short, manual vault split
   (source vaults with balances; confirm only when parts == shortfall exactly) -> note + date (default
@@ -24,30 +24,35 @@ global admin as read-only inside teams (role 'admin' unknown to `src/permissions
   `canEditRow`, `canManageTeam`) in EVERY team, even where the real membership role is member/guest
   (`usePermissions`); role 'admin' from `GET /teams` is treated the same. Transfers still follow real
   ownership (`useOwnedContexts`). UI only — the API enforces.
-- **Balance card flip + glass (addendum):** reusable pieces in one place — `src/components/motion/FlipCard3D.jsx`
-  (springy rotateY, squash/stretch, perspective, shifting layered `boxShadow`, haptic; Reduce Motion ->
-  crossfade), `src/components/glass/GlassSurface.jsx` (`expo-glass-effect` liquid glass on iOS 26+, `expo-blur`
-  elsewhere, solid under Reduce Transparency) and `src/theme/motion.js` (spring presets, timings, shadow depth,
-  haptic helper). The card flips back after a pick, on context switch and when leaving the screen.
-- **Round 2 (owner feedback):** `FlipCard3D` is gesture-driven: a pan rotates it live around Y (small X tilt) and
-  on release it snaps to the nearest face with the underdamped `springs.magnetic` (release velocity clamped so the
-  wobble never shows the wrong face); a tap still flips; Reduce Motion disables the pan (crossfade only). Both faces
-  share one layout box; squash 0.02, perspective 1600. The back grid fills the face (2x2, equal cells; gutters sit
-  OUTSIDE the tile Pressables) and a tap anywhere outside a tile flips back. Whole-element touch: the front content is
-  non-interactive inside one face `Pressable`; Chip min height 44.
-- **Glass (round 2b, supersedes accent-tinted card):** the accent moves OUT of the card into a pastel scene behind it
-  (`GlassBackdrop`: blurry radial blobs from `pastelPalette(accent)` plus a few crisp shapes so the blur is visibly
-  doing something). The card is near-transparent white frosted glass (`GlassSurface`: white wash, thin light rim, top
-  highlight, ink = `colors.text`). A native blur/glass under a 3D rotation darkens/glitches, so the real blur is ONE
-  static `GlassFill` underlay (`FlipCard3D underlay`, only narrows with |cos| like the shadow) and the rotating faces and
-  tiles are `flat` (wash only).
-- **Glass paths:** Reduce Transparency -> opaque card color. Otherwise the underlay is `expo-blur` BlurView: iOS
-  UIVisualEffect; Android real blur through `BlurTargetView` (dimezis); Expo Go bundles expo-blur, so it takes the
-  BlurView path. A dev client built BEFORE expo-blur was added has no `ExpoBlur` native module
-  (`requireOptionalNativeModule`): the card silently degrades to a translucent wash and logs a dev warning ("rebuild the
-  dev client"). Liquid glass (`GlassView`, iOS 26+) is only used by non-rotating `GlassSurface` uses.
-- **A11y:** the back face is not one accessible element (tiles stay individually reachable); VoiceOver flips back with the
-  two-finger escape gesture (iOS only; TalkBack has no flip-back gesture — the user can switch context or leave the screen).
+- **Balance card press-swap + glass (rounds 1-3; the 3D flip was dropped in round 3):** reusable pieces in one place —
+  `src/components/motion/PressSwap.jsx` (generic: front/back render props, controlled `side`), `src/components/glass/*`
+  (`GlassSurface`, `GlassFill`, `GlassBackdrop`, `glassSupport`) and `src/theme/motion.js` (timings, shadow depth, haptic).
+  Pressing sinks the card (down 5pt, scale 0.96, shadow tightens) while its content softens to a floor opacity (never
+  blank; a real blur on Android, iOS has no style blur); the content swaps at the BOTTOM of the press, then the card
+  rises on release with a smooth ease and the new content fades in. Every phase has a minimum duration (sink 120ms, hold
+  80ms, rise 300ms) so a quick tap plays the whole sequence; presses during a sequence are ignored (no queue, no flicker);
+  a press that becomes a scroll/cancel rises without swapping. Reduce Motion: no sink, a short crossfade. Outside side
+  changes (context switch, leaving the screen, a tile action) crossfade. The card returns to the front after a tile pick, on context
+  switch and when leaving the screen. The back is a 2x2 grid of glass tiles filling the card; gutters sit OUTSIDE the tile
+  Pressables so a tap outside a tile swaps back; whole-card touch (front content is non-interactive inside one Pressable).
+- **Glass:** the card is near-transparent frosted white (`GlassSurface`: white wash, thin light rim, top highlight, ink
+  `colors.text`) over a `GlassFill` blur layer; the accent lives only in a single soft, low-saturation glow behind it
+  (`GlassBackdrop`). Paths: Reduce Transparency -> opaque card color; otherwise `expo-blur` BlurView (iOS UIVisualEffect;
+  Android real blur through `BlurTargetView`; Expo Go bundles expo-blur). A dev client built BEFORE expo-blur has no
+  `ExpoBlur` native module (`requireOptionalNativeModule`): the card degrades to a translucent wash and logs a dev warning
+  ("rebuild the dev client").
+- **Reveal (round 3b):** `GlassTextReveal` (inside `PressSwap`) layers, while the new side forms: a blurred GHOST of the same
+  tree (soft smudges where the text will be; hidden from a11y/queries), a frost over it (iOS: an opaque `BlurView`;
+  Android: a real `filter: blur` on the ghost) and the REAL content on top; the real text sharpens in over the ghost while
+  the ghost dissolves, finishing with the rise. Needs a native blur (iOS `ExpoBlur` / Android) — otherwise a plain fade.
+  Not built: a water-like ripple of the template (cost/jank risk on device).
+- **Layout gotcha:** RN 0.85 removed `StyleSheet.absoluteFillObject`; spreading it silently gives nothing, so the options
+  face collapsed to ~0 height and every row overlapped (jest could not see it). A jest guard now bans it; verify layout on
+  the simulator, not only in jest.
+- **A11y:** the front is one button (expanded state); on the back the card is NOT a group, so each tile is individually
+  reachable and the front is hidden from screen readers; VoiceOver's two-finger escape swaps back (iOS only — TalkBack has
+  no swap-back gesture; switching context or leaving the screen also resets).
+- **Hit areas:** `Chip` min height 44; the whole visual element is the target.
 - **Libraries:** `expo-glass-effect` + `expo-blur` (SDK 56 pinned, owner-approved). Native modules: dev builds/APKs
   need a rebuild; Expo Go works.
 

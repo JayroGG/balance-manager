@@ -20,7 +20,6 @@ import Dashboard from './index';
 // text the same way the screen does.
 const money = (amount) => formatMoney(amount, 'USD');
 
-jest.mock('react-native-gesture-handler', () => require('../../test-utils/gestureMock'));
 jest.mock('react-native-reanimated', () => require('../../test-utils/reanimatedMock'));
 jest.mock('@expo/vector-icons', () => ({ Ionicons: 'Ionicons' }));
 jest.mock('react-native-safe-area-context', () => ({
@@ -280,14 +279,21 @@ describe('Dashboard top-3 uses the local order', () => {
   });
 });
 
-// ADR-027: the old text link is gone; the balance card flips to a glass options menu.
-describe('balance card flip menu (ADR-027)', () => {
+// ADR-027: the old text link is gone; pressing the balance card swaps it to a glass options menu.
+describe('balance card press-swap menu (ADR-027)', () => {
   const mockWithTeams = (teams) => {
     mockFetch(baseBalance);
     const base = global.fetch.getMockImplementation();
     global.fetch.mockImplementation((req) =>
       req.url.includes('/teams') ? Promise.resolve(jsonResponse(teams)) : base(req),
     );
+  };
+  // A full tap: in, release, out — then wait for the min-duration sequence to land the swap.
+  const tapCard = async () => {
+    const press = screen.getByTestId('balance-swap-press');
+    fireEvent(press, 'pressIn');
+    fireEvent(press, 'press');
+    fireEvent(press, 'pressOut');
   };
 
   it('has no old transfer link', async () => {
@@ -297,50 +303,58 @@ describe('balance card flip menu (ADR-027)', () => {
     expect(screen.queryByTestId('transfer-button')).toBeNull();
   });
 
-  it('disables the transfer tile when there is no other owned context', async () => {
+  it('swaps to the options on a tap and disables the transfer tile with no other owned context', async () => {
     mockWithTeams([]);
     renderWithStore(<Dashboard />);
     await screen.findByTestId('hero');
-    fireEvent.press(screen.getByTestId('balance-flip-front'));
+    expect(screen.queryByTestId('transfer-tile')).toBeNull();
+    await tapCard();
+    await waitFor(() => expect(screen.getByTestId('transfer-tile')).toBeTruthy());
     expect(screen.getByTestId('transfer-tile').props.accessibilityState.disabled).toBe(true);
     expect(screen.getByText('dashboard.transferNoDestination')).toBeTruthy();
     fireEvent.press(screen.getByTestId('transfer-tile'));
     expect(mockPushSpy).not.toHaveBeenCalled();
-    expect(screen.getByText('dashboard.transferNoDestination')).toBeTruthy(); // tile press must not flip it back
     expect(screen.getAllByTestId('placeholder-tile')).toHaveLength(3);
-    // the back face must not be one accessible blob: tiles stay individually reachable by VoiceOver
-    expect(screen.getByTestId('balance-flip-back').props.accessible).toBe(false);
   });
 
-  it('opens the transfer flow from the enabled tile and flips back', async () => {
+  it('opens the transfer flow from the enabled tile and returns to the front', async () => {
     mockWithTeams([{ id: 2, name: 'Casa', role: 'owner' }]);
     renderWithStore(<Dashboard />);
     await screen.findByTestId('hero');
+    await tapCard();
     await waitFor(() => expect(screen.getByTestId('transfer-tile').props.accessibilityState.disabled).toBe(false));
-    fireEvent.press(screen.getByTestId('balance-flip-front'));
     fireEvent.press(screen.getByTestId('transfer-tile'));
     expect(mockPushSpy).toHaveBeenCalledWith('/(tabs)/dashboard/transfer');
+    await waitFor(() => expect(screen.queryByTestId('transfer-tile')).toBeNull());
   });
 
-  it('flips back when the back face is tapped anywhere outside the tiles', async () => {
-    mockWithTeams([{ id: 2, name: 'Casa', role: 'owner' }]);
+  it('swaps back when the card is pressed outside the tiles', async () => {
+    mockWithTeams([]);
     renderWithStore(<Dashboard />);
     await screen.findByTestId('hero');
-    fireEvent.press(screen.getByTestId('balance-flip-front'));
-    fireEvent.press(screen.getByTestId('balance-flip-back'));
-    // flipped back: the back face (and its tiles) no longer take touches
-    await waitFor(() => {
-      fireEvent.press(screen.getByTestId('transfer-tile'));
-      expect(mockPushSpy).not.toHaveBeenCalled();
-    });
+    await tapCard();
+    await waitFor(() => expect(screen.getByTestId('transfer-tile')).toBeTruthy());
+    await new Promise((r) => setTimeout(r, 800)); // let the rise finish: presses during a sequence are ignored
+    await tapCard();
+    await waitFor(() => expect(screen.queryByTestId('transfer-tile')).toBeNull());
   });
 
-  it('the hero is a flat (non-blurring) glass face over one static blur underlay', async () => {
+  it('ignores a second tap while the sequence is running (no half-swapped state)', async () => {
+    mockWithTeams([]);
+    renderWithStore(<Dashboard />);
+    await screen.findByTestId('hero');
+    await tapCard();
+    await tapCard(); // immediately: ignored
+    await waitFor(() => expect(screen.getByTestId('transfer-tile')).toBeTruthy());
+    await new Promise((r) => setTimeout(r, 450));
+    expect(screen.getByTestId('transfer-tile')).toBeTruthy(); // still the options side
+  });
+
+  it('the hero sits on a frosted glass frame over a blur layer', async () => {
     mockWithTeams([]);
     renderWithStore(<Dashboard />);
     const hero = await screen.findByTestId('hero');
-    expect(hero.props.accessibilityLabel).toMatch(/^glass-(wash|solid)$/); // flat: never a native blur under rotation
-    expect(screen.getByTestId('balance-flip-underlay')).toBeTruthy();
+    expect(hero.props.accessibilityLabel).toMatch(/^glass-(wash|solid)$/);
     expect(screen.getByTestId('glass-fill').props.accessibilityLabel).toMatch(/^glass-/);
   });
 });
