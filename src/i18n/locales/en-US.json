@@ -38,7 +38,11 @@
     "seeAll": "See all",
     "emptyLists": "No open lists",
     "seeAllVaults": "See all vaults",
-    "transfer": "Transfer"
+    "transfer": "Transfer",
+    "comingSoon": "Coming soon",
+    "transferNotOwner": "Only an owner of this context can transfer",
+    "transferNoDestination": "You need another context you own",
+    "flipBack": "Tap to flip back"
   },
   "transactions": {
     "title": "Transactions",

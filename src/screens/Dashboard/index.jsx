@@ -1,6 +1,6 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useDispatch } from 'react-redux';
 import { useTranslation } from 'react-i18next';
@@ -14,6 +14,8 @@ import { useOwnedContexts } from '../../hooks/useOwnedContexts';
 import { useUnreadActivity } from '../../hooks/useUnreadActivity';
 import { useContextReady } from '../../hooks/useContextReady';
 import { useOrderedVaults } from '../Vaults/reorder';
+import { FlipCard3D } from '../../components/motion/FlipCard3D';
+import { BalanceOptions } from './BalanceOptions';
 import { useTheme } from '../../hooks/useTheme';
 import {
   Screen,
@@ -78,6 +80,12 @@ export default function Dashboard() {
   const unread = useUnreadActivity();
   const ownedContexts = useOwnedContexts();
   const canTransfer = (role === null || role === 'owner') && ownedContexts.some((c) => !c.isCurrent);
+  // Balance card flip menu (ADR-027): flips back after a pick, on context switch and on leaving the screen.
+  const [flipped, setFlipped] = useState(false);
+  useEffect(() => setFlipped(false), [teamId]);
+  useFocusEffect(useCallback(() => () => setFlipped(false), []));
+  const isOwnerHere = role === null || role === 'owner';
+  const transferReason = !isOwnerHere ? t('dashboard.transferNotOwner') : t('dashboard.transferNoDestination');
   // Drive the spinner only from a user pull — not the auto refetch-on-mount, which on iOS
   // leaves a programmatic RefreshControl spinner stuck until the user drags.
   const [refreshing, setRefreshing] = useState(false);
@@ -150,12 +158,6 @@ export default function Dashboard() {
         </Muted>
       ) : null}
 
-      {canTransfer ? (
-        <Pressable hitSlop={12} testID="transfer-button" style={styles.seeAllBtn} onPress={() => router.push('/(tabs)/dashboard/transfer')}>
-          <Text style={styles.seeAll}>{t('dashboard.transfer')}</Text>
-        </Pressable>
-      ) : null}
-
       {!confirmed ? (
         <>
           <Card style={styles.hero}>
@@ -181,23 +183,42 @@ export default function Dashboard() {
         <QueryBoundary isLoading={isLoading && !data} error={error} onRetry={refetch}>
           {/* All figures at once, no tap-to-cycle: the dashboard hero is glanced at, not operated.
               Available leads (it's the number you act on); total and lent sit under it. */}
-          <Card style={[styles.hero, overdrawn && styles.heroNegative]} testID="hero">
-            <Text style={[styles.heroLabel, overdrawn && styles.heroLabelNegative]}>{t('dashboard.available')}</Text>
-            <MoneyText amount={data?.available} currency={currency} style={[styles.heroFigure, overdrawn && styles.heroInkNegative]} signed />
-            <View style={styles.figureRow}>
-              <Text style={[styles.heroLabel, overdrawn && styles.heroLabelNegative]}>{t('dashboard.total')}</Text>
-              <MoneyText amount={data?.total} currency={currency} style={[styles.heroSecondary, overdrawn && styles.heroInkNegative]} signed />
-            </View>
-            {data?.lent > 0 ? (
+          <FlipCard3D
+            testID="balance-flip"
+            backLabel={t('dashboard.flipBack')}
+            style={styles.heroFlip}
+            flipped={flipped}
+            onFlip={setFlipped}
+            front={
+            <Card style={[styles.hero, styles.heroFlat, overdrawn && styles.heroNegative]} testID="hero">
+              <Text style={[styles.heroLabel, overdrawn && styles.heroLabelNegative]}>{t('dashboard.available')}</Text>
+              <MoneyText amount={data?.available} currency={currency} style={[styles.heroFigure, overdrawn && styles.heroInkNegative]} signed />
               <View style={styles.figureRow}>
-                <Text style={[styles.heroLabel, overdrawn && styles.heroLabelNegative]}>{t('dashboard.lent')}</Text>
-                <MoneyText amount={data.lent} currency={currency} style={[styles.heroSecondary, overdrawn && styles.heroInkNegative]} />
+                <Text style={[styles.heroLabel, overdrawn && styles.heroLabelNegative]}>{t('dashboard.total')}</Text>
+                <MoneyText amount={data?.total} currency={currency} style={[styles.heroSecondary, overdrawn && styles.heroInkNegative]} signed />
               </View>
-            ) : null}
-            {stale ? (
-              <StaleBadge lastUpdated={lastUpdated} offline={offline} color={overdrawn ? colors.muted : colors.primaryText} />
-            ) : null}
-          </Card>
+              {data?.lent > 0 ? (
+                <View style={styles.figureRow}>
+                  <Text style={[styles.heroLabel, overdrawn && styles.heroLabelNegative]}>{t('dashboard.lent')}</Text>
+                  <MoneyText amount={data.lent} currency={currency} style={[styles.heroSecondary, overdrawn && styles.heroInkNegative]} />
+                </View>
+              ) : null}
+              {stale ? (
+                <StaleBadge lastUpdated={lastUpdated} offline={offline} color={overdrawn ? colors.muted : colors.primaryText} />
+              ) : null}
+            </Card>
+            }
+            back={
+              <BalanceOptions
+                canTransfer={canTransfer}
+                transferReason={transferReason}
+                onTransfer={() => {
+                  setFlipped(false);
+                  router.push('/(tabs)/dashboard/transfer');
+                }}
+              />
+            }
+          />
 
           {cards.length ? (
             <Card onPress={() => router.navigate('/(tabs)/settings/cards')} testID="cards-block">
@@ -277,6 +298,8 @@ const makeStyles = (colors) =>
     switch: { flexDirection: 'row', alignItems: 'center', paddingBottom: spacing(1) },
     roleBadge: { marginBottom: spacing(1.5), textTransform: 'capitalize' },
     hero: { backgroundColor: colors.primary, padding: spacing(3) },
+    heroFlat: { marginBottom: 0 },
+    heroFlip: { marginBottom: spacing(1.5) },
     // Overdrawn (available < 0, ADR-022): swap the accent surface for the card surface so the danger red is legible on any accent.
     heroNegative: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.danger },
     heroLabelNegative: { color: colors.muted, opacity: 1 },

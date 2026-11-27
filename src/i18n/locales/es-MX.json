@@ -38,7 +38,11 @@
     "seeAll": "Ver todas",
     "emptyLists": "No hay listas abiertas",
     "seeAllVaults": "Ver todas las bóvedas",
-    "transfer": "Transferir"
+    "transfer": "Transferir",
+    "comingSoon": "Próximamente",
+    "transferNotOwner": "Solo un propietario de este contexto puede transferir",
+    "transferNoDestination": "Necesitas otro contexto del que seas propietario",
+    "flipBack": "Toca para voltear"
   },
   "transactions": {
     "title": "Movimientos",

@@ -89,3 +89,12 @@ describe('auth selectors (the token seam, ADR-001)', () => {
     expect(selectMyUserId({ auth: { user: null } })).toBeNull();
   });
 });
+
+describe('selectIsGlobalAdmin', () => {
+  const { selectIsGlobalAdmin } = require('./index');
+  it('is true only for a user decoded with isAdmin', () => {
+    expect(selectIsGlobalAdmin({ auth: { user: { id: 1, isAdmin: true } } })).toBe(true);
+    expect(selectIsGlobalAdmin({ auth: { user: { id: 1, isAdmin: false } } })).toBe(false);
+    expect(selectIsGlobalAdmin({ auth: { user: null } })).toBe(false);
+  });
+});

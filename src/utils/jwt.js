@@ -8,7 +8,7 @@ export const decodeUser = (token) => {
   try {
     const claims = jwtDecode(token);
     if (claims?.sub == null) return null;
-    return { id: claims.sub, email: claims.email ?? null };
+    return { id: claims.sub, email: claims.email ?? null, isAdmin: claims.role === 'admin' };
   } catch {
     return null; // bypass placeholder token or anything non-JWT
   }

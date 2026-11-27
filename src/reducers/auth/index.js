@@ -44,6 +44,8 @@ export const selectToken = (state) =>
 export const selectIsAuthed = (state) => state.auth.bypass || !!state.auth.token;
 export const selectBootstrapped = (state) => state.auth.bootstrapped;
 // The signed-in user's id (JWT `sub`) — compared against `row.user_id` for member gating (ADR-012).
+// Global admin flag from the JWT `role` claim: drives owner-level UI affordances only (the API enforces it).
+export const selectIsGlobalAdmin = (state) => state.auth.user?.isAdmin === true;
 export const selectMyUserId = (state) => state.auth.user?.id ?? null;
 
 export default authSlice.reducer;

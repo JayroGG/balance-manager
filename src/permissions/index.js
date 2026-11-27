@@ -1,5 +1,5 @@
 import { useSelector } from 'react-redux';
-import { selectMyUserId } from '../reducers/auth';
+import { selectIsGlobalAdmin, selectMyUserId } from '../reducers/auth';
 import { useActiveRole } from '../hooks/useActiveRole';
 
 // The single source of RBAC gating truth, mirroring the backend (ADR-012). The API enforces the same
@@ -27,8 +27,12 @@ export const canEditRow = (role, row, myUserId) => {
 
 // Hook: bind the matrix to the active context + signed-in user.
 export const usePermissions = () => {
-  const role = useActiveRole();
+  const activeRole = useActiveRole();
   const myUserId = useSelector(selectMyUserId);
+  const isAdmin = useSelector(selectIsGlobalAdmin);
+  // A global admin gets owner affordances in EVERY team, even where their real role is member/guest.
+  // UI only — transfers use useOwnedContexts (real ownership) and the API enforces everything.
+  const role = isAdmin && activeRole != null ? 'admin' : activeRole;
   return {
     role,
     canAdd: canAdd(role),

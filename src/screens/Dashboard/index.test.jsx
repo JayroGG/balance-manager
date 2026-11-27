@@ -5,6 +5,7 @@ import { render } from '@testing-library/react-native';
 import { Provider } from 'react-redux';
 import { configureStore, combineReducers } from '@reduxjs/toolkit';
 import { renderWithStore, screen, fireEvent } from '../../test-utils/renderWithStore';
+import { waitFor } from '@testing-library/react-native';
 import { baseApi } from '../../services/api/baseApi';
 import authReducer from '../../reducers/auth';
 import contextReducer from '../../reducers/context';
@@ -19,6 +20,7 @@ import Dashboard from './index';
 // text the same way the screen does.
 const money = (amount) => formatMoney(amount, 'USD');
 
+jest.mock('react-native-reanimated', () => require('../../test-utils/reanimatedMock'));
 jest.mock('@expo/vector-icons', () => ({ Ionicons: 'Ionicons' }));
 jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
@@ -30,6 +32,7 @@ const mockNavigateSpy = jest.fn();
 jest.mock('expo-router', () => ({
   useRouter: () => ({ push: mockPushSpy, navigate: mockNavigateSpy }),
   Link: ({ children }) => children,
+  useFocusEffect: (cb) => require('react').useEffect(cb, []),
 }));
 
 const jsonResponse = (body, status = 200) =>
@@ -273,5 +276,48 @@ describe('Dashboard top-3 uses the local order', () => {
     });
     const names = screen.getAllByText(/^(Alpha|Bravo)$/).map((n) => n.props.children);
     expect(names).toEqual(['Alpha', 'Bravo']);
+  });
+});
+
+// ADR-027: the old text link is gone; the balance card flips to a glass options menu.
+describe('balance card flip menu (ADR-027)', () => {
+  const mockWithTeams = (teams) => {
+    mockFetch(baseBalance);
+    const base = global.fetch.getMockImplementation();
+    global.fetch.mockImplementation((req) =>
+      req.url.includes('/teams') ? Promise.resolve(jsonResponse(teams)) : base(req),
+    );
+  };
+
+  it('has no old transfer link', async () => {
+    mockWithTeams([{ id: 2, name: 'Casa', role: 'owner' }]);
+    renderWithStore(<Dashboard />);
+    await screen.findByTestId('hero');
+    expect(screen.queryByTestId('transfer-button')).toBeNull();
+  });
+
+  it('disables the transfer tile when there is no other owned context', async () => {
+    mockWithTeams([]);
+    renderWithStore(<Dashboard />);
+    await screen.findByTestId('hero');
+    fireEvent.press(screen.getByTestId('balance-flip-front'));
+    expect(screen.getByTestId('transfer-tile').props.accessibilityState.disabled).toBe(true);
+    expect(screen.getByText('dashboard.transferNoDestination')).toBeTruthy();
+    fireEvent.press(screen.getByTestId('transfer-tile'));
+    expect(mockPushSpy).not.toHaveBeenCalled();
+    expect(screen.getByText('dashboard.transferNoDestination')).toBeTruthy(); // tile press must not flip it back
+    expect(screen.getAllByTestId('placeholder-tile')).toHaveLength(3);
+    // the back face must not be one accessible blob: tiles stay individually reachable by VoiceOver
+    expect(screen.getByTestId('balance-flip-back').props.accessible).toBe(false);
+  });
+
+  it('opens the transfer flow from the enabled tile and flips back', async () => {
+    mockWithTeams([{ id: 2, name: 'Casa', role: 'owner' }]);
+    renderWithStore(<Dashboard />);
+    await screen.findByTestId('hero');
+    await waitFor(() => expect(screen.getByTestId('transfer-tile').props.accessibilityState.disabled).toBe(false));
+    fireEvent.press(screen.getByTestId('balance-flip-front'));
+    fireEvent.press(screen.getByTestId('transfer-tile'));
+    expect(mockPushSpy).toHaveBeenCalledWith('/(tabs)/dashboard/transfer');
   });
 });

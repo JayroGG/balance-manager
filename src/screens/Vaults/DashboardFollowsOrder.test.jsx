@@ -3,7 +3,7 @@ jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
   SafeAreaProvider: ({ children }) => children,
 }));
-jest.mock('expo-router', () => ({ useRouter: () => ({ push: jest.fn(), navigate: jest.fn() }), Link: ({ children }) => children }));
+jest.mock('expo-router', () => ({ useRouter: () => ({ push: jest.fn(), navigate: jest.fn() }), Link: ({ children }) => children, useFocusEffect: (cb) => require('react').useEffect(cb, []) }));
 jest.mock('../../utils/config', () => ({ Config: { API_URL: 'http://localhost', AUTH_BYPASS: true } }));
 jest.mock('expo-haptics', () => ({
   impactAsync: jest.fn(),
@@ -31,19 +31,7 @@ jest.mock('react-native-gesture-handler', () => ({
   },
   GestureDetector: ({ children }) => children,
 }));
-jest.mock('react-native-reanimated', () => {
-  const { View } = require('react-native');
-  const { useRef } = require('react');
-  return {
-    __esModule: true,
-    default: { View },
-    useSharedValue: (v) => useRef({ value: v }).current,
-    useAnimatedStyle: (f) => require('../../test-utils/visualOrder').lazyStyle(f),
-    withSpring: (v) => v,
-    withTiming: (v) => v,
-    Easing: { out: (f) => f, cubic: 1 },
-  };
-});
+jest.mock('react-native-reanimated', () => require('../../test-utils/reanimatedMock'));
 
 import { useState } from 'react';
 import { visualOrder } from '../../test-utils/visualOrder';
