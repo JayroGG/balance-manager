@@ -8,6 +8,7 @@ export default function TeamsLayout() {
   return (
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
       <Stack.Screen name="index" />
+      <Stack.Screen name="personal" />
       <Stack.Screen name="[id]" />
     </Stack>
   );

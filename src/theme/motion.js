@@ -13,12 +13,7 @@ export const pressSwap = {
   sinkY: 5, // pt the card moves down
   sinkScale: 0.96,
   fadeFloor: 0.28, // outgoing content softens to this opacity, never to blank
-  blurMax: 6, // px of real blur at the bottom (Android only)
-  ghostOpacity: 0.7, // the template's peak opacity
-  ghostInMs: 90, // the template forms at the bottom
-  realDelayMs: 60, // the real text starts sharpening in on top of it
-  ghostBlurFrom: 4, // px (Android) -> ghostBlurTo while it dissolves
-  ghostBlurTo: 14,
+  riseY: 8, // pt the new content rises from while it fades in
   crossfadeMs: 160, // Reduce Motion and external swaps: no sink, just fade out/in
 };
 

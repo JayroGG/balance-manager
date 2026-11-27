@@ -211,6 +211,10 @@
     "switchContext": "Cambiar contexto"
   },
   "teams": {
+    "personalColor": "Color",
+    "personalName": "Personal",
+    "personalHint": "El color de tu cuenta. Te sigue en todos tus dispositivos.",
+    "colorDefault": "Usar color predeterminado",
     "title": "Equipos",
     "manage": "Administrar equipo",
     "name": "Nombre del equipo",

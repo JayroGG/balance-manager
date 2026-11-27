@@ -2,6 +2,7 @@ import { Platform, StyleSheet, View } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { GlassView, isLiquidGlassAvailable } from 'expo-glass-effect';
 import { useTheme } from '../../hooks/useTheme';
+import { withAlpha } from '../../utils/colors';
 import { nativeBlurAvailable, useReduceTransparency } from './glassSupport';
 
 export { useReduceTransparency };
@@ -11,10 +12,12 @@ export { useReduceTransparency };
 //   'solid'  — Reduce Transparency: opaque card color
 //   'wash'   — `flat` (the surface rotates/sits over a GlassFill layer) or the native blur is missing: wash only
 //   'liquid' — iOS 26+ liquid glass (expo-glass-effect)
-//   'blur'   — expo-blur (Android + older iOS)
+//   'blur'   — expo-blur (older iOS)
+//   'crystal'— Android (ADR-028): no native blur. Clear tinted fill (white light / smoked dark), accent-lit rim
+//              (per-side border colors: strong top-left, faint bottom-right) + inner top highlight
 // Never put a native blur/glass under a 3D rotation (it darkens/glitches): rotating faces use `flat`.
-export const pickGlassKind = ({ reduceTransparency, liquid, flat = false, blurAvailable = true }) =>
-  reduceTransparency ? 'solid' : flat ? 'wash' : liquid ? 'liquid' : blurAvailable ? 'blur' : 'wash';
+export const pickGlassKind = ({ reduceTransparency, liquid, flat = false, blurAvailable = true, android = false }) =>
+  reduceTransparency ? 'solid' : android ? 'crystal' : flat ? 'wash' : liquid ? 'liquid' : blurAvailable ? 'blur' : 'wash';
 
 const liquidAvailable = () => {
   try {
@@ -24,10 +27,10 @@ const liquidAvailable = () => {
   }
 };
 
-export const GlassSurface = ({ children, style, intensity = 60, flat = false, under, testID }) => {
-  const { colors, scheme } = useTheme();
+export const GlassSurface = ({ children, style, intensity = 60, flat = false, under, danger = false, testID }) => {
+  const { colors, scheme, accent } = useTheme();
   const reduceTransparency = useReduceTransparency();
-  const kind = pickGlassKind({ reduceTransparency, liquid: liquidAvailable(), flat, blurAvailable: nativeBlurAvailable() });
+  const kind = pickGlassKind({ reduceTransparency, liquid: liquidAvailable(), flat, blurAvailable: nativeBlurAvailable(), android: Platform.OS === 'android' });
   const dark = scheme === 'dark';
   const rim = dark ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.75)';
   const wash = dark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.32)';
@@ -45,6 +48,28 @@ export const GlassSurface = ({ children, style, intensity = 60, flat = false, un
   if (kind === 'solid') {
     return (
       <View testID={testID} nativeID="glass-solid" style={[base, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        {children}
+      </View>
+    );
+  }
+  if (kind === 'crystal') {
+    // overdrawn: the whole rim goes danger; otherwise accent, bright at the top-left and fading to the bottom-right
+    const lit = danger ? colors.danger : withAlpha(accent, dark ? 0.85 : 0.7);
+    const dim = danger ? colors.danger : withAlpha(accent, dark ? 0.22 : 0.18);
+    const rimStyle = {
+      borderWidth: 1.5,
+      borderTopColor: lit,
+      borderLeftColor: lit,
+      borderRightColor: dim,
+      borderBottomColor: dim,
+    };
+    return (
+      <View
+        testID={testID}
+        nativeID="glass-crystal"
+        style={[styles.surface, style, rimStyle, { backgroundColor: dark ? 'rgba(20,22,28,0.64)' : 'rgba(255,255,255,0.8)' }]}
+      >
+        {highlight}
         {children}
       </View>
     );

@@ -1,16 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
-  withDelay,
   withTiming,
 } from 'react-native-reanimated';
 import { depth, pressSwap as T, tapHaptic } from '../../theme/motion';
-import { nativeBlurAvailable } from '../glass/glassSupport';
-import { GlassTextReveal } from './GlassTextReveal';
 
 // Generic "press the card, its content swaps" (ADR-027). Pressing sinks the card like a physical button (down a few
 // pt + scale, shadow tightens) while its content fades out; at the BOTTOM of the press the content swaps to the other
@@ -19,30 +16,23 @@ import { GlassTextReveal } from './GlassTextReveal';
 //   side          'front' | 'back', controlled. The swap asks `onSwap(next)` at the bottom of a press.
 //   frostTint     'light' | 'dark' for the iOS frost of the reveal
 //   Surface       optional STABLE component wrapping the content (the glass frame); gets {...surfaceProps, style, children}
-// The new side is revealed as if the glass formed it (GlassTextReveal): a blurred ghost template (soft smudges where
-// the text will be), the real text sharpening in on top, the template dissolving as the card finishes rising.
+// The new side is revealed with a clean fade + slight rise (ADR-028): it mounts invisible at the bottom of the press and
+// fades/rises in as the card rises. No layer mounts or unmounts mid-animation, nothing is ever drawn twice.
 // Timings have MINIMUM durations (theme/motion.js `pressSwap`): a quick tap still plays sink -> hold -> rise as one
 // motion; holding keeps the card down until release. A press while the sequence runs is ignored (no queue, no
 // flicker). A press that turns into a scroll/cancel rises back WITHOUT swapping. Reduce Motion: no sink, a crossfade.
-// The outgoing content never goes blank: it softens to a floor (`fadeFloor`; real blur on Android) so there is
-// always something blurry to see, then the new side fades in.
+// The outgoing content softens to a floor (`fadeFloor`) while the card sinks.
 // A `side` change from outside (context switch, a tile action) crossfades.
-export const PressSwap = ({ side, onSwap, front, back, Surface = View, surfaceProps, frostTint, style, testID, radius = 16 }) => {
+export const PressSwap = ({ side, onSwap, front, back, Surface = View, surfaceProps, style, testID, radius = 16 }) => {
   const reduce = useReducedMotion();
   const sink = useSharedValue(0); // 0 rest .. 1 pressed
   const fade = useSharedValue(1); // content opacity
-  const ghostOp = useSharedValue(0); // the blurred template's opacity
-  const ghostBlur = useSharedValue(T.ghostBlurFrom);
-  const realOp = useSharedValue(1); // the real text's opacity while it sharpens in
-  const [ghosting, setGhosting] = useState(false);
+  const lift = useSharedValue(0); // 1 = the new content sits riseY below its rest, 0 = at rest
   const [shown, setShown] = useState(side);
   const phase = useRef('idle'); // idle | sinking | down | rising
   const st = useRef({ pressed: false, tapped: false, swapped: false, t0: 0 });
   const timers = useRef([]);
   const ownSwap = useRef(null); // the side our own swap is waiting for (null = none)
-  const revealing = useRef(false);
-  // The glass-forms-the-letters reveal needs a native blur (iOS BlurView) or Android's style blur; else plain fade.
-  const canReveal = !reduce && (Platform.OS === 'android' || nativeBlurAvailable());
   const sideRef = useRef(side);
   sideRef.current = side;
 
@@ -59,20 +49,10 @@ export const PressSwap = ({ side, onSwap, front, back, Surface = View, surfacePr
     phase.current = 'rising';
     const ease = Easing.out(Easing.cubic);
     sink.value = withTiming(0, { duration: T.riseMs, easing: ease });
-    if (revealing.current) {
-      // the reveal finishes together with the rise: real text sharpens in, the template dissolves with more blur
-      realOp.value = withDelay(T.realDelayMs, withTiming(1, { duration: T.riseMs - T.realDelayMs, easing: ease }));
-      ghostOp.value = withTiming(0, { duration: T.riseMs, easing: ease });
-      ghostBlur.value = withTiming(T.ghostBlurTo, { duration: T.riseMs, easing: ease });
-    } else {
-      fade.value = withTiming(1, { duration: T.riseMs, easing: ease });
-    }
+    fade.value = withTiming(1, { duration: T.riseMs, easing: ease });
+    lift.value = withTiming(0, { duration: T.riseMs, easing: ease });
     later(() => {
       phase.current = 'idle';
-      if (revealing.current) {
-        revealing.current = false;
-        setGhosting(false);
-      }
     }, T.riseMs);
   };
 
@@ -97,6 +77,11 @@ export const PressSwap = ({ side, onSwap, front, back, Surface = View, surfacePr
     const next = sideRef.current === 'front' ? 'back' : 'front';
     st.current.swapped = true;
     st.current.swapAt = Date.now();
+    if (!reduce) {
+      // the new side mounts invisible and offset (set before it renders: no frame at the old opacity); the rise fades it in
+      fade.value = 0;
+      lift.value = 1;
+    }
     ownSwap.current = next; // the side change we expect back: show it now, while the card is down
     onSwap?.(next);
   };
@@ -151,25 +136,9 @@ export const PressSwap = ({ side, onSwap, front, back, Surface = View, surfacePr
     if (ownSwap.current === side) {
       ownSwap.current = null;
       setShown(side);
-      if (canReveal) {
-        // The new side's template forms at the bottom; the real text stays invisible until the rise.
-        revealing.current = true;
-        fade.value = 1;
-        realOp.value = 0;
-        ghostBlur.value = T.ghostBlurFrom;
-        ghostOp.value = withTiming(T.ghostOpacity, { duration: T.ghostInMs });
-        setGhosting(true);
-      }
       return;
     }
     ownSwap.current = null;
-    if (revealing.current) {
-      // an outside change landed mid-reveal (e.g. a tile tap while rising): drop the template at once
-      revealing.current = false;
-      setGhosting(false);
-      ghostOp.value = 0;
-      realOp.value = 1;
-    }
     fade.value = withTiming(T.fadeFloor, { duration: T.crossfadeMs / 2 });
     later(() => {
       setShown(side);
@@ -192,12 +161,9 @@ export const PressSwap = ({ side, onSwap, front, back, Surface = View, surfacePr
       ],
     };
   });
-  // The content softens as it fades: it also shrinks a touch (a cheap "blur-out" without a native blur).
   const content = useAnimatedStyle(() => ({
     opacity: fade.value,
-    transform: [{ scale: 0.97 + 0.03 * fade.value }],
-    // Android can really blur a view; iOS has no style blur, so it relies on the soft fade + shrink.
-    ...(Platform.OS === 'android' ? { filter: [{ blur: (1 - fade.value) * T.blurMax }] } : null),
+    transform: [{ translateY: lift.value * T.riseY }],
   }));
 
   const isFront = shown === 'front';
@@ -222,16 +188,12 @@ export const PressSwap = ({ side, onSwap, front, back, Surface = View, surfacePr
               accessibilityElementsHidden={!isFront}
               importantForAccessibility={isFront ? 'auto' : 'no-hide-descendants'}
             >
-              <GlassTextReveal tint={frostTint} active={ghosting && isFront} ghost={ghostOp} real={isFront ? realOp : undefined} blur={ghostBlur}>
-                {front}
-              </GlassTextReveal>
+              {front}
             </View>
           </Animated.View>
           {isFront ? null : (
             <Animated.View style={[StyleSheet.absoluteFill, content]} testID={testID && `${testID}-back`}>
-              <GlassTextReveal tint={frostTint} style={styles.fill} active={ghosting} ghost={ghostOp} real={realOp} blur={ghostBlur}>
-                {back}
-              </GlassTextReveal>
+              <View style={styles.fill}>{back}</View>
             </Animated.View>
           )}
         </Surface>

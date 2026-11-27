@@ -6,6 +6,7 @@ import { Provider } from 'react-redux';
 import { configureStore, combineReducers } from '@reduxjs/toolkit';
 import { baseApi } from '../services/api/baseApi';
 import { teamsApi } from '../services/api/teams';
+import { usersApi } from '../services/api/users';
 import authReducer from '../reducers/auth';
 import contextReducer from '../reducers/context';
 import prefsReducer from '../reducers/prefs';
@@ -105,6 +106,31 @@ describe('useTheme (ADR-013)', () => {
         </Provider>,
       );
       expect(getByTestId('confirmed').props.children).toBe('true');
+    });
+  });
+
+  // ADR-028: personal context takes the account color from the cached GET /users/me.
+  describe('personal accent', () => {
+    const accentOf = async (preload, me) => {
+      const store = makeAuthedStore(preload);
+      if (me) await store.dispatch(usersApi.util.upsertQueryData('getMe', undefined, me));
+      const { getByTestId } = render(
+        <Provider store={store}>
+          <Probe />
+        </Provider>,
+      );
+      return getByTestId('probe').props.children;
+    };
+
+    it('uses me.color when personal is active', async () => {
+      expect(await accentOf({ context: { activeTeamId: null } }, { id: 1, email: 'a@b.c', color: '#16a34a' })).toBe('light:#16A34A');
+    });
+    it('falls back to the default with a null color or no cached /users/me (404)', async () => {
+      expect(await accentOf({ context: { activeTeamId: null } }, { id: 1, email: 'a@b.c', color: null })).toBe('light:#2563EB');
+      expect(await accentOf({ context: { activeTeamId: null } })).toBe('light:#2563EB');
+    });
+    it('ignores me.color inside a team context', async () => {
+      expect(await accentOf({ context: { activeTeamId: 5 } }, { id: 1, email: 'a@b.c', color: '#16a34a' })).toBe('light:#2563EB');
     });
   });
 });

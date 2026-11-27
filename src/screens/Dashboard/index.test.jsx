@@ -5,7 +5,7 @@ import { render } from '@testing-library/react-native';
 import { Provider } from 'react-redux';
 import { configureStore, combineReducers } from '@reduxjs/toolkit';
 import { renderWithStore, screen, fireEvent } from '../../test-utils/renderWithStore';
-import { waitFor } from '@testing-library/react-native';
+import { act, waitFor } from '@testing-library/react-native';
 import { baseApi } from '../../services/api/baseApi';
 import authReducer from '../../reducers/auth';
 import contextReducer from '../../reducers/context';
@@ -322,8 +322,10 @@ describe('balance card press-swap menu (ADR-027)', () => {
     await screen.findByTestId('hero');
     await tapCard();
     await waitFor(() => expect(screen.getByTestId('transfer-tile')).toBeTruthy());
-    // the reveal ghost duplicates the tree while the card rises: wait for it to settle
-    await waitFor(() => expect(screen.getAllByTestId('placeholder-slot', { includeHiddenElements: true })).toHaveLength(2), { timeout: 2000 });
+    // let the card finish rising: a press while the sequence runs is ignored
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 900));
+    });
     const slots = screen.getAllByTestId('placeholder-slot', { includeHiddenElements: true });
     slots.forEach((slot) => {
       expect(slot.props.pointerEvents).toBe('none'); // not hit-testable, so the touch lands on the card

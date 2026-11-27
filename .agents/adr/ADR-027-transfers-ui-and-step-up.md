@@ -48,7 +48,7 @@ global admin as read-only inside teams (role 'admin' unknown to `src/permissions
   Android real blur through `BlurTargetView`; Expo Go bundles expo-blur). A dev client built BEFORE expo-blur has no
   `ExpoBlur` native module (`requireOptionalNativeModule`): the card degrades to a translucent wash and logs a dev warning
   ("rebuild the dev client").
-- **Reveal (round 3b):** `GlassTextReveal` (inside `PressSwap`) layers, while the new side forms: a blurred GHOST of the same
+- **Reveal (round 3b, superseded by ADR-028):** `GlassTextReveal` (inside `PressSwap`) layers, while the new side forms: a blurred GHOST of the same
   tree (soft smudges where the text will be; hidden from a11y/queries), a frost over it (iOS: an opaque `BlurView`;
   Android: a real `filter: blur` on the ghost) and the REAL content on top; the real text sharpens in over the ghost while
   the ghost dissolves, finishing with the rise. Needs a native blur (iOS `ExpoBlur` / Android) — otherwise a plain fade.
