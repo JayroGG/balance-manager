@@ -49,3 +49,16 @@ describe('contrastOn', () => {
     expect(contrastOn('nope')).toBe('#FFFFFF');
   });
 });
+
+describe('pastelPalette', () => {
+  const { pastelPalette } = require('./colors');
+  it('derives three pastel hsl colors from the accent hue (light vs dark mode)', () => {
+    const light = pastelPalette('#2563EB', 'light');
+    expect(light).toHaveLength(3);
+    expect(light[0]).toMatch(/^hsl\(2\d\d, 85%, 80%\)$/);
+    expect(pastelPalette('#2563EB', 'dark')[0]).toMatch(/, 55%, 42%\)$/);
+  });
+  it('tolerates an invalid hex', () => {
+    expect(pastelPalette('nope')).toHaveLength(3);
+  });
+});

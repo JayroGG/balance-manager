@@ -7,11 +7,18 @@ import * as Haptics from 'expo-haptics';
 export const springs = {
   toony: { damping: 11, stiffness: 170, mass: 0.9 },
   settle: { damping: 18, stiffness: 220, mass: 0.8 },
+  // Release snap of the draggable card: clearly underdamped so it wobbles around the face before it settles.
+  magnetic: { damping: 12, stiffness: 130, mass: 1 },
 };
 
 export const flip = {
-  perspective: 900,
-  squash: 0.06, // peak scale change mid-flip (stretch up, squash back)
+  perspective: 1600, // long lens: the card must not balloon toward the camera mid-flip
+  squash: 0.02, // peak scale change mid-flip — subtle, never a visible grow
+  grabScale: 0.015, // extra lift while a finger holds the card
+  dragSpan: 0.9, // fraction of the card width that is one full flip
+  tiltMax: 8, // deg of X tilt following the finger
+  maxVelocity: 2.5, // cap (cards/sec) on the release velocity fed to the snap spring: the wobble can't swing past the other face
+  throw: 0.25, // how far release velocity projects the card before it picks a face
   reducedMs: 160, // Reduce Motion: short crossfade instead of the spring
 };
 

@@ -16,6 +16,11 @@ import { useContextReady } from '../../hooks/useContextReady';
 import { useOrderedVaults } from '../Vaults/reorder';
 import { FlipCard3D } from '../../components/motion/FlipCard3D';
 import { BalanceOptions } from './BalanceOptions';
+import { GlassSurface } from '../../components/glass/GlassSurface';
+import { GlassBackdrop } from '../../components/glass/GlassBackdrop';
+import { GlassFill } from '../../components/glass/GlassFill';
+
+const CARD_RADIUS = 16;
 import { useTheme } from '../../hooks/useTheme';
 import {
   Screen,
@@ -183,33 +188,41 @@ export default function Dashboard() {
         <QueryBoundary isLoading={isLoading && !data} error={error} onRetry={refetch}>
           {/* All figures at once, no tap-to-cycle: the dashboard hero is glanced at, not operated.
               Available leads (it's the number you act on); total and lent sit under it. */}
+          <GlassBackdrop accent={colors.primary} style={styles.heroScene}>
           <FlipCard3D
             testID="balance-flip"
-            backLabel={t('dashboard.flipBack')}
-            style={styles.heroFlip}
+            radius={CARD_RADIUS}
+            underlay={<GlassFill />}
             flipped={flipped}
             onFlip={setFlipped}
             front={
-            <Card style={[styles.hero, styles.heroFlat, overdrawn && styles.heroNegative]} testID="hero">
-              <Text style={[styles.heroLabel, overdrawn && styles.heroLabelNegative]}>{t('dashboard.available')}</Text>
-              <MoneyText amount={data?.available} currency={currency} style={[styles.heroFigure, overdrawn && styles.heroInkNegative]} signed />
-              <View style={styles.figureRow}>
-                <Text style={[styles.heroLabel, overdrawn && styles.heroLabelNegative]}>{t('dashboard.total')}</Text>
-                <MoneyText amount={data?.total} currency={currency} style={[styles.heroSecondary, overdrawn && styles.heroInkNegative]} signed />
-              </View>
-              {data?.lent > 0 ? (
+            <GlassSurface
+              flat
+              testID="hero"
+              style={[styles.heroGlass, overdrawn && styles.heroNegative]}
+            >
+              <View style={styles.hero}>
+                <Text style={[styles.heroLabel, overdrawn && styles.heroLabelNegative]}>{t('dashboard.available')}</Text>
+                <MoneyText amount={data?.available} currency={currency} style={[styles.heroFigure, overdrawn && styles.heroInkNegative]} signed />
                 <View style={styles.figureRow}>
-                  <Text style={[styles.heroLabel, overdrawn && styles.heroLabelNegative]}>{t('dashboard.lent')}</Text>
-                  <MoneyText amount={data.lent} currency={currency} style={[styles.heroSecondary, overdrawn && styles.heroInkNegative]} />
+                  <Text style={[styles.heroLabel, overdrawn && styles.heroLabelNegative]}>{t('dashboard.total')}</Text>
+                  <MoneyText amount={data?.total} currency={currency} style={[styles.heroSecondary, overdrawn && styles.heroInkNegative]} signed />
                 </View>
-              ) : null}
-              {stale ? (
-                <StaleBadge lastUpdated={lastUpdated} offline={offline} color={overdrawn ? colors.muted : colors.primaryText} />
-              ) : null}
-            </Card>
+                {data?.lent > 0 ? (
+                  <View style={styles.figureRow}>
+                    <Text style={[styles.heroLabel, overdrawn && styles.heroLabelNegative]}>{t('dashboard.lent')}</Text>
+                    <MoneyText amount={data.lent} currency={currency} style={[styles.heroSecondary, overdrawn && styles.heroInkNegative]} />
+                  </View>
+                ) : null}
+                {stale ? (
+                  <StaleBadge lastUpdated={lastUpdated} offline={offline} color={colors.muted} />
+                ) : null}
+              </View>
+            </GlassSurface>
             }
             back={
               <BalanceOptions
+                radius={CARD_RADIUS}
                 canTransfer={canTransfer}
                 transferReason={transferReason}
                 onTransfer={() => {
@@ -219,6 +232,7 @@ export default function Dashboard() {
               />
             }
           />
+          </GlassBackdrop>
 
           {cards.length ? (
             <Card onPress={() => router.navigate('/(tabs)/settings/cards')} testID="cards-block">
@@ -297,16 +311,16 @@ const makeStyles = (colors) =>
   StyleSheet.create({
     switch: { flexDirection: 'row', alignItems: 'center', paddingBottom: spacing(1) },
     roleBadge: { marginBottom: spacing(1.5), textTransform: 'capitalize' },
-    hero: { backgroundColor: colors.primary, padding: spacing(3) },
-    heroFlat: { marginBottom: 0 },
-    heroFlip: { marginBottom: spacing(1.5) },
+    hero: { padding: spacing(3) },
+    heroScene: { padding: spacing(2), marginBottom: spacing(1.5) },
+    heroGlass: { borderRadius: CARD_RADIUS },
     // Overdrawn (available < 0, ADR-022): swap the accent surface for the card surface so the danger red is legible on any accent.
-    heroNegative: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.danger },
+    heroNegative: { borderColor: colors.danger },
     heroLabelNegative: { color: colors.muted, opacity: 1 },
     heroInkNegative: { color: colors.text },
-    heroLabel: { color: colors.primaryText, opacity: 0.85, fontSize: font.sm, fontWeight: '600' },
-    heroFigure: { color: colors.primaryText, fontSize: font.hero, fontWeight: '800', marginTop: spacing(0.5) },
-    heroSecondary: { color: colors.primaryText, fontSize: font.lg, fontWeight: '700' },
+    heroLabel: { color: colors.muted, fontSize: font.sm, fontWeight: '600' },
+    heroFigure: { color: colors.text, fontSize: font.hero, fontWeight: '800', marginTop: spacing(0.5) },
+    heroSecondary: { color: colors.text, fontSize: font.lg, fontWeight: '700' },
     figureRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: spacing(2) },
     heroLabelSkeleton: { opacity: 0.55 },
     heroValueSkeleton: { marginTop: spacing(0.5), opacity: 0.55 },

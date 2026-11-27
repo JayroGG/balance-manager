@@ -41,8 +41,7 @@
     "transfer": "Transfer",
     "comingSoon": "Coming soon",
     "transferNotOwner": "Only an owner of this context can transfer",
-    "transferNoDestination": "You need another context you own",
-    "flipBack": "Tap to flip back"
+    "transferNoDestination": "You need another context you own"
   },
   "transactions": {
     "title": "Transactions",

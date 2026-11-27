@@ -1,15 +1,20 @@
-import { useEffect, useState } from 'react';
-import { AccessibilityInfo, Platform, StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { GlassView, isLiquidGlassAvailable } from 'expo-glass-effect';
 import { useTheme } from '../../hooks/useTheme';
+import { nativeBlurAvailable, useReduceTransparency } from './glassSupport';
 
-// The one glass component (ADR-027). Picks the best surface available:
-//   'solid'  — Reduce Transparency is on: opaque tile, no blur
+export { useReduceTransparency };
+
+// The one glass surface (ADR-027). Near-transparent white frosted glass: a light wash, a thin light border and a
+// top highlight (no accent tint — the accent lives in the backdrop behind the card). Picks:
+//   'solid'  — Reduce Transparency: opaque card color
+//   'wash'   — `flat` (the surface rotates/sits over a GlassFill layer) or the native blur is missing: wash only
 //   'liquid' — iOS 26+ liquid glass (expo-glass-effect)
-//   'blur'   — Android + older iOS (expo-blur)
-export const pickGlassKind = ({ reduceTransparency, liquid }) =>
-  reduceTransparency ? 'solid' : liquid ? 'liquid' : 'blur';
+//   'blur'   — expo-blur (Android + older iOS)
+// Never put a native blur/glass under a 3D rotation (it darkens/glitches): rotating faces use `flat`.
+export const pickGlassKind = ({ reduceTransparency, liquid, flat = false, blurAvailable = true }) =>
+  reduceTransparency ? 'solid' : flat ? 'wash' : liquid ? 'liquid' : blurAvailable ? 'blur' : 'wash';
 
 const liquidAvailable = () => {
   try {
@@ -19,55 +24,50 @@ const liquidAvailable = () => {
   }
 };
 
-export const useReduceTransparency = () => {
-  const [on, setOn] = useState(false);
-  useEffect(() => {
-    let live = true;
-    AccessibilityInfo.isReduceTransparencyEnabled?.()
-      .then((v) => live && setOn(!!v))
-      .catch(() => {});
-    const sub = AccessibilityInfo.addEventListener?.('reduceTransparencyChanged', setOn);
-    return () => {
-      live = false;
-      sub?.remove?.();
-    };
-  }, []);
-  return on;
-};
-
-export const GlassSurface = ({ children, style, intensity = 40, testID }) => {
+export const GlassSurface = ({ children, style, intensity = 60, flat = false, testID }) => {
   const { colors, scheme } = useTheme();
   const reduceTransparency = useReduceTransparency();
-  const kind = pickGlassKind({ reduceTransparency, liquid: liquidAvailable() });
-  const base = [styles.surface, { borderColor: colors.border }, style];
+  const kind = pickGlassKind({ reduceTransparency, liquid: liquidAvailable(), flat, blurAvailable: nativeBlurAvailable() });
+  const dark = scheme === 'dark';
+  const rim = dark ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.75)';
+  const wash = dark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.32)';
+  const base = [styles.surface, { borderColor: rim }, style];
+  const highlight = (
+    <View
+      pointerEvents="none"
+      style={[
+        StyleSheet.absoluteFill,
+        { experimental_backgroundImage: `linear-gradient(to bottom, rgba(255,255,255,${dark ? 0.14 : 0.4}), rgba(255,255,255,0) 45%)` },
+      ]}
+    />
+  );
 
   if (kind === 'solid') {
     return (
-      <View testID={testID} accessibilityLabel="glass-solid" style={[base, { backgroundColor: colors.card }]}>
+      <View testID={testID} accessibilityLabel="glass-solid" style={[base, { backgroundColor: colors.card, borderColor: colors.border }]}>
         {children}
       </View>
     );
   }
   if (kind === 'liquid') {
     return (
-      <GlassView testID={testID} accessibilityLabel="glass-liquid" glassEffectStyle="regular" style={base}>
+      <GlassView testID={testID} accessibilityLabel="glass-liquid" glassEffectStyle="clear" style={base}>
+        {highlight}
         {children}
       </GlassView>
     );
   }
   return (
-    <View testID={testID} accessibilityLabel="glass-blur" style={base}>
-      <BlurView
-        intensity={intensity}
-        tint={scheme === 'dark' ? 'dark' : 'light'}
-        style={StyleSheet.absoluteFill}
-        pointerEvents="none"
-      />
+    <View testID={testID} accessibilityLabel={kind === 'blur' ? 'glass-blur' : 'glass-wash'} style={[base, { backgroundColor: wash }]}>
+      {kind === 'blur' ? (
+        <BlurView intensity={intensity} tint={dark ? 'dark' : 'light'} style={StyleSheet.absoluteFill} pointerEvents="none" />
+      ) : null}
+      {highlight}
       {children}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  surface: { overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth },
+  surface: { overflow: 'hidden', borderWidth: 1 },
 });

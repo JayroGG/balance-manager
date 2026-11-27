@@ -1,58 +1,77 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { GlassSurface, useReduceTransparency } from '../../components/glass/GlassSurface';
+import { GlassSurface } from '../../components/glass/GlassSurface';
 import { useTheme } from '../../hooks/useTheme';
-import { font, radius, spacing } from '../../components/theme';
+import { font, spacing } from '../../components/theme';
 
-// Back face of the balance card (ADR-027): glass option tiles. Transfer is live; the rest are
-// greyed placeholders so the layout is ready for future options. `transferReason` is the short text shown
-// when transfer isn't possible (tile disabled).
+// Back face of the balance card (ADR-027): a transparent frosted face (the blur is the card's static underlay)
+// whose 2x2 grid of glass tiles fills it edge to edge. Transfer is live; the rest are greyed placeholders.
+// `transferReason` is the short text shown when transfer isn't possible.
+// Gutters live on wrapper Views OUTSIDE each tile's Pressable, so a tap on a gutter (or the face) falls through
+// to the card and flips it back; a tap on a tile never does (noop when inert).
 const noop = () => {};
 const PLACEHOLDERS = ['pricetag-outline', 'calendar-outline', 'stats-chart-outline'];
 
-export const BalanceOptions = ({ canTransfer, transferReason, onTransfer }) => {
+export const BalanceOptions = ({ canTransfer, transferReason, onTransfer, radius }) => {
   const { t } = useTranslation();
   const { colors } = useTheme();
-  // Reduce Transparency swaps the glass for an opaque card-colored tile: ink must follow it.
-  const ink = useReduceTransparency() ? colors.text : colors.primaryText;
-  const styles = makeStyles(colors, ink);
-  return (
-    <View style={styles.face} testID="balance-options">
-      <View style={styles.grid}>
-        <Pressable
-          testID="transfer-tile"
-          style={styles.cell}
-          accessibilityRole="button"
-          accessibilityState={{ disabled: !canTransfer }}
-          onPress={canTransfer ? onTransfer : noop} // always takes the touch: a tap on a disabled tile must not flip the card back
-        >
-          <GlassSurface style={[styles.tile, !canTransfer && styles.off]}>
-            <Ionicons name="swap-horizontal" size={22} color={ink} />
-            <Text style={styles.label}>{t('dashboard.transfer')}</Text>
-            {!canTransfer && transferReason ? <Text style={styles.reason} numberOfLines={2}>{transferReason}</Text> : null}
-          </GlassSurface>
-        </Pressable>
-        {PLACEHOLDERS.map((icon) => (
-          <Pressable key={icon} style={styles.cell} testID="placeholder-tile" accessibilityRole="button" accessibilityLabel={t('dashboard.comingSoon')} accessibilityState={{ disabled: true }} onPress={noop}>
-            <GlassSurface style={[styles.tile, styles.off]}>
-              <Ionicons name={icon} size={22} color={ink} />
-              <Text style={styles.label}>{t('dashboard.comingSoon')}</Text>
-            </GlassSurface>
-          </Pressable>
-        ))}
-      </View>
+  const styles = makeStyles(colors, radius);
+
+  const tile = (key, { icon, label, reason, off, onPress, testID, disabled }) => (
+    <View key={key} style={styles.cell}>
+      <Pressable
+        testID={testID}
+        style={styles.press}
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        accessibilityState={{ disabled }}
+        onPress={onPress ?? noop}
+      >
+        <GlassSurface flat style={[styles.tile, off && styles.off]}>
+          <Ionicons name={icon} size={22} color={colors.text} />
+          <Text style={styles.label}>{label}</Text>
+          {reason ? <Text style={styles.reason} numberOfLines={2}>{reason}</Text> : null}
+        </GlassSurface>
+      </Pressable>
     </View>
+  );
+  const soon = (icon) =>
+    tile(icon, { icon, label: t('dashboard.comingSoon'), off: true, disabled: true, testID: 'placeholder-tile' });
+
+  return (
+    <GlassSurface flat style={styles.face} testID="balance-options">
+      <View style={styles.grid}>
+        <View style={styles.row}>
+          {tile('transfer', {
+            icon: 'swap-horizontal',
+            label: t('dashboard.transfer'),
+            reason: !canTransfer ? transferReason : null,
+            off: !canTransfer,
+            disabled: !canTransfer,
+            onPress: canTransfer ? onTransfer : undefined,
+            testID: 'transfer-tile',
+          })}
+          {soon(PLACEHOLDERS[0])}
+        </View>
+        <View style={styles.row}>
+          {soon(PLACEHOLDERS[1])}
+          {soon(PLACEHOLDERS[2])}
+        </View>
+      </View>
+    </GlassSurface>
   );
 };
 
-const makeStyles = (colors, ink) =>
+const makeStyles = (colors, radius = 16) =>
   StyleSheet.create({
-    face: { flex: 1, backgroundColor: colors.primary, borderRadius: radius.md, padding: spacing(1) },
-    grid: { flex: 1, flexDirection: 'row', flexWrap: 'wrap' },
-    cell: { width: '50%', height: '50%', padding: spacing(0.5), minHeight: 44 },
-    tile: { flex: 1, borderRadius: radius.md - 4, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing(1) },
-    off: { opacity: 0.5 },
-    label: { color: ink, fontSize: font.sm, fontWeight: '700', marginTop: 2 },
-    reason: { color: ink, fontSize: 10, textAlign: 'center' },
+    face: { ...StyleSheet.absoluteFillObject, borderRadius: radius, padding: spacing(0.5) },
+    grid: { flex: 1 },
+    row: { flex: 1, flexDirection: 'row' },
+    cell: { flex: 1, padding: spacing(0.5), minHeight: 44 },
+    press: { flex: 1 },
+    tile: { flex: 1, borderRadius: radius - 4, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing(1) },
+    off: { opacity: 0.55 },
+    label: { color: colors.text, fontSize: font.sm, fontWeight: '700', marginTop: 2 },
+    reason: { color: colors.muted, fontSize: 10, textAlign: 'center' },
   });

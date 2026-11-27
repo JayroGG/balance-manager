@@ -41,8 +41,7 @@
     "transfer": "Transferir",
     "comingSoon": "Próximamente",
     "transferNotOwner": "Solo un propietario de este contexto puede transferir",
-    "transferNoDestination": "Necesitas otro contexto del que seas propietario",
-    "flipBack": "Toca para voltear"
+    "transferNoDestination": "Necesitas otro contexto del que seas propietario"
   },
   "transactions": {
     "title": "Movimientos",

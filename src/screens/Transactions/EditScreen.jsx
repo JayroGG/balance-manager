@@ -170,5 +170,5 @@ const styles = StyleSheet.create({
   payment: { padding: spacing(2), alignItems: 'center', gap: spacing(1) },
   reverted: { fontSize: 16, fontWeight: '700', textAlign: 'center' },
   paymentAmount: { fontSize: 28, fontWeight: '800' },
-  deleteIcon: { alignSelf: 'center', padding: spacing(2), marginTop: spacing(1) },
+  deleteIcon: { alignSelf: 'center', padding: spacing(2), marginTop: spacing(1), minWidth: 44, minHeight: 44 },
 });

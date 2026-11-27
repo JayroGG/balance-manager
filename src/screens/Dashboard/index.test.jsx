@@ -20,6 +20,7 @@ import Dashboard from './index';
 // text the same way the screen does.
 const money = (amount) => formatMoney(amount, 'USD');
 
+jest.mock('react-native-gesture-handler', () => require('../../test-utils/gestureMock'));
 jest.mock('react-native-reanimated', () => require('../../test-utils/reanimatedMock'));
 jest.mock('@expo/vector-icons', () => ({ Ionicons: 'Ionicons' }));
 jest.mock('react-native-safe-area-context', () => ({
@@ -319,5 +320,27 @@ describe('balance card flip menu (ADR-027)', () => {
     fireEvent.press(screen.getByTestId('balance-flip-front'));
     fireEvent.press(screen.getByTestId('transfer-tile'));
     expect(mockPushSpy).toHaveBeenCalledWith('/(tabs)/dashboard/transfer');
+  });
+
+  it('flips back when the back face is tapped anywhere outside the tiles', async () => {
+    mockWithTeams([{ id: 2, name: 'Casa', role: 'owner' }]);
+    renderWithStore(<Dashboard />);
+    await screen.findByTestId('hero');
+    fireEvent.press(screen.getByTestId('balance-flip-front'));
+    fireEvent.press(screen.getByTestId('balance-flip-back'));
+    // flipped back: the back face (and its tiles) no longer take touches
+    await waitFor(() => {
+      fireEvent.press(screen.getByTestId('transfer-tile'));
+      expect(mockPushSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  it('the hero is a flat (non-blurring) glass face over one static blur underlay', async () => {
+    mockWithTeams([]);
+    renderWithStore(<Dashboard />);
+    const hero = await screen.findByTestId('hero');
+    expect(hero.props.accessibilityLabel).toMatch(/^glass-(wash|solid)$/); // flat: never a native blur under rotation
+    expect(screen.getByTestId('balance-flip-underlay')).toBeTruthy();
+    expect(screen.getByTestId('glass-fill').props.accessibilityLabel).toMatch(/^glass-/);
   });
 });
