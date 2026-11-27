@@ -202,7 +202,9 @@
     "storedCredsRejected": "Your password changed. Please sign in again.",
     "unlocking": "Signing in…",
     "useBiometric": "Unlock with Face ID",
-    "unlockFailed": "Could not unlock. Try again or use your password."
+    "unlockFailed": "Could not unlock. Try again or use your password.",
+    "lockPasswordBody": "Enter your password to unlock Balance.",
+    "networkError": "No connection. Check your network and try again."
   },
   "context": {
     "personal": "Personal",

@@ -202,7 +202,9 @@
     "storedCredsRejected": "Tu contraseña cambió. Inicia sesión de nuevo.",
     "unlocking": "Iniciando sesión…",
     "useBiometric": "Desbloquear con Face ID",
-    "unlockFailed": "No se pudo desbloquear. Intenta de nuevo o usa tu contraseña."
+    "unlockFailed": "No se pudo desbloquear. Intenta de nuevo o usa tu contraseña.",
+    "lockPasswordBody": "Ingresa tu contraseña para desbloquear Balance.",
+    "networkError": "Sin conexión. Revisa tu red e inténtalo de nuevo."
   },
   "context": {
     "personal": "Personal",

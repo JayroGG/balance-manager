@@ -32,5 +32,7 @@ export const bootstrapState = async (store) => {
   const [tokenRes, flagRes] = await Promise.all([withRetry(getToken), withRetry(readBiometricFlag)]);
   const token = tokenRes.ok ? tokenRes.value : null;
   store.dispatch(hydrateAuth({ token, user: decodeUser(token) }));
-  store.dispatch(initLock(flagRes.ok ? flagRes.value : true));
+  // Mandatory lock: a session (token) locks the app even without biometrics; the flag only picks the unlock method.
+  const enabled = flagRes.ok ? flagRes.value : true;
+  store.dispatch(initLock({ enabled, locked: enabled || !!token }));
 };

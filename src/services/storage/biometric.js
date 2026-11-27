@@ -69,10 +69,19 @@ export const canUseBiometrics = async () =>
   (await LocalAuthentication.hasHardwareAsync()) && (await LocalAuthentication.isEnrolledAsync());
 
 // OS prompt; device PIN/pattern allowed as fallback. The app never sees biometric data.
+// disableDeviceFallback:false is intended: the device passcode also unlocks (the owner's call, ADR-024 amendment).
+// `prompting` lets the privacy cover ignore the 'inactive' the OS sheet itself causes.
+let prompting = false;
+export const isBiometricPrompting = () => prompting;
 export const promptBiometric = async (promptMessage) => {
-  const res = await LocalAuthentication.authenticateAsync({
-    promptMessage,
-    disableDeviceFallback: false,
-  });
-  return { success: !!res.success, error: res.success ? null : (res.error ?? null) };
+  prompting = true;
+  try {
+    const res = await LocalAuthentication.authenticateAsync({
+      promptMessage,
+      disableDeviceFallback: false,
+    });
+    return { success: !!res.success, error: res.success ? null : (res.error ?? null) };
+  } finally {
+    prompting = false;
+  }
 };

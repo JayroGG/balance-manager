@@ -117,3 +117,18 @@ describe('cold start', () => {
     expect(store.getState().auth.bootstrapped).toBe(true);
   });
 });
+
+describe('mandatory lock', () => {
+  it('a session with NO biometric creds still cold-starts locked (password unlock)', async () => {
+    await setToken(TOKEN);
+    const store = makeStore();
+    await bootstrapState(store);
+    expect(store.getState().lock).toMatchObject({ enabled: false, locked: true });
+  });
+
+  it('no session and no creds cold-starts unlocked (Login)', async () => {
+    const store = makeStore();
+    await bootstrapState(store);
+    expect(store.getState().lock).toMatchObject({ enabled: false, locked: false });
+  });
+});

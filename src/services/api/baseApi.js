@@ -76,13 +76,19 @@ const baseQueryWithErrorShape = async (args, api, extraOptions) => {
       // refreshing again would reuse the rotated refresh token and revoke the session.
       const alreadyRefreshed = selectToken(api.getState()) !== sentToken;
       if (!alreadyRefreshed) outcome = await refreshSession(api, extraOptions);
-      if (outcome === 'transient') return result; // stay logged in; the caller can retry later
+      // stay logged in; the caller can retry later. `refresh` tells a caller that cannot log out (step-up, the lock
+      // screen) why the 401 is not a verdict on its own request.
+      if (outcome === 'transient') {
+        result.error.refresh = outcome;
+        return result;
+      }
       if (outcome === 'ok') {
         result = await rawBaseQuery(args, api, extraOptions);
         if (!result.error) return result;
         shapeError(result);
         session = result.error.status !== 401;
       }
+      if (outcome === 'invalid') result.error.refresh = outcome;
       if (!session && !NO_LOGOUT_ENDPOINTS.includes(api.endpoint)) {
         // Required lazily, not imported: hardLogout reaches back for baseApi.util.resetApiState(), and a
         // top-level import on either side leaves one of them undefined at module-init time.
