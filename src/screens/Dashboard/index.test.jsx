@@ -314,7 +314,27 @@ describe('balance card press-swap menu (ADR-027)', () => {
     expect(screen.getByText('dashboard.transferNoDestination')).toBeTruthy();
     fireEvent.press(screen.getByTestId('transfer-tile'));
     expect(mockPushSpy).not.toHaveBeenCalled();
-    expect(screen.queryByTestId('placeholder-tile')).toBeNull();
+  });
+
+  it('shows two dimmed placeholders that capture no touch: a tap on them swaps back, no action fires', async () => {
+    mockWithTeams([{ id: 2, name: 'Casa', role: 'owner' }]);
+    renderWithStore(<Dashboard />);
+    await screen.findByTestId('hero');
+    await tapCard();
+    await waitFor(() => expect(screen.getByTestId('transfer-tile')).toBeTruthy());
+    // the reveal ghost duplicates the tree while the card rises: wait for it to settle
+    await waitFor(() => expect(screen.getAllByTestId('placeholder-slot', { includeHiddenElements: true })).toHaveLength(2), { timeout: 2000 });
+    const slots = screen.getAllByTestId('placeholder-slot', { includeHiddenElements: true });
+    slots.forEach((slot) => {
+      expect(slot.props.pointerEvents).toBe('none'); // not hit-testable, so the touch lands on the card
+      expect(slot.props.onPress).toBeUndefined();
+      expect(slot.props.accessibilityRole).not.toBe('button');
+    });
+    expect(screen.getAllByText('dashboard.soon', { includeHiddenElements: true })).toHaveLength(2);
+    // the touch that lands on a placeholder is the card's own press: it swaps back and triggers nothing else
+    await tapCard();
+    await waitFor(() => expect(screen.queryByTestId('transfer-tile')).toBeNull());
+    expect(mockPushSpy).not.toHaveBeenCalled();
   });
 
   it('opens the transfer flow from the enabled tile and returns to the front', async () => {

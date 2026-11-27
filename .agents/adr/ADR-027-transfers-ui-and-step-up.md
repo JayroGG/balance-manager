@@ -34,7 +34,9 @@ global admin as read-only inside teams (role 'admin' unknown to `src/permissions
   a press that becomes a scroll/cancel rises without swapping. Reduce Motion: no sink, a short crossfade. Outside side
   changes (context switch, leaving the screen, a tile action) crossfade. The card returns to the front after a tile pick, on context
   switch and when leaving the screen. The back shows ONLY Transfer: a small glass disc (icon only, soft lift shadow) in the first slot (top-left, on the card padding, room for future actions
-  beside it) with a plain label under it carrying a matching text shadow, no box. Nothing else on the back is pressable, so a tap anywhere else swaps back. Whole-card touch (front content is
+  beside it) with a plain label under it carrying a matching text shadow, no box. Two dimmed 'Soon' placeholder slots sit beside it,
+  the three spread evenly; placeholders are plain Views with `pointerEvents='none'` (never Pressables), so a tap on them
+  swaps the card back. Nothing else on the back is pressable, so a tap anywhere else swaps back. Whole-card touch (front content is
   non-interactive inside one Pressable). Any other screen's tappable card must make the CONTAINER the Pressable
   (`CyclingFigure` `style`/`trailing`): the Transactions totals bar only responded on its text because the Pressable was a
   shrink-wrapped child of a padded View.
