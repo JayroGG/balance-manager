@@ -391,6 +391,22 @@ describe('cards (ADR-023)', () => {
     expect(screen.queryByTestId('active-filters')).toBeNull();
   });
 
+  it('selected icon filters get a 2px accent border; unselected keep the 44x44 box', async () => {
+    const { StyleSheet } = require('react-native');
+    renderWithStore(<TransactionsList />);
+    await screen.findByText('Laptop');
+    const card = () => StyleSheet.flatten(screen.getByTestId('card-filter-button').props.style);
+    const date = () => StyleSheet.flatten(screen.getByTestId('date-filter-button').props.style);
+    expect(card().borderWidth).toBeLessThan(2);
+    expect(date().borderWidth).toBeLessThan(2);
+    fireEvent.press(await screen.findByTestId('card-filter-button'));
+    fireEvent.press(screen.getByTestId('card-menu-8'));
+    pickDate('week');
+    await waitFor(() => expect(card().borderWidth).toBe(2));
+    expect(date().borderWidth).toBe(2);
+    [card(), date()].forEach((st) => expect([st.width, st.height]).toEqual([44, 44]));
+  });
+
   it('active-filter lines: card and date each get a line with its own x that clears just that filter', async () => {
     renderWithStore(<TransactionsList />);
     await screen.findByText('Laptop');

@@ -38,7 +38,7 @@ jest.mock('react-native-reanimated', () => {
     __esModule: true,
     default: { View },
     useSharedValue: (v) => useRef({ value: v }).current,
-    useAnimatedStyle: (f) => f(),
+    useAnimatedStyle: (f) => require('../../test-utils/visualOrder').lazyStyle(f),
     withSpring: (v) => v,
     withTiming: (v) => v,
     Easing: { out: (f) => f, cubic: 1 },
@@ -46,6 +46,7 @@ jest.mock('react-native-reanimated', () => {
 });
 
 import { useState } from 'react';
+import { visualOrder } from '../../test-utils/visualOrder';
 import { AppState, View } from 'react-native';
 import { Text } from 'react-native';
 import { act } from '@testing-library/react-native';
@@ -182,7 +183,7 @@ describe('Dashboard top-3 follows every drop (both tabs mounted)', () => {
     await act(async () => jest.advanceTimersByTime(1600)); // PUT ok -> awaiting
     server = [1, 2, 3, 4]; // the server list disagrees (e.g. changed elsewhere)
     await refetch(store);
-    const rows = () => screen.getAllByTestId('row').map((n) => n.props.children);
+    const rows = () => visualOrder(screen.getAllByTestId('row')).map((n) => n.props.children);
     await act(async () => jest.advanceTimersByTime(30000));
     expect(dash()).toEqual(['V2', 'V1', 'V3']); // < 60s: still local
     expect(rows()).toEqual(['#V2', '#V1', '#V3', '#V4']);
@@ -203,7 +204,7 @@ describe('Dashboard top-3 follows every drop (both tabs mounted)', () => {
     stop = startVaultOrderSync(store, { delay: 1500 });
     await act(async () => jest.advanceTimersByTime(10));
     act(() => measure());
-    const rows = () => screen.queryAllByTestId('row').map((n) => n.props.children);
+    const rows = () => visualOrder(screen.queryAllByTestId('row')).map((n) => n.props.children);
     const agree = (dashExpect, rowsExpect) => {
       expect(dash()).toEqual(dashExpect);
       if (rowsExpect) expect(rows()).toEqual(rowsExpect);
@@ -215,6 +216,7 @@ describe('Dashboard top-3 follows every drop (both tabs mounted)', () => {
     await refetch(store);
     agree(['V2', 'V1', 'V3']);
     act(() => setShow(true)); // Vaults tab mounts later than the Dashboard
+    act(() => measure());
     agree(['V2', 'V1', 'V3'], ['#V2', '#V1', '#V3', '#V4']);
     await act(async () => jest.advanceTimersByTime(59000));
     agree(['V2', 'V1', 'V3'], ['#V2', '#V1', '#V3', '#V4']);

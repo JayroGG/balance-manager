@@ -110,7 +110,7 @@ const makeStyles = (colors) =>
       borderColor: colors.border,
       backgroundColor: colors.card,
     },
-    buttonActive: { borderColor: colors.cardAccent },
+    buttonActive: { borderWidth: 2, borderColor: colors.cardAccent },
     actions: { flexDirection: 'row', gap: spacing(1), marginTop: spacing(1.5) },
     action: { flex: 1 },
   });

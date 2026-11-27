@@ -162,7 +162,7 @@ balance-manager/                 # app name: balance-mobile
 │   │   ├── Transactions/{ListScreen,DateFilter,MonthPicker,RangeCalendar,NewScreen,EditScreen}.jsx  TransactionForm.jsx
 │   │   ├── Vaults/{ListScreen,NewScreen,DetailScreen,reorder}.jsx   # local-first order hook (ADR-024)
 │   │   ├── Lock/index.jsx   # biometric lock screen (ADR-024)
-│   │   ├── Loans/{ListScreen,NewScreen,DetailScreen}.jsx   # lent-out money (ADR-018)
+│   │   ├── Loans/{ListScreen,NewScreen,DetailScreen,reorder}.jsx   # lent-out money (ADR-018); device-only order (ADR-026)
 │   │   ├── Cards/{ListScreen,NewScreen,DetailScreen}.jsx   # credit cards + pay flow (ADR-023; routes app/(tabs)/settings/cards/*)
 │   │   ├── Teams/{ListScreen,ManageScreen}.jsx   # team management (ADR-012)
 │   │   ├── Categories/index.jsx   Settings/index.jsx

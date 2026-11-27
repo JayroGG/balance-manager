@@ -20,6 +20,7 @@ import activityReducer from '../reducers/activity';
 import lockReducer from '../reducers/lock';
 import { stripMutations } from './stripMutations';
 import vaultOrderReducer from '../reducers/vaultOrder';
+import loanOrderReducer from '../reducers/loanOrder';
 import { startVaultOrderSync } from '../reducers/vaultOrder/sync';
 
 const rootReducer = combineReducers({
@@ -30,6 +31,7 @@ const rootReducer = combineReducers({
   activity: activityReducer,
   lock: lockReducer,
   vaultOrder: vaultOrderReducer,
+  loanOrder: loanOrderReducer,
 });
 
 // Persist the RTK Query cache only → instant cold-start paint + offline reads (ADR-007).
@@ -38,7 +40,7 @@ const persistConfig = {
   key: 'root',
   version: 1,
   storage: AsyncStorage,
-  whitelist: [baseApi.reducerPath, 'context', 'prefs', 'activity', 'vaultOrder'],
+  whitelist: [baseApi.reducerPath, 'context', 'prefs', 'activity', 'vaultOrder', 'loanOrder'],
   transforms: [stripMutations],
 };
 
