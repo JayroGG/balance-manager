@@ -338,6 +338,7 @@
     "wrongPassword": "Contraseña incorrecta",
     "stepUpExpired": "La verificación expiró. Inténtalo de nuevo.",
     "stepUpFailed": "No se pudo verificar. Intenta de nuevo.",
+    "personalLabel": "{{name}} (personal)",
     "rowTo": "Transferencia a {{label}}",
     "rowFrom": "Transferencia de {{label}}",
     "reversalTo": "Devolución a {{label}}",

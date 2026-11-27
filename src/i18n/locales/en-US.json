@@ -338,10 +338,11 @@
     "wrongPassword": "Wrong password",
     "stepUpExpired": "Verification expired. Try again.",
     "stepUpFailed": "Could not verify. Try again.",
+    "personalLabel": "{{name}} (personal)",
     "rowTo": "Transfer to {{label}}",
     "rowFrom": "Transfer from {{label}}",
-    "reversalTo": "Devolución to {{label}}",
-    "reversalFrom": "Devolución from {{label}}",
+    "reversalTo": "Reversal to {{label}}",
+    "reversalFrom": "Reversal from {{label}}",
     "detail": "Transfer",
     "readOnly": "Transfers can’t be edited or deleted.",
     "revert": "Revert",
@@ -349,6 +350,6 @@
     "revertConfirmBody": "The money goes back to where it came from.",
     "reverted": "Reverted",
     "viewReversal": "Reversed on",
-    "isReversal": "Devolución"
+    "isReversal": "Reversal"
   }
 }

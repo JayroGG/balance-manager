@@ -22,13 +22,13 @@ export const GlassFill = ({ intensity = 80 }) => {
   const { colors, scheme } = useTheme();
   const reduce = useReduceTransparency();
   const target = useContext(BlurTargetContext);
-  if (reduce) return <View testID="glass-fill" accessibilityLabel="glass-solid" style={[StyleSheet.absoluteFill, { backgroundColor: colors.card }]} />;
+  if (reduce) return <View testID="glass-fill" nativeID="glass-solid" style={[StyleSheet.absoluteFill, { backgroundColor: colors.card }]} />;
   if (!nativeBlurAvailable()) {
     warnMissing();
     return (
       <View
         testID="glass-fill"
-        accessibilityLabel="glass-wash"
+        nativeID="glass-wash"
         style={[StyleSheet.absoluteFill, { backgroundColor: scheme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.55)' }]}
       />
     );
@@ -36,7 +36,7 @@ export const GlassFill = ({ intensity = 80 }) => {
   return (
     <BlurView
       testID="glass-fill"
-      accessibilityLabel="glass-blur"
+      nativeID="glass-blur"
       intensity={intensity}
       tint={scheme === 'dark' ? 'dark' : 'light'}
       blurTarget={Platform.OS === 'android' ? target : undefined}

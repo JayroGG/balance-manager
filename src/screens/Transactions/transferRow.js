@@ -2,11 +2,20 @@
 // a row belongs to a reversal ("devolución") when its transfer has reversal_of set.
 export const isTransferRow = (row) => row?.type === 'transfer_out' || row?.type === 'transfer_in';
 
+// The counterpart's words come from i18n, not from the API: counterpart_kind ('personal' | 'team') + counterpart_name
+// (email local part / team name). Older API builds only send the baked counterpart_label: fall back to it.
+export const counterpartLabel = (row, t) => {
+  if (row.counterpart_kind && row.counterpart_name) {
+    return row.counterpart_kind === 'personal' ? t('transfers.personalLabel', { name: row.counterpart_name }) : row.counterpart_name;
+  }
+  return row.counterpart_label ?? '';
+};
+
 // i18n key + params for the row title. out = "to {counterpart}", in = "from {counterpart}".
 export const transferLabel = (row, t) => {
   const reversal = row.reversal_of != null;
   const dir = row.type === 'transfer_out' ? 'To' : 'From';
-  return t(`transfers.${reversal ? 'reversal' : 'row'}${dir}`, { label: row.counterpart_label ?? '' });
+  return t(`transfers.${reversal ? 'reversal' : 'row'}${dir}`, { label: counterpartLabel(row, t) });
 };
 
 export const transferSign = (row) => (row.type === 'transfer_out' ? -1 : 1);

@@ -12,6 +12,15 @@ it('labels transfer rows by direction and reversal', () => {
   expect(transferLabel({ ...out, reversal_of: 3 }, t)).toBe('transfers.reversalTo|Casa');
 });
 
+it('composes the counterpart from kind + name via i18n, falling back to the baked label', () => {
+  const tt = (key, p) => (key === 'transfers.personalLabel' ? `${p.name} (personal)` : `${key}|${p.label}`);
+  const base = { type: 'transfer_out', reversal_of: null };
+  expect(transferLabel({ ...base, counterpart_kind: 'personal', counterpart_name: 'jax', counterpart_label: 'old' }, tt)).toBe('transfers.rowTo|jax (personal)');
+  expect(transferLabel({ ...base, counterpart_kind: 'team', counterpart_name: 'Casa', counterpart_label: 'old' }, tt)).toBe('transfers.rowTo|Casa');
+  expect(transferLabel({ ...base, counterpart_label: 'Casa' }, tt)).toBe('transfers.rowTo|Casa'); // older API: no new fields
+  expect(transferLabel({ ...base, counterpart_kind: 'personal' }, tt)).toBe('transfers.rowTo|'); // kind without a name: nothing to compose
+});
+
 it('detects transfer rows and sign', () => {
   expect(isTransferRow({ type: 'transfer_in' })).toBe(true);
   expect(isTransferRow({ type: 'income' })).toBe(false);

@@ -374,7 +374,7 @@ describe('balance card press-swap menu (ADR-027)', () => {
     mockWithTeams([]);
     renderWithStore(<Dashboard />);
     const hero = await screen.findByTestId('hero');
-    expect(hero.props.accessibilityLabel).toMatch(/^glass-(wash|solid)$/);
-    expect(screen.getByTestId('glass-fill').props.accessibilityLabel).toMatch(/^glass-/);
+    expect(hero.props.nativeID).toMatch(/^glass-(wash|solid)$/);
+    expect(screen.getByTestId('glass-fill').props.nativeID).toMatch(/^glass-/);
   });
 });

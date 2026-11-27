@@ -44,21 +44,21 @@ export const GlassSurface = ({ children, style, intensity = 60, flat = false, un
 
   if (kind === 'solid') {
     return (
-      <View testID={testID} accessibilityLabel="glass-solid" style={[base, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      <View testID={testID} nativeID="glass-solid" style={[base, { backgroundColor: colors.card, borderColor: colors.border }]}>
         {children}
       </View>
     );
   }
   if (kind === 'liquid') {
     return (
-      <GlassView testID={testID} accessibilityLabel="glass-liquid" glassEffectStyle="clear" style={base}>
+      <GlassView testID={testID} nativeID="glass-liquid" glassEffectStyle="clear" style={base}>
         {highlight}
         {children}
       </GlassView>
     );
   }
   return (
-    <View testID={testID} accessibilityLabel={kind === 'blur' ? 'glass-blur' : 'glass-wash'} style={[base, { backgroundColor: wash }]}>
+    <View testID={testID} nativeID={kind === 'blur' ? 'glass-blur' : 'glass-wash'} style={[base, { backgroundColor: wash }]}>
       {kind === 'blur' ? (
         <BlurView intensity={intensity} tint={dark ? 'dark' : 'light'} style={StyleSheet.absoluteFill} pointerEvents="none" />
       ) : null}
