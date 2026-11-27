@@ -250,26 +250,26 @@ export default function TransactionsList() {
         </View>
       ) : null}
 
-      <View style={styles.totals}>
-        {confirmed && totals ? (
-          <>
-            <CyclingFigure
-              testID="totals-cycle"
-              currency={currency}
-              dotColor={colors.muted}
-              labelStyle={styles.totalLabel}
-              valueStyle={styles.totalValue}
-              steps={[
-                { key: 'net', label: t('transactions.net'), amount: totals.net, color: colors.text, signed: true },
-                { key: 'income', label: t('transactions.income'), amount: totals.income, color: colors.success },
-                { key: 'expense', label: t('transactions.expense'), amount: totals.expense, color: colors.danger },
-                // Charges are already inside `expense`; payments are cash out but not a spend, so they are
-                // a separate step (never added into expense/net) — keeps the rows adding up (ADR-023).
-                ...(totals.card_payments > 0
-                  ? [{ key: 'card_payments', label: t('cards.payment'), amount: totals.card_payments, color: colors.muted }]
-                  : []),
-              ]}
-            />
+      {confirmed && totals ? (
+        <CyclingFigure
+          testID="totals-cycle"
+          style={styles.totals}
+          accessibilityHint={t('transactions.results', { count: totals.count })}
+          currency={currency}
+          dotColor={colors.muted}
+          labelStyle={styles.totalLabel}
+          valueStyle={styles.totalValue}
+          steps={[
+            { key: 'net', label: t('transactions.net'), amount: totals.net, color: colors.text, signed: true },
+            { key: 'income', label: t('transactions.income'), amount: totals.income, color: colors.success },
+            { key: 'expense', label: t('transactions.expense'), amount: totals.expense, color: colors.danger },
+            // Charges are already inside `expense`; payments are cash out but not a spend, so they are
+            // a separate step (never added into expense/net) — keeps the rows adding up (ADR-023).
+            ...(totals.card_payments > 0
+              ? [{ key: 'card_payments', label: t('cards.payment'), amount: totals.card_payments, color: colors.muted }]
+              : []),
+          ]}
+          trailing={
             <View style={styles.totalsMeta}>
               <Text style={styles.count} testID="totals-count">{t('transactions.results', { count: totals.count })}</Text>
               {stale ? (
@@ -278,16 +278,16 @@ export default function TransactionsList() {
                 </View>
               ) : null}
             </View>
-          </>
-        ) : (
-          // Fixed-geometry placeholder — never wraps the figure, replaces it, so an unconfirmed
-          // context can never paint a plausible-looking 0.00 (ADR-019).
-          <View testID="totals-skeleton">
-            <Skeleton width={70} height={font.sm + 2} style={styles.totalSkeletonLabel} />
-            <Skeleton width={110} height={font.lg + 6} />
-          </View>
-        )}
-      </View>
+          }
+        />
+      ) : (
+        // Fixed-geometry placeholder — never wraps the figure, replaces it, so an unconfirmed
+        // context can never paint a plausible-looking 0.00 (ADR-019).
+        <View testID="totals-skeleton" style={styles.totals}>
+          <Skeleton width={70} height={font.sm + 2} style={styles.totalSkeletonLabel} />
+          <Skeleton width={110} height={font.lg + 6} />
+        </View>
+      )}
 
       <QueryBoundary isLoading={!currentData && isFetching} error={currentData ? null : error} onRetry={refetch}>
         <FlatList

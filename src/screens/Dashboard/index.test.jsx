@@ -314,7 +314,7 @@ describe('balance card press-swap menu (ADR-027)', () => {
     expect(screen.getByText('dashboard.transferNoDestination')).toBeTruthy();
     fireEvent.press(screen.getByTestId('transfer-tile'));
     expect(mockPushSpy).not.toHaveBeenCalled();
-    expect(screen.getAllByTestId('placeholder-tile')).toHaveLength(3);
+    expect(screen.queryByTestId('placeholder-tile')).toBeNull();
   });
 
   it('opens the transfer flow from the enabled tile and returns to the front', async () => {

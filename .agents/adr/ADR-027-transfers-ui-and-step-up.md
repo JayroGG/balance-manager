@@ -8,7 +8,7 @@ BE adds owner-only inter-context transfers guarded by a server step-up permit. T
 global admin as read-only inside teams (role 'admin' unknown to `src/permissions`).
 
 ## Decision
-- **Entry:** pressing the Dashboard balance card swaps it to a glass options menu whose **Transfer** tile opens the flow (the old text link is removed). The tile is enabled only when the caller owns the current context
+- **Entry:** pressing the Dashboard balance card swaps it to a back face whose centred **Transfer** control opens the flow (the old text link is removed). It is enabled only when the caller owns the current context
   (personal counts) and at least one other (real role from `GET /teams`, not 'admin').
 - **Flow:** destination (owned contexts except current) -> amount -> if short, manual vault split
   (source vaults with balances; confirm only when parts == shortfall exactly) -> note + date (default
@@ -33,8 +33,13 @@ global admin as read-only inside teams (role 'admin' unknown to `src/permissions
   80ms, rise 300ms) so a quick tap plays the whole sequence; presses during a sequence are ignored (no queue, no flicker);
   a press that becomes a scroll/cancel rises without swapping. Reduce Motion: no sink, a short crossfade. Outside side
   changes (context switch, leaving the screen, a tile action) crossfade. The card returns to the front after a tile pick, on context
-  switch and when leaving the screen. The back is a 2x2 grid of glass tiles filling the card; gutters sit OUTSIDE the tile
-  Pressables so a tap outside a tile swaps back; whole-card touch (front content is non-interactive inside one Pressable).
+  switch and when leaving the screen. The back shows ONLY Transfer: a small glass disc (icon only, soft lift shadow) in the first slot (top-left, on the card padding, room for future actions
+  beside it) with a plain label under it carrying a matching text shadow, no box. Nothing else on the back is pressable, so a tap anywhere else swaps back. Whole-card touch (front content is
+  non-interactive inside one Pressable). Any other screen's tappable card must make the CONTAINER the Pressable
+  (`CyclingFigure` `style`/`trailing`): the Transactions totals bar only responded on its text because the Pressable was a
+  shrink-wrapped child of a padded View.
+  Release order gotcha: Pressability fires `onPressOut` BEFORE `onPress`, so after a long hold the rise must wait for the
+  swapped side to render (`ownSwap`, `swapWaitMs`), else the reveal setup lands after the rise and the card ends blank.
 - **Glass:** the card is near-transparent frosted white (`GlassSurface`: white wash, thin light rim, top highlight, ink
   `colors.text`) over a `GlassFill` blur layer; the accent lives only in a single soft, low-saturation glow behind it
   (`GlassBackdrop`). Paths: Reduce Transparency -> opaque card color; otherwise `expo-blur` BlurView (iOS UIVisualEffect;
@@ -49,8 +54,8 @@ global admin as read-only inside teams (role 'admin' unknown to `src/permissions
 - **Layout gotcha:** RN 0.85 removed `StyleSheet.absoluteFillObject`; spreading it silently gives nothing, so the options
   face collapsed to ~0 height and every row overlapped (jest could not see it). A jest guard now bans it; verify layout on
   the simulator, not only in jest.
-- **A11y:** the front is one button (expanded state); on the back the card is NOT a group, so each tile is individually
-  reachable and the front is hidden from screen readers; VoiceOver's two-finger escape swaps back (iOS only — TalkBack has
+- **A11y:** the front is one button (expanded state); on the back the card is NOT a group, so the Transfer control is
+  reachable (its disabled reason is its hint) and the front is hidden from screen readers; VoiceOver's two-finger escape swaps back (iOS only — TalkBack has
   no swap-back gesture; switching context or leaving the screen also resets).
 - **Hit areas:** `Chip` min height 44; the whole visual element is the target.
 - **Libraries:** `expo-glass-effect` + `expo-blur` (SDK 56 pinned, owner-approved). Native modules: dev builds/APKs

@@ -22,11 +22,13 @@ import { GlassFill } from '../../components/glass/GlassFill';
 
 const CARD_RADIUS = 16;
 
+// minHeight: the back (24pt pad + 56pt disc + label + a two-line disabled reason) must fit even a short front
+const HERO_MIN_HEIGHT = 150;
 // The balance card's frosted glass frame (ADR-027); a stable component so PressSwap never remounts its content.
 const HeroSurface = ({ style, children, overdrawn }) => {
   const { colors } = useTheme();
   return (
-    <GlassSurface flat under={<GlassFill />} testID="hero" style={[style, overdrawn && { borderColor: colors.danger }]}>
+    <GlassSurface flat under={<GlassFill />} testID="hero" style={[style, { minHeight: HERO_MIN_HEIGHT }, overdrawn && { borderColor: colors.danger }]}>
       {children}
     </GlassSurface>
   );
@@ -228,7 +230,6 @@ export default function Dashboard() {
               }
               back={
                 <BalanceOptions
-                  radius={CARD_RADIUS}
                   canTransfer={canTransfer}
                   transferReason={transferReason}
                   onTransfer={() => {

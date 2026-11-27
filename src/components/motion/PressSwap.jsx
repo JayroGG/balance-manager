@@ -80,6 +80,14 @@ export const PressSwap = ({ side, onSwap, front, back, Surface = View, surfacePr
   const tryRise = () => {
     const s = st.current;
     if (phase.current !== 'down' || s.pressed) return;
+    // The swap was asked for but the new side has not rendered yet (Pressability fires onPressOut BEFORE onPress, so
+    // a long hold gets here in the same tick as doSwap): rising now would run the plain fade and the reveal setup
+    // would land after it, leaving the real content at opacity 0 (a blank card). Wait for the side change to land.
+    if (ownSwap.current !== null && Date.now() - s.swapAt < T.swapWaitMs) {
+      later(tryRise, 16);
+      return;
+    }
+    ownSwap.current = null;
     const wait = s.t0 + T.sinkMs + T.holdMs - Date.now();
     if (wait > 0) later(tryRise, wait);
     else rise();
@@ -88,6 +96,7 @@ export const PressSwap = ({ side, onSwap, front, back, Surface = View, surfacePr
   const doSwap = () => {
     const next = sideRef.current === 'front' ? 'back' : 'front';
     st.current.swapped = true;
+    st.current.swapAt = Date.now();
     ownSwap.current = next; // the side change we expect back: show it now, while the card is down
     onSwap?.(next);
   };

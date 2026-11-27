@@ -8,6 +8,7 @@ import * as Haptics from 'expo-haptics';
 export const pressSwap = {
   sinkMs: 120, // down + content fade-out (min)
   holdMs: 80, // at the bottom, after the swap (min)
+  swapWaitMs: 300, // max wait for the parent to render the swapped side before rising anyway
   riseMs: 300, // smooth ease back up + content fade-in
   sinkY: 5, // pt the card moves down
   sinkScale: 0.96,
