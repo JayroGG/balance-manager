@@ -34,11 +34,13 @@ jest.mock('react-native-reanimated', () => {
   };
 });
 
-import SortableList, { moveItem, targetIndex } from './SortableList';
+import SortableList, { moveItem, targetIndex, autoScrollStep } from './SortableList';
 
 const data = [{ id: 'a' }, { id: 'b' }, { id: 'c' }];
 
 describe('SortableList', () => {
+  afterEach(() => jest.useRealTimers());
+
   it('pure helpers: moveItem + targetIndex', () => {
     expect(moveItem(['a', 'b', 'c'], 0, 2)).toEqual(['b', 'c', 'a']);
     expect(moveItem(['a'], 0, 0)).toEqual(['a']);
@@ -115,5 +117,46 @@ describe('SortableList', () => {
     fireEvent.press(screen.getByTestId('add'));
     measure();
     expect(visualOrder(screen.getAllByText(/^[abcn]$/), 50).map((n) => n.props.children)).toEqual(['n', 'a', 'b', 'c']);
+  });
+
+  it('autoScrollStep: scrolls near edges (faster deeper), clamps at the ends, idle in the middle, never pulls back from overscroll', () => {
+    expect(autoScrollStep(400, 800, 100, 1000)).toBe(0);
+    expect(autoScrollStep(30, 800, 100, 1000)).toBeLessThan(0);
+    expect(autoScrollStep(5, 800, 100, 1000)).toBeLessThan(autoScrollStep(40, 800, 100, 1000));
+    expect(autoScrollStep(760, 800, 100, 1000)).toBeGreaterThan(0);
+    expect(autoScrollStep(10, 800, 0, 1000)).toBe(0); // at the top already
+    expect(autoScrollStep(790, 800, 1000, 1000)).toBe(0); // at the bottom already
+    expect(autoScrollStep(790, 800, 995, 1000)).toBe(5); // clamped to the end
+    expect(autoScrollStep(10, 800, -60, 1000)).toBe(0); // overscrolled (refresh spinner): leave it alone
+    expect(autoScrollStep(790, 800, 1060, 1000)).toBe(0);
+    expect(autoScrollStep(790, 800, 100, 1000, 2)).toBe(2 * autoScrollStep(790, 800, 100, 1000)); // time-scaled
+  });
+
+  it('holding a row at the bottom edge auto-scrolls, keeps it under the finger, stops at the end, and the drop uses the scroll offset', () => {
+    jest.useFakeTimers();
+    const { Text, ScrollView } = require('react-native');
+    const { rowView } = require('../../test-utils/visualOrder');
+    const onReorder = jest.fn();
+    const { UNSAFE_getByType } = render(
+      <SortableList data={data} keyExtractor={(i) => i.id} renderItem={({ item }) => <Text>{item.id}</Text>} onReorder={onReorder} />,
+    );
+    ['a', 'b', 'c'].forEach((id) =>
+      act(() => rowView(screen.getByText(id), 'onLayout').props.onLayout({ nativeEvent: { layout: { height: 50 } } })),
+    );
+    const sv = UNSAFE_getByType(ScrollView);
+    act(() => sv.props.onLayout({ nativeEvent: { layout: { height: 100 } } }));
+    act(() => sv.props.onContentSizeChange(0, 300)); // max scroll 200
+    const ty = () => rowView(screen.getByText('c'), 'onLayout').props.style.transform[0].translateY;
+    act(() => mockHandlers.onStart({ y: 10 }));
+    act(() => jest.advanceTimersByTime(16 * 3));
+    expect(ty()).toBe(0); // finger has not moved yet: not armed, no runaway
+    act(() => mockHandlers.onUpdate({ translationY: 20 }));
+    act(() => jest.advanceTimersByTime(16 * 3));
+    expect(ty()).toBeGreaterThan(20); // armed: row follows the scroll
+    act(() => jest.advanceTimersByTime(16 * 100));
+    expect(ty()).toBe(220); // 20 + stopped at the content end (200)
+    act(() => mockHandlers.onFinalize({ translationY: -270 }, true)); // -270 + 200 scrolled = -70 -> slot 1
+    expect(onReorder.mock.calls[0][0]).toEqual(['a', 'c', 'b']);
+    act(() => jest.advanceTimersByTime(16 * 10));
   });
 });

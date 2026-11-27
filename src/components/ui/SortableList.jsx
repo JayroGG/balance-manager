@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import * as Haptics from 'expo-haptics';
@@ -39,6 +39,27 @@ export const targetIndex = (heights, from, dy) => {
   return to;
 };
 
+// Edge auto-scroll: while the FINGER is within EDGE px of the viewport top/bottom (and has moved ARM px since the
+// lift, so lifting a row that already sits near an edge does not run away) the list scrolls every TICK ms, up to
+// MAX_STEP px per 16ms (linear in how deep into the zone the finger is; full speed past it), scaled by the real
+// elapsed time so a busy JS thread does not slow it.
+const EDGE = 72;
+const MAX_STEP = 14;
+const TICK = 16;
+const ARM = 8;
+
+// Pure: signed scroll step (px) for a finger at viewport y; never moves past [0, maxPos] and never pulls back
+// from an overscrolled position (iOS bounce / refresh spinner).
+export const autoScrollStep = (fingerY, viewH, pos, maxPos, scale = 1) => {
+  let d = 0;
+  if (fingerY < EDGE) d = -MAX_STEP * Math.min(1, (EDGE - fingerY) / EDGE);
+  else if (fingerY > viewH - EDGE) d = MAX_STEP * Math.min(1, (fingerY - (viewH - EDGE)) / EDGE);
+  d *= scale;
+  if (d < 0) return pos <= 0 ? 0 : Math.max(d, -pos);
+  if (d > 0) return pos >= maxPos ? 0 : Math.min(d, maxPos - pos);
+  return 0;
+};
+
 function Row({ index, base, shift, onMeasure, onLift, onMove, onDrop, onCancel, children }) {
   const ty = useSharedValue(0);
   const lift = useSharedValue(0);
@@ -76,14 +97,21 @@ function Row({ index, base, shift, onMeasure, onLift, onMove, onDrop, onCancel, 
       Gesture.Pan()
         .runOnJS(true)
         .activateAfterLongPress(300)
-        .onStart(() => {
+        .onStart((e) => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
           lift.value = withTiming(1, SNAP);
-          latest.current.onLift(latest.current.index);
+          latest.current.onLift(
+            latest.current.index,
+            (v) => {
+              ty.value = v;
+            },
+            e?.y ?? 0,
+          );
         })
         .onUpdate((e) => {
-          ty.value = e.translationY;
-          latest.current.onMove(latest.current.index, e.translationY);
+          // `extra` = how far the list auto-scrolled since the lift, so the row stays under the finger.
+          const extra = latest.current.onMove(latest.current.index, e.translationY);
+          ty.value = e.translationY + extra;
         })
         .onFinalize((e, success) => {
           if (!success) {
@@ -94,11 +122,11 @@ function Row({ index, base, shift, onMeasure, onLift, onMove, onDrop, onCancel, 
             return;
           }
           // The row's slot moves by `delta`; shift the slot base and counter-offset the translation by the
-          // same amount so the row stays under the finger, then snap to rest. Transforms only.
+          // same amount so the row stays under the finger (auto-scroll included), then snap to rest. Transforms only.
           const base0 = baseRef.current;
-          const delta = latest.current.onDrop(latest.current.index, e.translationY);
+          const { delta, extra } = latest.current.onDrop(latest.current.index, e.translationY);
           bs.value = base0 + delta;
-          ty.value = e.translationY - delta;
+          ty.value = e.translationY + extra - delta;
           ty.value = withTiming(0, SNAP);
           lift.value = withTiming(0, SNAP);
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -119,6 +147,10 @@ export default function SortableList({ data, renderItem, keyExtractor, onReorder
   const mounted = useRef(null); // key-stable native order: the order rows first rendered (the saved order)
   const [drag, setDrag] = useState(null); // { from, to } — display indices
   const [, bump] = useState(0);
+  const scrollRef = useRef(null);
+  const view = useRef({ h: 0, content: 0, innerY: 0, y: 0 }); // viewport h, content h, list offset in content, idle scroll y
+  const auto = useRef({ timer: null, from: -1, dy: 0, pos: 0, pos0: 0, setTy: null, touchY: 0, last: 0 });
+  const calc = useRef(null); // latest render's closure, for the auto-scroll timer
   const keys = data.map(keyExtractor);
   const hs = () => keys.map((k) => heights.current[k] ?? 0);
 
@@ -148,22 +180,83 @@ export default function SortableList({ data, renderItem, keyExtractor, onReorder
     return 0;
   };
 
+  const stopAuto = () => {
+    clearInterval(auto.current.timer);
+    auto.current.timer = null;
+  };
+  useEffect(() => stopAuto, []);
+
+  const scrolled = () => auto.current.pos - auto.current.pos0;
+  calc.current = () => {
+    const a = auto.current;
+    const h = hs();
+    const now = Date.now();
+    const scale = Math.min(4, (now - a.last) / TICK);
+    a.last = now;
+    if (Math.abs(a.dy) < ARM) return;
+    // finger position in the viewport: row top (content) + where the finger grabbed the row + drag, minus scroll
+    const finger = view.current.innerY + h.slice(0, a.from).reduce((x, y) => x + y, 0) + a.touchY + a.dy - a.pos0;
+    const d = autoScrollStep(finger, view.current.h, a.pos, view.current.content - view.current.h, scale);
+    if (!d) return;
+    a.pos += d;
+    scrollRef.current?.scrollTo?.({ y: a.pos, animated: false });
+    a.setTy?.(a.dy + scrolled());
+    const to = targetIndex(h, a.from, a.dy + scrolled());
+    setDrag((cur) => (cur && cur.from === a.from && cur.to !== to ? { from: a.from, to } : cur));
+  };
+
+  const lift = (i, setTy, touchY) => {
+    const a = auto.current;
+    stopAuto();
+    const y0 = Math.max(0, view.current.y);
+    Object.assign(a, { from: i, dy: 0, pos: y0, pos0: y0, setTy, touchY, last: Date.now() });
+    a.timer = setInterval(() => calc.current(), TICK);
+    setDrag({ from: i, to: i });
+  };
+
   const drop = (from, dy) => {
-    const to = targetIndex(hs(), from, dy);
+    const extra = scrolled();
+    stopAuto();
+    const to = targetIndex(hs(), from, dy + extra);
     setDrag(null);
-    if (to === from) return 0;
+    if (to === from) return { delta: 0, extra };
     const h = hs();
     // slot delta of the moved row after the reorder
     const delta = to > from ? h.slice(from + 1, to + 1).reduce((a, b) => a + b, 0) : -h.slice(to, from).reduce((a, b) => a + b, 0);
     // keys are STRINGS-or-whatever keyExtractor returns (React keys) — hand back the items too so the
     // caller never has to map keys back to typed ids (a numeric id vs '2' mismatch broke vault order).
     onReorder(moveItem(keys, from, to), moveItem(data, from, to));
-    return delta;
+    return { delta, extra };
   };
 
   return (
-    <ScrollView {...rest} scrollEnabled={!drag}>
-      <View>
+    <ScrollView
+      {...rest}
+      ref={scrollRef}
+      scrollEnabled={!drag}
+      scrollEventThrottle={16}
+      onScroll={(e) => {
+        view.current.y = e.nativeEvent.contentOffset.y;
+        rest.onScroll?.(e);
+      }}
+      onScrollEndDrag={(e) => {
+        view.current.y = e.nativeEvent.contentOffset.y;
+        rest.onScrollEndDrag?.(e);
+      }}
+      onMomentumScrollEnd={(e) => {
+        view.current.y = e.nativeEvent.contentOffset.y;
+        rest.onMomentumScrollEnd?.(e);
+      }}
+      onLayout={(e) => {
+        view.current.h = e.nativeEvent.layout.height;
+        rest.onLayout?.(e);
+      }}
+      onContentSizeChange={(w, h) => {
+        view.current.content = h;
+        rest.onContentSizeChange?.(w, h);
+      }}
+    >
+      <View onLayout={(e) => (view.current.innerY = e.nativeEvent.layout.y)}>
         {order.map((key) => {
           const index = keys.indexOf(key);
           return (
@@ -179,13 +272,18 @@ export default function SortableList({ data, renderItem, keyExtractor, onReorder
                   if (!first || order.some((k, i) => k !== keys[i])) bump((n) => n + 1);
                 }
               }}
-              onLift={(i) => setDrag({ from: i, to: i })}
+              onLift={lift}
               onMove={(i, dy) => {
-                const to = targetIndex(hs(), i, dy);
+                auto.current.dy = dy;
+                const to = targetIndex(hs(), i, dy + scrolled());
                 setDrag((d) => (d && d.from === i && d.to === to ? d : { from: i, to }));
+                return scrolled();
               }}
               onDrop={drop}
-              onCancel={() => setDrag(null)}
+              onCancel={() => {
+                stopAuto();
+                setDrag(null);
+              }}
             >
               {renderItem({ item: data[index], index })}
             </Row>
