@@ -3,10 +3,11 @@ import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
+import { useGetMeQuery } from '../../services/api/users';
 import { useGetTeamsQuery, useCreateTeamMutation } from '../../services/api/teams';
 import { Screen, ScreenHeader, Card, Field, ColorSwatchPicker, AppButton, SectionTitle, Muted, QueryBoundary } from '../../components/ui';
 import { useTheme } from '../../hooks/useTheme';
-import { PRESET_TEAM_COLORS, font, spacing } from '../../components/theme';
+import { DEFAULT_ACCENT, PRESET_TEAM_COLORS, font, spacing } from '../../components/theme';
 import { isValidHex, normalizeHex } from '../../utils/colors';
 
 // Teams list — the entry point to team management (ADR-012). Grouped by role: teams you OWN (tap →
@@ -18,6 +19,7 @@ export default function TeamsList() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
   const { data: teams, isLoading, error, refetch } = useGetTeamsQuery();
+  const { data: me } = useGetMeQuery();
   const [createTeam, { isLoading: creating }] = useCreateTeamMutation();
 
   const [adding, setAdding] = useState(false);
@@ -82,6 +84,14 @@ export default function TeamsList() {
           <AppButton title={t('teams.create')} onPress={onCreate} loading={creating} disabled={!name.trim()} />
         </Card>
       ) : null}
+
+      <Card testID="personal-row" onPress={() => router.push('/(tabs)/teams/personal')}>
+        <View style={styles.rowBetween}>
+          <View style={[styles.dot, { backgroundColor: (me?.color && normalizeHex(me.color)) || DEFAULT_ACCENT }]} />
+          <Text style={styles.name}>{t('teams.personalName')}</Text>
+          <Ionicons name="chevron-forward" size={18} color={colors.muted} />
+        </View>
+      </Card>
 
       <QueryBoundary
         isLoading={isLoading && !teams}

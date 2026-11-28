@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import * as Haptics from 'expo-haptics';
+import { dropHaptic, liftHaptic } from '../../theme/motion';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
 // Snap, no overshoot: short ease-out for every settle / displacement.
@@ -98,7 +98,7 @@ function Row({ index, base, shift, onMeasure, onLift, onMove, onDrop, onCancel, 
         .runOnJS(true)
         .activateAfterLongPress(300)
         .onStart((e) => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          liftHaptic();
           lift.value = withTiming(1, SNAP);
           latest.current.onLift(
             latest.current.index,
@@ -129,7 +129,7 @@ function Row({ index, base, shift, onMeasure, onLift, onMove, onDrop, onCancel, 
           ty.value = e.translationY + extra - delta;
           ty.value = withTiming(0, SNAP);
           lift.value = withTiming(0, SNAP);
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          dropHaptic();
         }),
     [],
   );

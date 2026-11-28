@@ -37,3 +37,11 @@ export const pastel = (hex, scheme = 'light') => {
   h = Math.round((h * 60 + 360) % 360);
   return scheme === 'dark' ? `hsl(${h}, 30%, 42%)` : `hsl(${h}, 40%, 80%)`;
 };
+
+// '#RRGGBB' + alpha 0..1 → 'rgba(r,g,b,a)' (falls back to the input when it isn't a hex).
+export const withAlpha = (hex, alpha) => {
+  const v = normalizeHex(hex);
+  if (!v) return hex;
+  const n = (i) => parseInt(v.slice(i, i + 2), 16);
+  return `rgba(${n(1)},${n(3)},${n(5)},${alpha})`;
+};

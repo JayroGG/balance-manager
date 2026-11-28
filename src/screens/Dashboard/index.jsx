@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useDispatch } from 'react-redux';
@@ -20,7 +20,8 @@ import { GlassSurface } from '../../components/glass/GlassSurface';
 import { GlassBackdrop } from '../../components/glass/GlassBackdrop';
 import { GlassFill } from '../../components/glass/GlassFill';
 
-const CARD_RADIUS = 16;
+// Android's crystal card has bolder corners (ADR-028)
+const CARD_RADIUS = Platform.OS === 'android' ? 24 : 16;
 
 // minHeight: the back (24pt pad + 56pt disc + label + a two-line disabled reason) must fit even a short front
 const HERO_MIN_HEIGHT = 150;
@@ -28,7 +29,7 @@ const HERO_MIN_HEIGHT = 150;
 const HeroSurface = ({ style, children, overdrawn }) => {
   const { colors } = useTheme();
   return (
-    <GlassSurface flat under={<GlassFill />} testID="hero" style={[style, { minHeight: HERO_MIN_HEIGHT }, overdrawn && { borderColor: colors.danger }]}>
+    <GlassSurface flat danger={overdrawn} under={<GlassFill />} testID="hero" style={[style, { minHeight: HERO_MIN_HEIGHT }, overdrawn && { borderColor: colors.danger }]}>
       {children}
     </GlassSurface>
   );
@@ -207,7 +208,6 @@ export default function Dashboard() {
               side={side}
               onSwap={setSide}
               Surface={HeroSurface}
-              frostTint={scheme === 'dark' ? 'dark' : 'light'}
               surfaceProps={{ overdrawn }}
               front={
                 <View style={styles.hero}>

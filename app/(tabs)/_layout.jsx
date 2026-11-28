@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { selectIsAuthed } from '../../src/reducers/auth';
 import { selectActiveTeamId, setActiveTeam } from '../../src/reducers/context';
 import { useGetTeamsQuery } from '../../src/services/api/teams';
+import { useGetMeQuery } from '../../src/services/api/users';
 import { useTheme } from '../../src/hooks/useTheme';
 import { BrandSpinner } from '../../src/components/ui';
 import { spacing } from '../../src/components/theme';
@@ -48,6 +49,7 @@ export default function TabsLayout() {
   const { data: teams, error: teamsError, isLoading, isUninitialized } = useGetTeamsQuery(undefined, {
     skip: !authed,
   });
+  useGetMeQuery(undefined, { skip: !authed }); // owns the personal-color cache that useTheme reads (404 → default accent)
   const styles = makeStyles(colors);
 
   // If the active team disappears (deleted, or you were removed), fall back to personal — otherwise the

@@ -1,11 +1,5 @@
 jest.mock('react-native-reanimated', () => require('../../test-utils/reanimatedMock'));
-jest.mock('expo-haptics', () => ({ impactAsync: jest.fn(), ImpactFeedbackStyle: { Medium: 'medium' } }));
-// the reveal path (ghost template + real text fading in) only runs with a native blur
-jest.mock('../glass/glassSupport', () => ({
-  ...jest.requireActual('../glass/glassSupport'),
-  nativeBlurAvailable: () => true,
-}));
-
+jest.mock('expo-haptics', () => ({ impactAsync: jest.fn(), ImpactFeedbackStyle: { Light: 'light', Medium: 'medium' } }));
 import { useState } from 'react';
 import { StyleSheet, Text } from 'react-native';
 import { render, fireEvent, screen, act } from '@testing-library/react-native';

@@ -3,10 +3,11 @@
 const React = require('react');
 const { View } = require('react-native');
 
-// Re-evaluates `transform` on every read (SortableList tests watch it move); other keys are read once.
+// Re-evaluates every key on each read (SortableList tests watch `transform` move; PressSwap tests watch `opacity`).
 const lazyStyle = (f) => {
-  const { transform, ...rest } = f();
-  return Object.defineProperty({ ...rest }, 'transform', { get: () => f().transform, enumerable: true });
+  const out = {};
+  Object.keys(f()).forEach((k) => Object.defineProperty(out, k, { get: () => f()[k], enumerable: true }));
+  return out;
 };
 
 module.exports = {

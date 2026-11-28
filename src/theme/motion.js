@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
 // Single home for the motion language (ADR-027): press-swap timings, shadow depth, and the haptic tap.
@@ -13,12 +14,7 @@ export const pressSwap = {
   sinkY: 5, // pt the card moves down
   sinkScale: 0.96,
   fadeFloor: 0.28, // outgoing content softens to this opacity, never to blank
-  blurMax: 6, // px of real blur at the bottom (Android only)
-  ghostOpacity: 0.7, // the template's peak opacity
-  ghostInMs: 90, // the template forms at the bottom
-  realDelayMs: 60, // the real text starts sharpening in on top of it
-  ghostBlurFrom: 4, // px (Android) -> ghostBlurTo while it dissolves
-  ghostBlurTo: 14,
+  riseY: 8, // pt the new content rises from while it fades in
   crossfadeMs: 160, // Reduce Motion and external swaps: no sink, just fade out/in
 };
 
@@ -28,10 +24,26 @@ export const depth = {
   pressed: { y: 1, blur: 3, alpha: 0.22 },
 };
 
-export const tapHaptic = () => {
+// Haptics (ADR-028): short and light everywhere. Android uses the platform's own light effects
+// (performAndroidHapticsAsync: a crisp tick, not the long motor buzz of impactAsync); iOS uses the Light/Soft impacts.
+//   tap  — press down on the swap card     (Android Context_Click, iOS Light)
+//   lift — a drag arms after the long-press (Android Gesture_Start, iOS Light)
+//   drop — the drag settled                (Android Gesture_End,   iOS Soft)
+const play = (androidType, iosStyle) => {
+  const impact = () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle?.[iosStyle]);
   try {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (Platform.OS === 'android' && Haptics.performAndroidHapticsAsync && Haptics.AndroidHaptics) {
+      // Gesture_Start/End need API 30+: an older device rejects, so fall back to a light impact
+      Promise.resolve(Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics[androidType])).catch(() =>
+        Promise.resolve(impact()).catch(() => {}),
+      );
+    } else {
+      Promise.resolve(impact()).catch(() => {});
+    }
   } catch {
     /* haptics unavailable (simulator/web) */
   }
 };
+export const tapHaptic = () => play('Context_Click', 'Light');
+export const liftHaptic = () => play('Gesture_Start', 'Light');
+export const dropHaptic = () => play('Gesture_End', 'Soft');

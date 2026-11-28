@@ -18,3 +18,14 @@ describe('pickGlassKind', () => {
     expect(pickGlassKind({ reduceTransparency: false, liquid: false, blurAvailable: false })).toBe('wash');
   });
 });
+
+describe('pickGlassKind on Android (ADR-028)', () => {
+  it('uses the crystal surface: no native blur, flat or not', () => {
+    expect(pickGlassKind({ reduceTransparency: false, liquid: false, android: true })).toBe('crystal');
+    expect(pickGlassKind({ reduceTransparency: false, liquid: false, flat: true, android: true })).toBe('crystal');
+    expect(pickGlassKind({ reduceTransparency: false, liquid: false, blurAvailable: false, android: true })).toBe('crystal');
+  });
+  it('Reduce Transparency still wins with the solid card color', () => {
+    expect(pickGlassKind({ reduceTransparency: true, liquid: false, android: true })).toBe('solid');
+  });
+});
